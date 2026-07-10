@@ -1,0 +1,93 @@
+name: Deploy API to Pi
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - ".github/workflows/deploy.yml"
+
+env:
+  PUBLISH_DIR: publish
+  RELEASE_PATH: /opt/backingtrack/releases/${{ github.sha }}
+  CURRENT_PATH: /opt/backingtrack/current
+  SERVICE_NAME: backingtrack-api.service
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install arm64 cross toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+
+      - name: Publish Native AOT (linux-arm64)
+        run: |
+          dotnet publish api/src/BackingTrack.Api \
+            -c Release \
+            -r linux-arm64 \
+            -p:PublishAot=true \
+            --self-contained \
+            -o "./$PUBLISH_DIR"
+
+      - name: Verify InvariantGlobalization made it into the AOT publish
+        run: |
+          grep -q '"System.Globalization.Invariant": true' \
+            "./$PUBLISH_DIR/BackingTrack.Api.runtimeconfig.json"
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Write deploy key
+        run: |
+          install -m 600 /dev/null /tmp/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}" > /tmp/deploy_key
+
+      - name: Wait for Pi SSH and record host key
+        run: |
+          mkdir -p ~/.ssh
+          for i in 1 2 3; do
+            ssh-keyscan -H "${{ vars.PI_TAILSCALE_IP }}" >> ~/.ssh/known_hosts 2>/dev/null && break
+            sleep 2
+          done
+
+      - name: Copy release to Pi
+        run: |
+          ssh -i /tmp/deploy_key "ci-deploy@${{ vars.PI_TAILSCALE_IP }}" \
+            "mkdir -p '$RELEASE_PATH'"
+          scp -i /tmp/deploy_key -r "./$PUBLISH_DIR/." \
+            "ci-deploy@${{ vars.PI_TAILSCALE_IP }}:$RELEASE_PATH/"
+
+      - name: Swap release and restart service
+        run: |
+          ssh -i /tmp/deploy_key "ci-deploy@${{ vars.PI_TAILSCALE_IP }}" \
+            "chmod +x '$RELEASE_PATH/BackingTrack.Api' && \
+             ln -sfn '$RELEASE_PATH' '$CURRENT_PATH' && \
+             sudo systemctl restart '$SERVICE_NAME'"
+
+      - name: Health check
+        run: |
+          for i in $(seq 1 10); do
+            if curl -sf "http://${{ vars.PI_TAILSCALE_IP }}:5080/health"; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Health check failed after deploy" >&2
+          exit 1
+
+      - name: Clean up deploy key
+        if: always()
+        run: rm -f /tmp/deploy_key

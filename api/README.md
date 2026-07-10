@@ -29,3 +29,16 @@ Currently a bare template — no generation logic yet.
 ```
 dotnet build
 ```
+
+## Deployment
+
+Push to `main` (touching `api/**`) triggers [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml):
+cross-compiles Native AOT for `linux-arm64`, joins the tailnet via `tailscale/github-action`,
+and deploys to the Pi over SSH, restarting the `backingtrack-api` systemd service.
+
+This assumes the Pi has already been bootstrapped once — see
+[`/scripts/pi-bootstrap.sh`](../scripts/pi-bootstrap.sh) (creates the runtime/deploy users,
+systemd unit, and directory structure) and
+[`docs/adr/0002-tailscale-oauth-shared-deploy-user.md`](../docs/adr/0002-tailscale-oauth-shared-deploy-user.md)
+for the reasoning behind the user/auth model. Bootstrapping and the one-time Tailscale OAuth
+client/ACL setup are manual, run-once steps — not part of the CI workflow.
