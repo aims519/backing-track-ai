@@ -1,0 +1,18 @@
+# .NET
+api/**/bin/
+api/**/obj/
+*.user
+
+# Xcode / Swift
+app/**/xcuserdata/
+app/**/*.xcuserstate
+app/**/DerivedData/
+app/**/.build/
+app/**/*.xcworkspace/xcuserdata/
+
+# Environment / secrets
+.env
+*.env
+
+# OS
+.DS_Store
