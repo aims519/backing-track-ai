@@ -42,8 +42,13 @@ visudo -cf "$SUDOERS_FILE"
 
 echo "== Creating directory structure =="
 mkdir -p "$APP_ROOT/releases" "$APP_ROOT/shared"
+# ci-deploy owns $APP_ROOT itself (not just releases/) because it needs to create/update
+# the "current" symlink directly inside it - that requires write access on the parent
+# directory, not on releases/.
+chown "$DEPLOY_USER:$DEPLOY_USER" "$APP_ROOT"
 chown "$DEPLOY_USER:$DEPLOY_USER" "$APP_ROOT/releases"
 chown "$RUNTIME_USER:$RUNTIME_USER" "$APP_ROOT/shared"
+chmod 755 "$APP_ROOT"
 chmod 750 "$APP_ROOT/releases" "$APP_ROOT/shared"
 
 echo "== Writing environment file (edit $ENV_FILE afterwards for real secrets) =="
