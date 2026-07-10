@@ -49,7 +49,12 @@ chown "$DEPLOY_USER:$DEPLOY_USER" "$APP_ROOT"
 chown "$DEPLOY_USER:$DEPLOY_USER" "$APP_ROOT/releases"
 chown "$RUNTIME_USER:$RUNTIME_USER" "$APP_ROOT/shared"
 chmod 755 "$APP_ROOT"
-chmod 750 "$APP_ROOT/releases" "$APP_ROOT/shared"
+# releases/ must be traversable by backingtrack-api (the runtime user, not the owner and not
+# in ci-deploy's group) so systemd can chdir into the release directory the "current" symlink
+# points at. No secrets live here (those are in shared/, kept at 750/600), so world-readable
+# is fine.
+chmod 755 "$APP_ROOT/releases"
+chmod 750 "$APP_ROOT/shared"
 
 echo "== Writing environment file (edit $ENV_FILE afterwards for real secrets) =="
 if [[ ! -f "$ENV_FILE" ]]; then

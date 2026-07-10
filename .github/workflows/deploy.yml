@@ -62,7 +62,7 @@ jobs:
       - name: Copy release to Pi
         run: |
           ssh -i /tmp/deploy_key "ci-deploy@${{ vars.PI_TAILSCALE_IP }}" \
-            "mkdir -p '$RELEASE_PATH'"
+            "mkdir -p '$RELEASE_PATH' && chmod 755 '$RELEASE_PATH'"
           scp -i /tmp/deploy_key -r "./$PUBLISH_DIR/." \
             "ci-deploy@${{ vars.PI_TAILSCALE_IP }}:$RELEASE_PATH/"
 
