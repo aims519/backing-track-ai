@@ -35,6 +35,7 @@ jobs:
             -c Release \
             -r linux-arm64 \
             -p:PublishAot=true \
+            -p:ObjCopyName=aarch64-linux-gnu-objcopy \
             --self-contained \
             -o "./$PUBLISH_DIR"
 
