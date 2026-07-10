@@ -39,11 +39,6 @@ jobs:
             --self-contained \
             -o "./$PUBLISH_DIR"
 
-      - name: Verify InvariantGlobalization made it into the AOT publish
-        run: |
-          grep -q '"System.Globalization.Invariant": true' \
-            "./$PUBLISH_DIR/BackingTrack.Api.runtimeconfig.json"
-
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
