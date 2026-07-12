@@ -33,10 +33,13 @@ The Pi's role is lightweight: orchestrate API calls (to an LLM and/or a third-pa
 
 ### Precise Mode (chord-locked)
 
-- The Pi builds a music-theory-aware prompt from the user's parameters and sends a single call to a general-purpose LLM (e.g. Claude/GPT) — no separate "music-specialized" model exists as an off-the-shelf API, so the prompt design *is* the specialization.
-- The LLM returns structured note/pattern data (drum pattern, bassline, chord voicings) as JSON.
-- **Validation/repair layer**: output is checked against music theory constraints (correct key, chord tones, timing) and auto-corrected or regenerated on failure. This is the core engineering depth of the project.
-- **Rule-based fallback generator**: if the LLM output repeatedly fails validation, a deterministic algorithmic generator (e.g. via `music21`-style pattern logic) produces the track instead, guaranteeing the app never fails to return something playable.
+Built as an **agentic workflow using Microsoft Agent Framework** (the production-ready successor to Semantic Kernel/AutoGen, .NET-native) rather than a single LLM call — this is the piece that demonstrates agentic architecture, a specific goal of the project alongside the AI engineering depth.
+
+- **Retrieve (RAG)**: before generating, the agent retrieves relevant music theory context — scales, chord-progression patterns, style conventions — from an embedded knowledge base, grounding the generation in reference material rather than relying on the LLM's unaided recall.
+- **Generate**: using the user's parameters plus the retrieved context, the agent calls a general-purpose LLM (e.g. Claude/GPT) — no separate "music-specialized" model exists as an off-the-shelf API, so the prompt design and retrieval grounding *are* the specialization. Returns structured note/pattern data (drum pattern, bassline, chord voicings) as JSON.
+- **Validate**: output is checked against music theory constraints (correct key, chord tones, timing).
+- **Iterate/repair**: on validation failure, the agent attempts to auto-correct or regenerate, looping within the agentic workflow rather than failing outright. This validate→repair loop is the core engineering depth of the project.
+- **Rule-based fallback generator**: if the agent repeatedly fails validation, a deterministic algorithmic generator (e.g. via `music21`-style pattern logic) produces the track instead, guaranteeing the app never fails to return something playable.
 - Structured data is converted to MIDI-equivalent note events and sent to the app.
 - Played back in SwiftUI via AVFoundation/AudioKit using **sampled instruments** (not basic synth tones) for realism — mirrors the approach used by comparable apps in this space (e.g. backingtrack.app).
 - Fully tempo-adjustable and loopable live on-device, since no re-generation is needed to change playback.
@@ -52,13 +55,14 @@ The Pi's role is lightweight: orchestrate API calls (to an LLM and/or a third-pa
 ## MVP Feature List
 
 - Chord/key/tempo/style input UI
-- Precise mode: LLM generation → validation/repair → rule-based fallback → sampled playback
+- Precise mode: agentic RAG-grounded generation (Microsoft Agent Framework) → validate/repair loop → rule-based fallback → sampled playback
 - Vibe mode: third-party audio API → direct playback
 - Loop and tempo controls (Precise mode)
 - Pi-hosted API, deployed as a persistent service
 
 ## Stretch Goals
 
+- Chord/fretboard visualization component, synced to playback — deferred from MVP to keep initial scope focused on generation + playback; revisit once the core dual-mode generation is working
 - Server-side audio export/render of Precise-mode tracks (via FluidSynth + soundfont on the Pi) for download/sharing
 - Saved presets / recent tracks (SQLite on the Pi — no login needed for single-user use)
 - Additional styles/genres
@@ -93,3 +97,4 @@ The core concept (AI-generated backing tracks) already exists commercially (back
 - End-to-end self-hosted deployment on personal hardware (Pi), not a cloud SaaS
 - Dual-mode generation exposing the real tradeoff between structured accuracy and generative realism
 - Visible engineering around LLM reliability (validation, repair, fallback) rather than a raw API wrapper
+- Agentic architecture (Microsoft Agent Framework) and RAG-grounded generation, not just a prompt-and-parse API call
