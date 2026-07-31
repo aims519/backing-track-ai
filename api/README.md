@@ -6,7 +6,7 @@ and [`/docs/adr/`](../docs/adr/) for the reasoning behind non-obvious structural
 
 ## Structure
 
-```
+```text
 api/
   src/
     BackingTrack.Api/          host project — endpoints, DI wiring, config
@@ -26,9 +26,36 @@ Currently a bare template — no generation logic yet.
 
 ## Building
 
-```
+```bash
 dotnet build
 ```
+
+## Local development
+
+`/tracks` endpoints require an `X-API-Key` header, checked against `Auth:ApiKey` in configuration
+(bound to `AuthSettings`). Set it locally via user secrets rather than `appsettings.Development.json`:
+
+```bash
+cd src/BackingTrack.Api
+dotnet user-secrets set "Auth:ApiKey" "<any local value>"
+```
+
+On the Pi, the same setting is supplied as the `Auth__ApiKey` environment variable in
+`/opt/backingtrack/shared/api.env` (double underscore — see
+[`scripts/pi-bootstrap.sh`](../scripts/pi-bootstrap.sh)).
+
+`BackingTrack.Api.http` requests reference `{{ApiKey}}` but deliberately don't define it inline, to
+keep the key out of a tracked file. Create a gitignored `http-client.private.env.json` alongside it:
+
+```json
+{
+  "dev": {
+    "ApiKey": "<value matching your user secret>"
+  }
+}
+```
+
+Select the `dev` environment when sending requests from the `.http` file.
 
 ## Deployment
 
