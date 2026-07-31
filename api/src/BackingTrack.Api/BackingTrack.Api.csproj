@@ -3,6 +3,7 @@
   <PropertyGroup>
     <PublishAot>true</PublishAot>
     <RuntimeIdentifiers>linux-arm64;osx-arm64</RuntimeIdentifiers>
+    <UserSecretsId>9bfbe952-7205-4483-a332-90e2290ae828</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

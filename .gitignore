@@ -3,6 +3,9 @@ api/**/bin/
 api/**/obj/
 *.user
 
+# JetBrains Rider
+.idea/
+
 # Xcode / Swift
 app/**/xcuserdata/
 app/**/*.xcuserstate
@@ -13,6 +16,7 @@ app/**/*.xcworkspace/xcuserdata/
 # Environment / secrets
 .env
 *.env
+*.private.env.json
 
 # OS
 .DS_Store
