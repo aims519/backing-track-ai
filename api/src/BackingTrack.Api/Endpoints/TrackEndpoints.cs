@@ -6,8 +6,10 @@ internal static class TrackEndpoints
         return group;
     }
 
-    private static async Task<IResult> Generate()
+    private static async Task<IResult> Generate(ILoggerFactory loggerFactory)
     {
-        throw new NotImplementedException();
+        ILogger logger = loggerFactory.CreateLogger(nameof(TrackEndpoints));
+        logger.LogInformation("Generating backing track...");
+        return Results.Ok();
     }
 }
