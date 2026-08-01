@@ -6,6 +6,11 @@ using BackingTrack.Core.Config;
 
 using Microsoft.AspNetCore.Mvc;
 
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
@@ -38,6 +43,50 @@ else
         options.IncludeScopes = true;
         options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
         options.UseUtcTimestamp = true;
+    });
+}
+
+OtelSettings otelSettings = builder.Configuration.GetSection("Otel").Get<OtelSettings>() ?? new OtelSettings();
+if (otelSettings.bEnabled)
+{
+    if(string.IsNullOrEmpty(otelSettings.CollectorEndpoint))
+        throw new InvalidOperationException("Otel:CollectorEndpoint must be set when Otel:bEnabled is true.");
+
+    builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resourceBuilder =>
+    {
+        resourceBuilder.AddService(serviceName: builder.Environment.ApplicationName,
+            serviceVersion: typeof(Program).Assembly.GetName().Version?.ToString());
+    })
+    .WithTracing(tracerProviderBuilder =>
+    {
+        tracerProviderBuilder
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddOtlpExporter(options =>
+            {
+                options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
+            });
+    })
+    .WithMetrics(metricProviderBuilder =>
+    {
+        metricProviderBuilder
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddOtlpExporter(options =>
+            {
+                options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
+            });
+    });
+
+    builder.Logging.AddOpenTelemetry(options =>
+    {
+        options.IncludeScopes = true;
+        options.IncludeFormattedMessage = true;
+        options.AddOtlpExporter(otlpExporterOptions =>
+        {
+            otlpExporterOptions.Endpoint = new Uri(otelSettings.CollectorEndpoint);
+        });
     });
 }
 

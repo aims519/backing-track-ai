@@ -2,5 +2,5 @@ namespace BackingTrack.Core.Config;
 
 public class AuthSettings
 {
-    public string ApiKey { get; set; }
+    public required string ApiKey { get; set; }
 }
