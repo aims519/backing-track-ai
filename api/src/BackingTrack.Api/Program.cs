@@ -1,4 +1,7 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 
 using BackingTrack.Api.Auth;
 using BackingTrack.Api.Errors;
@@ -7,6 +10,7 @@ using BackingTrack.Core.Config;
 
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 using OpenTelemetry.Logs;
@@ -27,6 +31,7 @@ builder.Configuration.AddUserSecrets<Program>();
 builder.Services.AddOptions();
 builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("Auth"));
 builder.Services.Configure<OtelSettings>(builder.Configuration.GetSection("Otel"));
+builder.Services.Configure<RateLimitSettings>(builder.Configuration.GetSection("RateLimit"));
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -110,15 +115,61 @@ if (otelSettings.bEnabled)
 builder.Services.AddHealthChecks()
     .AddCheck("live", () => HealthCheckResult.Healthy(), tags: ["live"]);
 
+RateLimitSettings rateLimitSettings = builder.Configuration.GetSection("RateLimit").Get<RateLimitSettings>()!;
+
+static string GetPartitionKey(HttpContext context)
+{
+    string? apiKey = context.Request.Headers["X-API-Key"]; 
+    return string.IsNullOrEmpty(apiKey) ? "anonymous" : HashApiKey(apiKey);     
+}
+static string HashApiKey(string apiKey)
+{
+    byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(apiKey));
+    return Convert.ToHexString(hash)[..8];
+}
+builder.Services.AddRateLimiter(rateLimitOptions =>
+{
+    rateLimitOptions.AddPolicy("fixed", context =>
+    {
+        string partitionKey = GetPartitionKey(context);
+
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = rateLimitSettings.PermitLimit,
+            Window = TimeSpan.FromSeconds(rateLimitSettings.WindowSeconds),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0,
+        });
+    });
+    
+    rateLimitOptions.OnRejected = async (context, cancellationToken) =>
+    {
+        // Custom rejection handling logic
+        ILogger logger = context.HttpContext.RequestServices
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("RateLimiting");
+
+        string partitionKey = GetPartitionKey(context.HttpContext);
+        logger.LogWarning("Rate limit exceeded for partition {Partition} on {Path}",
+            partitionKey,
+            context.HttpContext.Request.Path);
+
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.Headers["Retry-After"] = rateLimitSettings.WindowSeconds.ToString();
+        await context.HttpContext.Response.WriteAsync("Rate limit exceeded. Please try again later.", cancellationToken);
+    };
+});
+
 WebApplication app = builder.Build();
 
 app.UseExceptionHandler();
+
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-
 
 app.MapHealthChecks("/healthz/ready", new()
 {
@@ -130,8 +181,9 @@ app.MapHealthChecks("/healthz/live", new()
     Predicate = healthCheck => healthCheck.Tags.Contains("live")
 });
 
-RouteGroupBuilder tracks = app.MapGroup("/tracks")
+RouteGroupBuilder _ = app.MapGroup("/tracks")
     .AddEndpointFilter<ApiKeyFilter>()
+    .RequireRateLimiting("fixed")
     .MapTrackEndpoints();
 
 app.Run();
