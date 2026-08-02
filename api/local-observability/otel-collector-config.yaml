@@ -18,6 +18,7 @@ exporters:
     verbosity: basic
 
 service:
+  extensions: [health_check]
   pipelines:
     traces:
       receivers: [otlp]
@@ -31,3 +32,11 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp/grafana, debug]
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+    path: "/healthz/status"
+    response_body:
+      healthy: Healthy
+      unhealthy: Unhealthy

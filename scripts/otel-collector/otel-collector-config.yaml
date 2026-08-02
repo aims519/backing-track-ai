@@ -14,6 +14,12 @@ extensions:
     client_auth:
       username: "1745886"
       password: "${env:GRAFANA_API_TOKEN}"
+  health_check:
+    endpoint: 0.0.0.0:13133
+    path: "/healthz/status"
+    response_body:
+      healthy: Healthy
+      unhealthy: Unhealthy
 
 exporters:
   otlphttp/grafanacloud:
@@ -22,7 +28,7 @@ exporters:
       authenticator: basicauth/grafanacloud
 
 service:
-  extensions: [basicauth/grafanacloud]
+  extensions: [basicauth/grafanacloud, health_check]
   pipelines:
     traces:
       receivers: [otlp]

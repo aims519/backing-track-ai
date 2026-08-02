@@ -1,4 +1,9 @@
-GET {{HostAddress}}/health
+GET {{HostAddress}}/healthz/live
+Accept: application/json
+
+###
+
+GET {{HostAddress}}/healthz/ready
 Accept: application/json
 
 ###

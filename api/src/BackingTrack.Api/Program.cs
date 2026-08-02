@@ -2,9 +2,12 @@ using System.Text.Json.Serialization;
 
 using BackingTrack.Api.Auth;
 using BackingTrack.Api.Errors;
+using BackingTrack.Api.HealthChecks;
 using BackingTrack.Core.Config;
 
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -23,6 +26,7 @@ builder.Configuration.AddUserSecrets<Program>();
 
 builder.Services.AddOptions();
 builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("Auth"));
+builder.Services.Configure<OtelSettings>(builder.Configuration.GetSection("Otel"));
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -88,7 +92,23 @@ if (otelSettings.bEnabled)
             otlpExporterOptions.Endpoint = new Uri(otelSettings.CollectorEndpoint);
         });
     });
+    
+    // Register OTEL collector health check
+    if(string.IsNullOrEmpty(otelSettings.CollectorHealthCheckEndpoint))
+        throw new InvalidOperationException("Otel:CollectorHealthCheckEndpoint must be set when Otel:bEnabled is true.");
+
+    builder.Services.AddHttpClient<OtelCollectorHealthCheck>(options =>
+    {
+        options.BaseAddress = new Uri(otelSettings.CollectorHealthCheckEndpoint);
+        options.Timeout =  TimeSpan.FromSeconds(3);
+    });
+    builder.Services.AddHealthChecks()
+        .AddCheck<OtelCollectorHealthCheck>("otelCollector", tags: ["ready"]);
 }
+
+// Default live health check
+builder.Services.AddHealthChecks()
+    .AddCheck("live", () => HealthCheckResult.Healthy(), tags: ["live"]);
 
 WebApplication app = builder.Build();
 
@@ -99,7 +119,16 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/health", () => Results.Ok(new HealthResponse("ok")));
+
+app.MapHealthChecks("/healthz/ready", new()
+{
+    Predicate = healthCheck => healthCheck.Tags.Contains("ready")
+});
+
+app.MapHealthChecks("/healthz/live", new()
+{
+    Predicate = healthCheck => healthCheck.Tags.Contains("live")
+});
 
 RouteGroupBuilder tracks = app.MapGroup("/tracks")
     .AddEndpointFilter<ApiKeyFilter>()
@@ -107,8 +136,5 @@ RouteGroupBuilder tracks = app.MapGroup("/tracks")
 
 app.Run();
 
-internal record HealthResponse(string Status);
-
-[JsonSerializable(typeof(HealthResponse))]
 [JsonSerializable(typeof(ProblemDetails))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext;
