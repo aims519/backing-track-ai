@@ -1,21 +1,29 @@
+# @name healthLive
 GET {{HostAddress}}/healthz/live
 Accept: application/json
 
 ###
 
+# @name healthReady
 GET {{HostAddress}}/healthz/ready
 Accept: application/json
 
 ###
 
 // Valid key: should pass the auth filter
+# @name generateJob
 POST {{HostAddress}}/tracks/generate
 Accept: application/json
 X-API-Key: {{ApiKey}}
 
+> {%
+    client.global.set("jobId", response.body.id);
+%}
+
 ###
 
 // Wrong key: should be rejected with 401 before reaching the handler
+# @name generateJobWrongKey
 POST {{HostAddress}}/tracks/generate
 Accept: application/json
 X-API-Key: wrong-key
@@ -23,7 +31,39 @@ X-API-Key: wrong-key
 ###
 
 // No key: should be rejected with 401 before reaching the handler
+# @name generateJobNoKey
 POST {{HostAddress}}/tracks/generate
+Accept: application/json
+
+###
+
+// Poll the job created above: should return its current state
+# @name getJobStatus
+GET {{HostAddress}}/tracks/status/{{jobId}}
+Accept: application/json
+X-API-Key: {{ApiKey}}
+
+###
+
+// Unknown job id: should be rejected with 404
+# @name getJobStatusUnknownId
+GET {{HostAddress}}/tracks/status/00000000-0000-0000-0000-000000000000
+Accept: application/json
+X-API-Key: {{ApiKey}}
+
+###
+
+// Wrong key: should be rejected with 401 before reaching the handler
+# @name getJobStatusWrongKey
+GET {{HostAddress}}/tracks/status/{{jobId}}
+Accept: application/json
+X-API-Key: wrong-key
+
+###
+
+// No key: should be rejected with 401 before reaching the handler
+# @name getJobStatusNoKey
+GET {{HostAddress}}/tracks/status/{{jobId}}
 Accept: application/json
 
 ###

@@ -1,12 +1,17 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.Channels;
 using System.Threading.RateLimiting;
 
 using BackingTrack.Api.Auth;
+using BackingTrack.Api.Dtos;
+using BackingTrack.Api.Endpoints;
 using BackingTrack.Api.Errors;
 using BackingTrack.Api.HealthChecks;
 using BackingTrack.Core.Config;
+using BackingTrack.Generation;
+using BackingTrack.Generation.Jobs;
 
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
@@ -160,6 +165,12 @@ builder.Services.AddRateLimiter(rateLimitOptions =>
     };
 });
 
+builder.Services.AddSingleton<JobStore>();
+
+Channel<Guid> jobChannel = Channel.CreateUnbounded<Guid>();
+builder.Services.AddSingleton<GenerationJobQueue>(new GenerationJobQueue(jobChannel));
+builder.Services.AddHostedService<GenerationWorkerHostedService>();
+
 WebApplication app = builder.Build();
 
 app.UseExceptionHandler();
@@ -181,7 +192,7 @@ app.MapHealthChecks("/healthz/live", new()
     Predicate = healthCheck => healthCheck.Tags.Contains("live")
 });
 
-RouteGroupBuilder _ = app.MapGroup("/tracks")
+RouteGroupBuilder tracksGroup = app.MapGroup("/tracks")
     .AddEndpointFilter<ApiKeyFilter>()
     .RequireRateLimiting("fixed")
     .MapTrackEndpoints();
@@ -189,4 +200,5 @@ RouteGroupBuilder _ = app.MapGroup("/tracks")
 app.Run();
 
 [JsonSerializable(typeof(ProblemDetails))]
+[JsonSerializable(typeof(GenerationJobDto))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext;
