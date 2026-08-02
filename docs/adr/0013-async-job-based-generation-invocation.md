@@ -32,8 +32,9 @@ No completion percentage is reported. The client stops polling as soon as it see
 state (`Complete`, `CompletedViaFallback`, `Failed`).
 
 The job store is in-memory (no persistence across restarts). If a job vanishes because the
-process restarted mid-job, the client sees the same generic failure as any other `Failed` job
-("there was a problem with your request, please try again") rather than a distinct error case.
+process restarted mid-job, or the client polls an id that never existed, the status endpoint
+returns a plain `404` rather than a `Failed`-shaped response — a missing job is a missing
+resource, not a domain outcome, so it isn't disguised as one of the job's terminal states.
 
 ## Alternatives considered
 
@@ -60,10 +61,10 @@ The client must implement polling (interval, and stopping on any terminal state)
 getting a single result back from the initial request, which is more client-side complexity than
 a synchronous call would need.
 
-A process restart mid-job silently loses that job with no distinct signal to the client beyond a
-generic failure — acceptable for a single-user app today, but if usage or reliability
-expectations grow, this is a real gap: the fix (persisting job state) is a rework of the job
-store, not a config change.
+A process restart mid-job silently loses that job — the client just sees a `404` on its next
+poll, indistinguishable from having polled a typo'd or otherwise invalid id. Acceptable for a
+single-user app today, but if usage or reliability expectations grow, this is a real gap: the fix
+(persisting job state) is a rework of the job store, not a config change.
 
 Without a percentage or other progress signal, the client has no way to distinguish "job is
 progressing normally" from "job is stuck," beyond the states already defined. If jobs ever need a
