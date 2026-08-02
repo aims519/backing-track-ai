@@ -73,15 +73,26 @@ jobs:
              ln -sfn '$RELEASE_PATH' '$CURRENT_PATH' && \
              sudo systemctl restart '$SERVICE_NAME'"
 
-      - name: Health check
+      - name: Liveness check
         run: |
           for i in $(seq 1 10); do
-            if curl -sf "http://${{ vars.PI_TAILSCALE_IP }}:5080/health"; then
+            if curl -sf "http://${{ vars.PI_TAILSCALE_IP }}:5080/healthz/live"; then
               exit 0
             fi
             sleep 2
           done
-          echo "Health check failed after deploy" >&2
+          echo "Liveness check failed after deploy" >&2
+          exit 1
+
+      - name: Readiness check
+        run: |
+          for i in $(seq 1 10); do
+            if curl -sf "http://${{ vars.PI_TAILSCALE_IP }}:5080/healthz/ready"; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Readiness check failed after deploy" >&2
           exit 1
 
       - name: Clean up deploy key
