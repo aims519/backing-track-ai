@@ -22,7 +22,9 @@ X-API-Key: {{ApiKey}}
     "Chords": ["C", "F", "G", "G7"],
     "Tempo": 150,
     "Mode": "Precise",
-    "Style": null
+    "Style": null,
+    "TimeSignatureBeatCount": 4,
+    "TimeSignatureBeatUnit": 4
 }
 > {%
     client.global.set("jobId", response.body.id);
@@ -38,7 +40,9 @@ X-API-Key: {{ApiKey}}
 
 {
     "Key": "",
-    "Mode": "InvalidMode"
+    "Mode": "InvalidMode",
+    "TimeSignatureBeatCount": 1000,
+    "TimeSignatureBeatUnit": 1
 }
 
 > {%

@@ -27,11 +27,13 @@ internal static class TrackEndpoints
                 Id = Guid.NewGuid(), 
                 State = JobStates.Pending, 
                 StartTime = DateTimeOffset.UtcNow,
-                Mode = Enum.Parse<GenerationMode>(requestDto.Mode),
+                Mode = Enum.Parse<GenerationMode>(requestDto.Mode!),
                 Tempo = requestDto.Tempo,
-                Chords = requestDto.Chords,
-                Key = requestDto.Key,
-                Style = requestDto.Style
+                Chords = requestDto.Chords!,
+                Key = requestDto.Key!,
+                Style = requestDto.Style,
+                TimeSignatureBeatCount = requestDto.TimeSignatureBeatCount,
+                TimeSignatureBeatUnit = requestDto.TimeSignatureBeatUnit,
             };
         
         jobStore.AddOrUpdate(job);

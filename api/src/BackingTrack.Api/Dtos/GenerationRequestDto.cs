@@ -1,7 +1,5 @@
 using BackingTrack.Generation.Jobs;
-
 using Microsoft.AspNetCore.Mvc;
-
 namespace BackingTrack.Api.Dtos;
 
 public class GenerationRequestDto
@@ -11,10 +9,16 @@ public class GenerationRequestDto
     public IReadOnlyList<string>? Chords { get; init; }
     public string? Key { get; init; }
     public string? Style { get; init; }
+    public int TimeSignatureBeatCount { get; init; }
+    public int TimeSignatureBeatUnit { get; init; }
 }
 
 public static class GenerationRequestDtoExtensions
 {
+    private static readonly IReadOnlySet<int> ValidBeatUnits = new HashSet<int>() { 2, 4, 8, 16, 32};
+    private const int ValidBeatCountMin = 2;
+    private const int ValidBeatCountMax = 32;
+
     public static ValidationProblemDetails? Validate(this GenerationRequestDto request)
     {
         ValidationProblemDetails validationProblemDetails = new();
@@ -22,7 +26,7 @@ public static class GenerationRequestDtoExtensions
         if (!Enum.TryParse<GenerationMode>(request.Mode, out _))
             validationProblemDetails.Errors.Add(nameof(request.Mode), [$"Invalid generation mode: {request.Mode}. Accepted values are {string.Join(',', Enum.GetNames(typeof(GenerationMode)))}"]);
 
-        if (request.Tempo < 40 || request.Tempo > 240)
+        if (request.Tempo is < 40 or > 240)
             validationProblemDetails.Errors.Add(nameof(request.Tempo), [$"Tempo must be between 40 and 240 BPM, but was {request.Tempo}"
             ]);
 
@@ -31,7 +35,13 @@ public static class GenerationRequestDtoExtensions
 
         if (string.IsNullOrWhiteSpace(request.Key))
             validationProblemDetails.Errors.Add(nameof(request.Key), ["Key must be provided"]);
-
+        
+        if (request.TimeSignatureBeatCount< ValidBeatCountMin || request.TimeSignatureBeatCount > ValidBeatCountMax)
+            validationProblemDetails.Errors.Add(nameof(request.TimeSignatureBeatCount), [$"Time signature beat count must be between {ValidBeatCountMin} and {ValidBeatCountMax}"]);
+        
+        if(!ValidBeatUnits.Contains(request.TimeSignatureBeatUnit))
+            validationProblemDetails.Errors.Add(nameof(request.TimeSignatureBeatUnit), [$"Invalid beat unit {request.TimeSignatureBeatUnit} provided. Must be in [{string.Join(',', ValidBeatUnits)}]"]);
+        
         return validationProblemDetails.Errors.Any() ? validationProblemDetails : null;
     }
 }
