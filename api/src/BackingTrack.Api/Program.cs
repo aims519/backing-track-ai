@@ -169,7 +169,7 @@ builder.Services.AddSingleton<JobStore>();
 
 Channel<Guid> jobChannel = Channel.CreateUnbounded<Guid>();
 builder.Services.AddSingleton<GenerationJobQueue>(new GenerationJobQueue(jobChannel));
-builder.Services.AddHostedService<GenerationWorkerHostedService>();
+builder.Services.AddHostedService<GenerationJobWorkerHostedService>();
 
 WebApplication app = builder.Build();
 
@@ -201,4 +201,5 @@ app.Run();
 
 [JsonSerializable(typeof(ProblemDetails))]
 [JsonSerializable(typeof(GenerationJobDto))]
+[JsonSerializable(typeof(GenerationRequestDto))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext;

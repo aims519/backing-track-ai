@@ -1,5 +1,3 @@
-using System.Threading.Channels;
-
 using BackingTrack.Api.Dtos;
 using BackingTrack.Generation.Jobs;
 
@@ -14,18 +12,28 @@ internal static class TrackEndpoints
         return group;
     }
 
-    private static async Task<IResult> Generate(JobStore jobStore, GenerationJobQueue jobQueue, ILoggerFactory loggerFactory)
+    private static async Task<IResult> Generate(GenerationRequestDto requestDto, JobStore jobStore, GenerationJobQueue jobQueue, ILoggerFactory loggerFactory)
     {
         ILogger logger = loggerFactory.CreateLogger(nameof(TrackEndpoints));
 
-        GenerationJob job = new() { Id = Guid.NewGuid(), State = JobStates.Pending, StartTime = DateTimeOffset.UtcNow };
+        GenerationJob job = new() 
+            { 
+                Id = Guid.NewGuid(), 
+                State = JobStates.Pending, 
+                StartTime = DateTimeOffset.UtcNow,
+                Mode = Enum.Parse<GenerationMode>(requestDto.Mode),
+                Tempo = requestDto.Tempo,
+                Chords = requestDto.Chords,
+                Key = requestDto.Key,
+                Style = requestDto.Style
+            };
         
         jobStore.AddOrUpdate(job);
         jobQueue.Writer.TryWrite(job.Id);
         
         logger.LogInformation("Generation job {Id} created in a {State} state",  job.Id, job.State);
-        
-        GenerationJobDto jobDto = new() { Id = job.Id, Status = job.State.ToString(), StartTime = job.StartTime, EndTime = job.EndTime };
+
+        GenerationJobDto jobDto = job.ToDto();
         return Results.Ok(jobDto);
     }
 
@@ -35,7 +43,7 @@ internal static class TrackEndpoints
         if (job == null)
             return Results.NotFound();
         
-        GenerationJobDto jobDto = new() { Id = job.Id, Status = job.State.ToString(), StartTime = job.StartTime, EndTime = job.EndTime };
+        GenerationJobDto jobDto = job.ToDto();
         return Results.Ok(jobDto);
     }
 }

@@ -1,11 +1,10 @@
 using System.Threading.Channels;
-using BackingTrack.Generation.Jobs;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace BackingTrack.Generation;
+namespace BackingTrack.Generation.Jobs;
 
-public class GenerationWorkerHostedService(JobStore jobStore, GenerationJobQueue jobQueue, ILogger<GenerationWorkerHostedService> logger) : BackgroundService
+public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQueue jobQueue, ILogger<GenerationJobWorkerHostedService> logger) : BackgroundService
 {
     private readonly ChannelReader<Guid> _jobReader = jobQueue.Reader;
 

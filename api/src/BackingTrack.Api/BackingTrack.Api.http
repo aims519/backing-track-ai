@@ -14,11 +14,32 @@ Accept: application/json
 # @name generateJob
 POST {{HostAddress}}/tracks/generate
 Accept: application/json
+Content-Type: application/json
 X-API-Key: {{ApiKey}}
 
+{
+    "Key": "C",
+    "Chords": ["C", "F", "G", "G7"],
+    "Tempo": 150,
+    "Mode": "Precise",
+    "Style": null
+}
 > {%
     client.global.set("jobId", response.body.id);
 %}
+
+###
+
+# @name generateJobInvalidInput
+POST {{HostAddress}}/tracks/generate
+Accept: application/json
+Content-Type: application/json
+X-API-Key: {{ApiKey}}
+
+{
+    "Key": "",
+    "Mode": "InvalidMode"
+}
 
 ###
 
