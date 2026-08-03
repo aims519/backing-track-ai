@@ -78,6 +78,25 @@ X-API-Key: {{ApiKey}}
 
 ###
 
+// No body at all: should return the unified errors shape (was a 500 before
+// GlobalExceptionHandler's BadHttpRequestException branch was widened to cover
+// the "no body provided" case, not just JSON type mismatches)
+# @name generateJobNoBody
+POST {{HostAddress}}/tracks/generate
+Accept: application/json
+Content-Type: application/json
+X-API-Key: {{ApiKey}}
+
+> {%
+    client.test("Returns 400 with unified validation errors on missing body", function() {
+        client.assert(response.status === 400, "Expected 400 but got " + response.status);
+        client.assert(response.body.errors !== undefined, "Expected an errors object in the response body");
+        client.assert(response.body.errors.Body !== undefined, "Expected a Body validation error");
+    });
+%}
+
+###
+
 // Wrong key: should be rejected with 401 before reaching the handler
 # @name generateJobWrongKey
 POST {{HostAddress}}/tracks/generate
