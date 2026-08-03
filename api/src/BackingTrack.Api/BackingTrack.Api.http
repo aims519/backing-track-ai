@@ -41,6 +41,15 @@ X-API-Key: {{ApiKey}}
     "Mode": "InvalidMode"
 }
 
+> {%
+    client.test("Returns 400 with validation errors", function() {
+        client.assert(response.status === 400, "Expected 400 but got " + response.status);
+        client.assert(response.body.errors !== undefined, "Expected an errors object in the response body");
+        client.assert(response.body.errors.Mode !== undefined, "Expected a Mode validation error");
+    });
+%}
+
+
 ###
 
 // Wrong key: should be rejected with 401 before reaching the handler

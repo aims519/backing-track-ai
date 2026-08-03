@@ -192,7 +192,7 @@ app.MapHealthChecks("/healthz/live", new()
     Predicate = healthCheck => healthCheck.Tags.Contains("live")
 });
 
-RouteGroupBuilder tracksGroup = app.MapGroup("/tracks")
+RouteGroupBuilder trackEndpoints = app.MapGroup("/tracks")
     .AddEndpointFilter<ApiKeyFilter>()
     .RequireRateLimiting("fixed")
     .MapTrackEndpoints();
@@ -200,6 +200,7 @@ RouteGroupBuilder tracksGroup = app.MapGroup("/tracks")
 app.Run();
 
 [JsonSerializable(typeof(ProblemDetails))]
+[JsonSerializable(typeof(ValidationProblemDetails))]
 [JsonSerializable(typeof(GenerationJobDto))]
 [JsonSerializable(typeof(GenerationRequestDto))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext;

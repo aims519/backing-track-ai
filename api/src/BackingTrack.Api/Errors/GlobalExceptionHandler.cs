@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,16 +11,36 @@ internal class GlobalExceptionHandler(IProblemDetailsService problemDetailsServi
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
+        if (exception is BadHttpRequestException { InnerException: JsonException jsonException })
+        {
+            httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+            string field = jsonException.Path?.TrimStart('$', '.') is { Length: > 0 } path ? path : "Body";
+
+            ValidationProblemDetails problemDetails = new()
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "One or more validation errors occurred."
+            };
+            problemDetails.Errors[field] = ["The value provided has the wrong type or format."];
+
+            return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+            {
+                HttpContext = httpContext,
+                Exception = exception,
+                ProblemDetails = problemDetails
+            });
+        }
+
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
-        ProblemDetails problemDetails = new()
+        ProblemDetails serverErrorDetails = new()
         {
             Status = StatusCodes.Status500InternalServerError,
             Title = "An unexpected error occurred"
         };
         
         if(environment.IsDevelopment())
-            problemDetails.Detail = exception.ToString();
+            serverErrorDetails.Detail = exception.ToString();
             
         logger.LogError(exception, "An unexpected error occurred");
         
@@ -26,7 +48,7 @@ internal class GlobalExceptionHandler(IProblemDetailsService problemDetailsServi
         {
             HttpContext = httpContext,
             Exception = exception,
-            ProblemDetails = problemDetails
+            ProblemDetails = serverErrorDetails
         });
     }
 }
