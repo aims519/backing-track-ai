@@ -41,6 +41,11 @@ builder.Services.Configure<RateLimitSettings>(builder.Configuration.GetSection("
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
+// Minimal APIs only throw on JSON body-binding failures when IsDevelopment() by default;
+// force it in all environments so GlobalExceptionHandler sees a consistent BadHttpRequestException
+// rather than a bare status-only 400 in Production.
+builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
+
 if (builder.Environment.IsDevelopment())
 {
     builder.Logging.AddSimpleConsole(options =>
