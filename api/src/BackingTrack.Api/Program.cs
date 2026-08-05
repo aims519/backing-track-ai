@@ -37,6 +37,7 @@ builder.Services.AddOptions();
 builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("Auth"));
 builder.Services.Configure<OtelSettings>(builder.Configuration.GetSection("Otel"));
 builder.Services.Configure<RateLimitSettings>(builder.Configuration.GetSection("RateLimit"));
+builder.Services.Configure<TrackStorageSettings>(builder.Configuration.GetSection("TrackStorage"));
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

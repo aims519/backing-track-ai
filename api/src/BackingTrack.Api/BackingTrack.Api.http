@@ -21,6 +21,7 @@ X-API-Key: {{ApiKey}}
     "Key": "C",
     "Chords": ["C", "F", "G", "G7"],
     "Tempo": 150,
+  
     "Mode": "Precise",
     "Style": null,
     "TimeSignatureBeatCount": 4,
@@ -144,5 +145,38 @@ X-API-Key: wrong-key
 # @name getJobStatusNoKey
 GET {{HostAddress}}/tracks/status/{{jobId}}
 Accept: application/json
+
+###
+
+// Download the test track seeded in the tracks directory for testing
+# @name downloadTrack
+GET {{HostAddress}}/tracks/download/3abfc555-3c24-4773-9799-2884b46eb80e
+X-API-Key: {{ApiKey}}
+
+###
+
+// Unknown track id: should return 404
+# @name downloadTrackUnknownId
+GET {{HostAddress}}/tracks/download/00000000-0000-0000-0000-000000000000
+X-API-Key: {{ApiKey}}
+
+> {%
+    client.test("Returns 404 for unknown track id", function() {
+        client.assert(response.status === 404, "Expected 404 but got " + response.status);
+    });
+%}
+
+###
+
+// Wrong key: should be rejected with 401 before reaching the handler
+# @name downloadTrackWrongKey
+GET {{HostAddress}}/tracks/download/3abfc555-3c24-4773-9799-2884b46eb80e
+X-API-Key: wrong-key
+
+###
+
+// No key: should be rejected with 401 before reaching the handler
+# @name downloadTrackNoKey
+GET {{HostAddress}}/tracks/download/3abfc555-3c24-4773-9799-2884b46eb80e
 
 ###
