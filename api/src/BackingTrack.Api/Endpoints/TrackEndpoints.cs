@@ -1,7 +1,9 @@
 using BackingTrack.Api.Dtos;
+using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace BackingTrack.Api.Endpoints;
 
@@ -11,6 +13,7 @@ internal static class TrackEndpoints
     {
         group.MapPost("/generate", Generate);
         group.MapGet("/status/{jobId:guid}", GetStatus).DisableRateLimiting();
+        group.MapGet("/download/{trackId:guid}",DownloadTrackAsync).DisableRateLimiting();
         return group;
     }
 
@@ -53,5 +56,31 @@ internal static class TrackEndpoints
         
         GenerationJobDto jobDto = job.ToDto();
         return Results.Ok(jobDto);
+    }
+
+    private static async Task<IResult> DownloadTrackAsync(Guid trackId, IOptions<TrackStorageSettings> trackStorageSettings)
+    {
+        TrackStorageSettings storageSettings = trackStorageSettings.Value;
+
+        DirectoryInfo directoryInfo = new(storageSettings.BaseFolderPath);
+        if(!directoryInfo.Exists)
+            throw new InvalidOperationException("Track storage not set correctly");
+
+        FileInfo[] matches = directoryInfo.GetFiles($"{trackId}.*");
+        if (matches.Length == 0)
+            return Results.NotFound();
+
+        FileInfo file = matches[0];
+        string contentType = file.Extension.ToLowerInvariant() switch                                                                                                                                                  
+        {                                                                                                                                                                                                              
+            ".mp3" => "audio/mpeg",
+            ".wav" => "audio/wav",                                                                                                                                                                                     
+            ".ogg" => "audio/ogg",
+            ".aac" => "audio/aac",
+            _ => "application/octet-stream"
+        };                                                                                                                                                                                                             
+   
+        Stream stream = file.OpenRead();                                                                                                                                                                               
+        return Results.Stream(stream, contentType, enableRangeProcessing: true);   
     }
 }
