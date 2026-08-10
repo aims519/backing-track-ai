@@ -14,7 +14,7 @@ public static class JsonlReader
         {
             T? result = JsonSerializer.Deserialize(line,  jsonTypeInfo);
             if(result == null)
-                throw new ArgumentException("JSONL file {FilePath} could not be read as it has an invalid line", filePath);
+                throw new ArgumentException($"JSONL file at {filePath} could not be read as it has an invalid line", filePath);
             
             yield return result;
         }
