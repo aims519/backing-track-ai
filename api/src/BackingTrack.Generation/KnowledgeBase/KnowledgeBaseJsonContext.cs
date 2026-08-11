@@ -7,6 +7,6 @@ namespace BackingTrack.Generation.KnowledgeBase;
 [JsonSerializable(typeof(ChordEntry))]
 [JsonSerializable(typeof(ScaleEntry))]
 [JsonSerializable(typeof(StyleEntry))]
-internal partial class KnowledgeBaseJsonContext : JsonSerializerContext
+public partial class KnowledgeBaseJsonContext : JsonSerializerContext
 {
 }
