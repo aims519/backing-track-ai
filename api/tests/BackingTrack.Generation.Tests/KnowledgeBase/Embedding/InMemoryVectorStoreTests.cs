@@ -116,38 +116,6 @@ public class InMemoryVectorStoreTests
     }
 
     [Fact]
-    public void CosineSimilarity_ParallelVectorsOfDifferentMagnitude_ReturnsOne()
-    {
-        InMemoryVectorStore store = new([]);
-
-        // [6, 8] points in the same direction as [3, 4] but is twice the length -
-        // cosine similarity should still be 1 since it measures direction, not magnitude.
-        float result = store.CosineSimilarity([3f, 4f], [6f, 8f]);
-
-        Assert.Equal(1f, result, precision: 5);
-    }
-
-    [Fact]
-    public void CosineSimilarity_OrthogonalVectors_ReturnsZero()
-    {
-        InMemoryVectorStore store = new([]);
-
-        float result = store.CosineSimilarity([1f, 0f], [0f, 5f]);
-
-        Assert.Equal(0f, result, precision: 5);
-    }
-
-    [Fact]
-    public void CosineSimilarity_OppositeVectors_ReturnsMinusOne()
-    {
-        InMemoryVectorStore store = new([]);
-
-        float result = store.CosineSimilarity([2f, 0f], [-4f, 0f]);
-
-        Assert.Equal(-1f, result, precision: 5);
-    }
-
-    [Fact]
     public void Search_RanksResultsByDescendingSimilarityToQuery()
     {
         ChordEntry chordA = new() { Id = "chordA", Intervals = [0, 4, 7], Description = "A" };

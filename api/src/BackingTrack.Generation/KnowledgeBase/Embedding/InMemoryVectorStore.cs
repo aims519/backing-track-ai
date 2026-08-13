@@ -5,7 +5,7 @@ namespace BackingTrack.Generation.KnowledgeBase.Embedding;
 public class InMemoryVectorStore(IEnumerable<(IEmbeddable Entry, float[] Vector)> items)
 {
     public readonly (IEmbeddable Entry, float[] Vector)[] Items = Normalise(items);
-
+    
     private static (IEmbeddable Entry, float[] Vector)[] Normalise(IEnumerable<(IEmbeddable Entry, float[] Vector)> items)
     {
         return items.Select(item => (item.Entry, NormaliseVector(item.Vector))).ToArray();
@@ -43,22 +43,15 @@ public class InMemoryVectorStore(IEnumerable<(IEmbeddable Entry, float[] Vector)
         return dotProduct;
     }
 
-    internal float CosineSimilarity(float[] v1, float[] v2)
-    {
-        float dotProduct = DotProduct(v1, v2);
-        float v1Mag = VectorMagnitude(v1);
-        float v2Mag = VectorMagnitude(v2);
-        
-        return dotProduct / (v1Mag * v2Mag);
-    }
-
     public IEnumerable<(T Entry, float Score)> Search<T>(float[] queryVector, int topK) where T : IEmbeddable
     {
-        IEnumerable<(IEmbeddable Entry, float[] Vector)> typedItems = Items.Where(x => x.Entry.GetType() == typeof(T));
-
+        IEnumerable<(IEmbeddable Entry, float[] Vector)> typedItems = Items.Where(x => x.Entry is T);
+        
+        // Because all vectors are normalised, we only need to calculate the dot products for scoring, since the magnitudes are always 1
+        // See ADR 14
         float[] normalisedQueryVector = NormaliseVector(queryVector);
         IEnumerable<(T Entry, float Score)> topItems 
-            = typedItems.Select(x => (Entry: (T)x.Entry, Score: CosineSimilarity(x.Vector, normalisedQueryVector)))
+            = typedItems.Select(x => (Entry: (T)x.Entry, Score: DotProduct(x.Vector, normalisedQueryVector)))
                 .OrderByDescending(x => x.Score)
                 .Take(topK);
 
