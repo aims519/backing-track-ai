@@ -5,7 +5,7 @@ namespace BackingTrack.Generation.KnowledgeBase.Embedding;
 
 /// <summary>
 /// Brute-force, in-memory dot-product search over L2-normalised embeddings for the RAG
-/// knowledge base. See ADR 0014 (docs/adr/0014-in-memory-vector-retrieval-for-rag-kb.md)
+/// knowledge base. See ADR 0015 (docs/adr/0015-in-memory-vector-retrieval-for-rag-kb.md)
 /// for why this is a self-written scan rather than a vector database
 /// </summary>
 public class InMemoryVectorStore(IEnumerable<(IEmbeddable Entry, float[] Vector)> items)

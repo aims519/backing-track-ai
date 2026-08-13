@@ -7,7 +7,7 @@ using BenchmarkDotNet.Toolchains.InProcess.Emit;
 
 namespace BackingTrack.Generation.Benchmarks;
 
-// Backs ADR 0014's "a full scan over a few dozen to a few hundred entries is comfortably
+// Backs ADR 0015's "a full scan over a few dozen to a few hundred entries is comfortably
 // sub-millisecond" claim. EntryCount spans that range; VectorDimension matches the real
 // Voyage AI output size seen in scales.vector.jsonl (1024).
 //

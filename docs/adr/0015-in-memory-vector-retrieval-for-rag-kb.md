@@ -1,4 +1,4 @@
-# 0014. Self-written in-memory vector retrieval over a vector DB for the RAG knowledge base
+# 0015. Self-written in-memory vector retrieval over a vector DB for the RAG knowledge base
 
 Status: Accepted
 
