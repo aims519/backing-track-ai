@@ -35,7 +35,7 @@ List<StyleEntry> styleEntryList = styleEntries.ToList();
 logger.LogInformation("Read raw content files.\nChords: {ChordItemCount}\nScales: {ScaleItemCount}\nStyles: {StyleItemCount}", 
     chordEntryList.Count,  scaleEntryList.Count, styleEntryList.Count);
 
-string contentDirectory = KnowledgeBaseContentPaths.ResolveBaseDirectory();
+string contentDirectory = KnowledgeBaseContentPaths.ResolveSourceContentDirectory();
 contentDirectory = Path.GetFullPath(contentDirectory);
 
 // Check for new/updated chords content
