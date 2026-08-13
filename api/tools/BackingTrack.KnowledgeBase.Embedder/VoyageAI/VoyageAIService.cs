@@ -24,7 +24,7 @@ public class VoyageAiEmbeddingService(
 
     public  (IEnumerable<ChordEntry> chordEntries, IEnumerable<ScaleEntry> scaleEntries, IEnumerable<StyleEntry> styleEntries) ParseRagFiles()
     {
-        string contentDirectory = KnowledgeBaseContentPaths.ResolveBaseDirectory();
+        string contentDirectory = KnowledgeBaseContentPaths.ResolveSourceContentDirectory();
         contentDirectory = Path.GetFullPath(contentDirectory);
         
         string chordsPath = Path.Combine(contentDirectory, ChordsFileName);
