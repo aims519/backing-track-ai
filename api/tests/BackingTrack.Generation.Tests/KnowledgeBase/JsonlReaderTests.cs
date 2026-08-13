@@ -2,6 +2,8 @@ using System.Text.Json;
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Types;
 
+using KnowledgeBaseJsonContext = BackingTrack.Generation.KnowledgeBase.Embedding.KnowledgeBaseJsonContext;
+
 namespace BackingTrack.Generation.Tests.KnowledgeBase;
 
 public class JsonlReaderTests : IDisposable

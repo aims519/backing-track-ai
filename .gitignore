@@ -1,6 +1,7 @@
 # .NET
 api/**/bin/
 api/**/obj/
+api/**/publish/
 *.user
 
 # JetBrains Rider

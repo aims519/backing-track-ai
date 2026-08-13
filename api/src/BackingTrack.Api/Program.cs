@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using System.Threading.RateLimiting;
-
 using BackingTrack.Api.Auth;
 using BackingTrack.Api.Dtos;
 using BackingTrack.Api.Endpoints;
@@ -11,7 +10,9 @@ using BackingTrack.Api.Errors;
 using BackingTrack.Api.HealthChecks;
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
-
+using BackingTrack.Generation.KnowledgeBase;
+using BackingTrack.Generation.KnowledgeBase.Embedding;
+using BackingTrack.Generation.KnowledgeBase.Types;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -19,6 +20,8 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+
+using KnowledgeBaseJsonContext = BackingTrack.Generation.KnowledgeBase.Embedding.KnowledgeBaseJsonContext;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +32,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 builder.Configuration.AddUserSecrets<Program>();
+
+builder.Services.AddLogging();
 
 builder.Services.AddOptions();
 builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("Auth"));
@@ -171,10 +176,14 @@ builder.Services.AddRateLimiter(rateLimitOptions =>
 builder.Services.AddSingleton<JobStore>();
 
 Channel<Guid> jobChannel = Channel.CreateUnbounded<Guid>();
-builder.Services.AddSingleton<GenerationJobQueue>(new GenerationJobQueue(jobChannel));
+builder.Services.AddSingleton(new GenerationJobQueue(jobChannel));
 builder.Services.AddHostedService<GenerationJobWorkerHostedService>();
 
+// Vector Store Initialisation
+builder.Services.AddKnowledgeBaseVectorStore();
+
 WebApplication app = builder.Build();
+app.Services.GetRequiredService<InMemoryVectorStore>(); // forces eager load + logging
 
 app.UseExceptionHandler();
 

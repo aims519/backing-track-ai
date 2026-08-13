@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Types;
 
 namespace BackingTrack.KnowledgeBase.Embedder;

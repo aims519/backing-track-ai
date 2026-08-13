@@ -2,9 +2,11 @@ using System.Text;
 using System.Text.Json;
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.KnowledgeBase;
+using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using KnowledgeBaseJsonContext = BackingTrack.Generation.KnowledgeBase.Embedding.KnowledgeBaseJsonContext;
 
 namespace BackingTrack.KnowledgeBase.Embedder.VoyageAI;
 
@@ -22,7 +24,7 @@ public class VoyageAiEmbeddingService(
 
     public  (IEnumerable<ChordEntry> chordEntries, IEnumerable<ScaleEntry> scaleEntries, IEnumerable<StyleEntry> styleEntries) ParseRagFiles()
     {
-        string contentDirectory = KnowledgeBaseContentPaths.Resolve();
+        string contentDirectory = KnowledgeBaseContentPaths.ResolveBaseDirectory();
         contentDirectory = Path.GetFullPath(contentDirectory);
         
         string chordsPath = Path.Combine(contentDirectory, ChordsFileName);

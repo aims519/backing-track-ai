@@ -1,5 +1,6 @@
 using System.Text.Json;
 using BackingTrack.Core.Config;
+using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.KnowledgeBase.Embedder;
 using BackingTrack.KnowledgeBase.Embedder.VoyageAI;
@@ -34,7 +35,7 @@ List<StyleEntry> styleEntryList = styleEntries.ToList();
 logger.LogInformation("Read raw content files.\nChords: {ChordItemCount}\nScales: {ScaleItemCount}\nStyles: {StyleItemCount}", 
     chordEntryList.Count,  scaleEntryList.Count, styleEntryList.Count);
 
-string contentDirectory = KnowledgeBaseContentPaths.Resolve();
+string contentDirectory = KnowledgeBaseContentPaths.ResolveBaseDirectory();
 contentDirectory = Path.GetFullPath(contentDirectory);
 
 // Check for new/updated chords content
@@ -113,34 +114,3 @@ foreach (KeyValuePair<string, VectorEntry> existingStyleVectorEntry in existingS
 }
 
 return;
-
-
-internal static class VectorEntryReader
-{
-    public static Dictionary<string, VectorEntry> ReadExisting(string path, ILogger logger)
-    {
-        if (!File.Exists(path))
-            return new Dictionary<string, VectorEntry>();
-
-        Dictionary<string, VectorEntry> entries = new();
-
-        foreach (string line in File.ReadLines(path))
-        {
-            VectorEntry? entry;
-            try
-            {
-                entry = JsonSerializer.Deserialize<VectorEntry>(line);
-            }
-            catch (JsonException e)
-            {
-                logger.LogWarning(e, "Skipping corrupt line in {Path} (likely a previous run was interrupted mid-write)", path);
-                continue;
-            }
-
-            if (entry is not null)
-                entries[entry.Id] = entry;
-        }
-
-        return entries;
-    }
-}
