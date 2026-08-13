@@ -54,6 +54,15 @@ corpus. Content lives as JSONL files under
 
 ## Consequences
 
+- The "comfortably sub-millisecond" claim above is now measured, not assumed. A BenchmarkDotNet
+  suite (`api/benchmarks/BackingTrack.Generation.Benchmarks`, `InMemoryVectorStoreBenchmarks`)
+  covers 50/200/500-entry KBs with 1024-dimension vectors (matching Voyage's real output size).
+  On the actual Raspberry Pi deployment target — run in-process, since the Pi has no .NET SDK
+  installed under the AOT-only deployment model — a single `Search` call takes ~29 µs at 50
+  entries, ~102 µs at 200, and ~257 µs at 500: 3-4x under the 1ms threshold even at the top of
+  the tested range, and scaling roughly linearly with entry count as expected for a brute-force
+  scan. (For reference, the same suite on a dev machine measured ~13-113 µs over the same range;
+  the gap is expected weaker-hardware slowdown, not a different growth pattern.)
 - No new AOT-audit burden: the retrieval mechanism is plain C# (array iteration, dot products),
   not a third-party library.
 - Voyage AI becomes an external runtime dependency for query embedding — one more API key to
