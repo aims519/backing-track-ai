@@ -9,20 +9,20 @@ public class InMemoryVectorStoreTests
     public void NormaliseVector_KnownVector_ProducesExpectedComponents()
     {
         // A 3-4-5 triangle: magnitude is exactly 5, so the normalised result is exact too.
-        float[] result = InMemoryVectorStore.NormaliseVector([3f, 4f]);
+        ReadOnlyMemory<float> result = InMemoryVectorStore.NormaliseVector([3f, 4f]);
 
-        Assert.Equal(0.6f, result[0], precision: 5);
-        Assert.Equal(0.8f, result[1], precision: 5);
+        Assert.Equal(0.6f, result.Span[0], precision: 5);
+        Assert.Equal(0.8f, result.Span[1], precision: 5);
     }
 
     [Fact]
     public void NormaliseVector_AlreadyUnitVector_RemainsUnchanged()
     {
-        float[] result = InMemoryVectorStore.NormaliseVector([1f, 0f, 0f]);
+        ReadOnlyMemory<float> result = InMemoryVectorStore.NormaliseVector([1f, 0f, 0f]);
 
-        Assert.Equal(1f, result[0], precision: 5);
-        Assert.Equal(0f, result[1], precision: 5);
-        Assert.Equal(0f, result[2], precision: 5);
+        Assert.Equal(1f, result.Span[0], precision: 5);
+        Assert.Equal(0f, result.Span[1], precision: 5);
+        Assert.Equal(0f, result.Span[2], precision: 5);
     }
 
     [Fact]
@@ -38,9 +38,9 @@ public class InMemoryVectorStoreTests
     [InlineData(new[] { 0.001f, 0.002f, 0.003f })]
     public void NormaliseVector_ResultHasUnitMagnitude(float[] vector)
     {
-        float[] result = InMemoryVectorStore.NormaliseVector(vector);
+       ReadOnlyMemory<float> result = InMemoryVectorStore.NormaliseVector(vector);
 
-        double magnitude = Math.Sqrt(result.Sum(x => (double)x * x));
+        double magnitude = Math.Sqrt(result.ToArray().Sum(x => (double)x * x));
 
         Assert.Equal(1.0, magnitude, precision: 5);
     }
@@ -50,14 +50,14 @@ public class InMemoryVectorStoreTests
     [InlineData(new[] { -2f, 5f, -1f, 8f })]
     public void NormaliseVector_PreservesDirection(float[] vector)
     {
-        float[] result = InMemoryVectorStore.NormaliseVector(vector);
+        ReadOnlyMemory<float> result = InMemoryVectorStore.NormaliseVector(vector);
 
         // Every component should scale down by the same factor, so the ratio
         // between corresponding components is unchanged by normalisation.
-        double expectedRatio = (double)vector[0] / result[0];
+        double expectedRatio = (double)vector[0] / result.Span[0];
         for (int i = 1; i < vector.Length; i++)
         {
-            double ratio = (double)vector[i] / result[i];
+            double ratio = (double)vector[i] / result.Span[i];
             Assert.Equal(expectedRatio, ratio, precision: 3);
         }
     }
@@ -70,21 +70,36 @@ public class InMemoryVectorStoreTests
 
         (IEmbeddable Entry, float[] Vector)[] items =
         [
-            (maj, [3f, 4f]),
+            (maj, [3f, 4f, 5f]),
             (min, [1f, 2f, 2f])
         ];
 
         InMemoryVectorStore store = new(items);
 
-        Assert.Equal(2, store.Items.Length);
+        Assert.Equal(2, store.Items.Count);
         Assert.Same(maj, store.Items[0].Entry);
         Assert.Same(min, store.Items[1].Entry);
 
-        foreach ((IEmbeddable _, float[] vector) in store.Items)
+        foreach ((IEmbeddable _, ReadOnlyMemory<float> vector) in store.Items)
         {
-            double magnitude = Math.Sqrt(vector.Sum(x => (double)x * x));
+            double magnitude = Math.Sqrt(vector.ToArray().Sum(x => (double)x * x));
             Assert.Equal(1.0, magnitude, precision: 5);
         }
+    }
+    
+    [Fact]
+    public void Constructor_NormalisesVectorsThrowsExceptionIfSizesDoNotMatch()
+    {
+        ChordEntry maj = new() { Id = "maj", Intervals = [0, 4, 7], Description = "A major triad" };
+        ChordEntry min = new() { Id = "min", Intervals = [0, 3, 7], Description = "A minor triad" };
+
+        (IEmbeddable Entry, float[] Vector)[] items =
+        [
+            (maj, [3f, 4f]),
+            (min, [1f, 2f, 2f])
+        ];
+
+        Assert.Throws<ArgumentException>(() => new InMemoryVectorStore(items));
     }
 
     [Fact]
@@ -92,7 +107,10 @@ public class InMemoryVectorStoreTests
     {
         InMemoryVectorStore store = new([]);
 
-        float result = store.DotProduct([1f, 2f, 3f], [4f, 5f, 6f]);
+        ReadOnlyMemory<float> v1 = new float[] { 1f, 2f, 3f };
+        ReadOnlyMemory<float> v2 = new float[] { 4f, 5f, 6f };
+        
+        float result = store.DotProduct(v1, v2);
 
         Assert.Equal(32f, result, precision: 5);
     }
@@ -102,7 +120,10 @@ public class InMemoryVectorStoreTests
     {
         InMemoryVectorStore store = new([]);
 
-        float result = store.DotProduct([1f, 0f], [0f, 1f]);
+        ReadOnlyMemory<float> v1 = new float[] { 1f, 0f };
+        ReadOnlyMemory<float> v2 = new float[] { 0f, 1f };
+        
+        float result = store.DotProduct(v1, v2);
 
         Assert.Equal(0f, result, precision: 5);
     }
@@ -111,8 +132,11 @@ public class InMemoryVectorStoreTests
     public void DotProduct_MismatchedLengths_ThrowsArgumentException()
     {
         InMemoryVectorStore store = new([]);
+        
+        ReadOnlyMemory<float> v1= new float[] { 1f, 2f };
+        ReadOnlyMemory<float> v2= new float[] { 1f, 2f, 3f };
 
-        Assert.Throws<ArgumentException>(() => store.DotProduct([1f, 2f], [1f, 2f, 3f]));
+        Assert.Throws<ArgumentException>(() => store.DotProduct(v1, v2));
     }
 
     [Fact]
