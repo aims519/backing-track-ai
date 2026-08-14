@@ -24,10 +24,16 @@ public static class ServiceCollectionExtensions
             string scalesVectorPath = Path.Combine(contentDirectory, KnowledgeBaseContentPaths.ResolveVectorFilePath<ScaleEntry>());
             string stylesVectorPath = Path.Combine(contentDirectory,KnowledgeBaseContentPaths.ResolveVectorFilePath<StyleEntry>());
 
-            IEnumerable<ChordEntry> chordEntries = JsonlReader.Parse(chordsContentPath, KnowledgeBaseJsonContext.Default.ChordEntry);
-            IEnumerable<ScaleEntry> scaleEntries = JsonlReader.Parse(scalesContentPath, KnowledgeBaseJsonContext.Default.ScaleEntry);
-            IEnumerable<StyleEntry> styleEntries = JsonlReader.Parse(stylesContentPath, KnowledgeBaseJsonContext.Default.StyleEntry);
-
+            IList<ChordEntry> chordEntries = JsonlReader.Parse(chordsContentPath, KnowledgeBaseJsonContext.Default.ChordEntry).ToList();
+            IList<ScaleEntry> scaleEntries = JsonlReader.Parse(scalesContentPath, KnowledgeBaseJsonContext.Default.ScaleEntry).ToList();
+            IList<StyleEntry> styleEntries = JsonlReader.Parse(stylesContentPath, KnowledgeBaseJsonContext.Default.StyleEntry).ToList();
+            
+            HashSet<string> duplicateIds = KnowledgeBaseValidation.FindDuplicateContentIds(chordEntries, scaleEntries, styleEntries);
+            if (duplicateIds.Count > 0)
+            {
+                throw new InvalidOperationException($"Duplicate entry ids are not allowed across all record types. Duplicates found: {string.Join(", ", duplicateIds)}");
+            }
+            
             IReadOnlyList<IEmbeddable> allEntries = [.. chordEntries, .. scaleEntries, .. styleEntries];
 
             Dictionary<string, VectorEntry> chordVectorEntries = VectorEntryReader.ReadExisting(chordsVectorPath, logger);

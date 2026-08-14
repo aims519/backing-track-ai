@@ -29,14 +29,14 @@ IHost app = builder.Build();
 ILogger<Program> logger = app.Services.GetRequiredService<ILogger<Program>>();
 EmbeddingOrchestrator orchestrator = app.Services.GetRequiredService<EmbeddingOrchestrator>();
 
-IEnumerable<(string Id, VectorEntry VectorEntry)> chordRecordsToWrite = await orchestrator.GetChordRecordsToWriteAsync();
-await orchestrator.WriteRecords<ChordEntry>(chordRecordsToWrite.ToList());
+orchestrator.ValidateForDuplicateIds();
+IList<(string Id, VectorEntry VectorEntry)> chordRecordsToWrite = await orchestrator.GetChordRecordsToWriteAsync();
+IList<(string Id, VectorEntry VectorEntry)> scaleRecordsToWrite = await orchestrator.GetScaleRecordsToWriteAsync();
+IList<(string Id, VectorEntry VectorEntry)> styleRecordsToWrite = await orchestrator.GetStyleRecordsToWriteAsync();
 
-IEnumerable<(string Id, VectorEntry VectorEntry)> scaleRecordsToWrite = await orchestrator.GetScaleRecordsToWriteAsync();
-await orchestrator.WriteRecords<ScaleEntry>(scaleRecordsToWrite.ToList());
-
-IEnumerable<(string Id, VectorEntry VectorEntry)> styleRecordsToWrite = await orchestrator.GetStyleRecordsToWriteAsync();
-await orchestrator.WriteRecords<StyleEntry>(styleRecordsToWrite.ToList());
+await orchestrator.WriteRecords<ChordEntry>(chordRecordsToWrite);
+await orchestrator.WriteRecords<ScaleEntry>(scaleRecordsToWrite);
+await orchestrator.WriteRecords<StyleEntry>(styleRecordsToWrite);
 
 logger.LogInformation("Embedding file generation complete");
 

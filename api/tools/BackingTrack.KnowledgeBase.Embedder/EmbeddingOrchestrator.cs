@@ -26,11 +26,11 @@ internal class EmbeddingOrchestrator
             _contentEntries.chordEntries.Count(),  _contentEntries.scaleEntries.Count(), _contentEntries.styleEntries.Count());
     }
 
-    internal Task<IEnumerable<(string Id, VectorEntry VectorEntry)>> GetChordRecordsToWriteAsync() => GetRecordsToWriteAsync(_contentEntries.chordEntries.ToList());
+    internal Task<IList<(string Id, VectorEntry VectorEntry)>> GetChordRecordsToWriteAsync() => GetRecordsToWriteAsync(_contentEntries.chordEntries.ToList());
     
-    internal Task<IEnumerable<(string Id, VectorEntry VectorEntry)>> GetScaleRecordsToWriteAsync() => GetRecordsToWriteAsync(_contentEntries.scaleEntries.ToList());
+    internal Task<IList<(string Id, VectorEntry VectorEntry)>> GetScaleRecordsToWriteAsync() => GetRecordsToWriteAsync(_contentEntries.scaleEntries.ToList());
     
-    internal Task<IEnumerable<(string Id, VectorEntry VectorEntry)>> GetStyleRecordsToWriteAsync() => GetRecordsToWriteAsync(_contentEntries.styleEntries.ToList());
+    internal Task<IList<(string Id, VectorEntry VectorEntry)>> GetStyleRecordsToWriteAsync() => GetRecordsToWriteAsync(_contentEntries.styleEntries.ToList());
 
     internal async Task WriteRecords<T>(IList<(string Id, VectorEntry VectorEntry)> recordsToWrite) where T : class, IEmbeddable
     {
@@ -43,8 +43,17 @@ internal class EmbeddingOrchestrator
             await writer.WriteLineAsync(JsonSerializer.Serialize(vectorEntry.VectorEntry));
         }
     }
+
+    internal void ValidateForDuplicateIds()
+    {
+        HashSet<string> duplicateIds = KnowledgeBaseValidation.FindDuplicateContentIds(_contentEntries.chordEntries, _contentEntries.scaleEntries, _contentEntries.styleEntries);
+        if (duplicateIds.Count > 0)
+        {
+            throw new InvalidOperationException($"Duplicate entry ids are not allowed across all record types. Duplicates found: {string.Join(", ", duplicateIds)}");
+        }
+    }
     
-    private async Task<IEnumerable<(string Id, VectorEntry VectorEntry)>> GetRecordsToWriteAsync<T>(IReadOnlyList<T> rawContentEntries) where T : class, IEmbeddable
+    private async Task<IList<(string Id, VectorEntry VectorEntry)>> GetRecordsToWriteAsync<T>(IReadOnlyList<T> rawContentEntries) where T : class, IEmbeddable
     {
         string vectorFilePath = Path.Combine(_contentDirectory, KnowledgeBaseContentPaths.ResolveVectorFilePath<T>());
         Dictionary<string, VectorEntry> existingVectorEntries = VectorEntryReader.ReadExisting(vectorFilePath, _logger);
@@ -62,6 +71,6 @@ internal class EmbeddingOrchestrator
             existingVectorEntries[vectorEntry.Id] = vectorEntry;
         }
 
-        return existingVectorEntries.Select(x => (x.Key, x.Value));
+        return existingVectorEntries.Select(x => (x.Key, x.Value)).ToList();
     }
 }
