@@ -10,6 +10,7 @@ using BackingTrack.Api.Errors;
 using BackingTrack.Api.HealthChecks;
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
+using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -176,6 +177,8 @@ builder.Services.AddHostedService<GenerationJobWorkerHostedService>();
 
 // Vector Store Initialisation
 builder.Services.AddKnowledgeBaseVectorStore();
+
+builder.Services.AddSingleton<ChordSymbolParser>();
 
 WebApplication app = builder.Build();
 app.Services.GetRequiredService<InMemoryVectorStore>(); // forces eager load + logging

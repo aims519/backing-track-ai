@@ -1,4 +1,6 @@
 using BackingTrack.Generation.Jobs;
+using BackingTrack.Generation.KnowledgeBase;
+
 using Microsoft.AspNetCore.Mvc;
 namespace BackingTrack.Api.Dtos;
 
@@ -19,7 +21,7 @@ public static class GenerationRequestDtoExtensions
     private const int ValidBeatCountMin = 2;
     private const int ValidBeatCountMax = 32;
 
-    public static ValidationProblemDetails? Validate(this GenerationRequestDto request)
+    public static ValidationProblemDetails? Validate(this GenerationRequestDto request, ChordSymbolParser chordSymbolParser)
     {
         ValidationProblemDetails validationProblemDetails = new();
         
@@ -33,6 +35,16 @@ public static class GenerationRequestDtoExtensions
         if (request.Chords == null || request.Chords.Count == 0)
             validationProblemDetails.Errors.Add(nameof(request.Chords), ["At least one chord must be provided"]);
 
+        if (request.Chords != null)
+        {
+            List<string> chordErrors = chordSymbolParser.ValidateChords(request.Chords)
+                .Where(r => !r.bValid)
+                .Select(r => r.reason)
+                .ToList();
+            if (chordErrors.Count > 0)
+                validationProblemDetails.Errors[nameof(request.Chords)] = chordErrors.ToArray();
+        }
+        
         if (string.IsNullOrWhiteSpace(request.Key))
             validationProblemDetails.Errors.Add(nameof(request.Key), ["Key must be provided"]);
         

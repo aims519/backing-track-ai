@@ -1,6 +1,7 @@
 using BackingTrack.Api.Dtos;
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
+using BackingTrack.Generation.KnowledgeBase;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -17,11 +18,11 @@ internal static class TrackEndpoints
         return group;
     }
 
-    private static async Task<IResult> Generate(GenerationRequestDto requestDto, JobStore jobStore, GenerationJobQueue jobQueue, ILoggerFactory loggerFactory)
+    private static async Task<IResult> Generate(GenerationRequestDto requestDto, JobStore jobStore, GenerationJobQueue jobQueue, ChordSymbolParser chordSymbolParser,  ILoggerFactory loggerFactory)
     {
         ILogger logger = loggerFactory.CreateLogger(nameof(TrackEndpoints));
         
-        ValidationProblemDetails? validationProblemDetails = requestDto.Validate();
+        ValidationProblemDetails? validationProblemDetails = requestDto.Validate(chordSymbolParser);
         if (validationProblemDetails != null)
             return Results.BadRequest(validationProblemDetails);
 
