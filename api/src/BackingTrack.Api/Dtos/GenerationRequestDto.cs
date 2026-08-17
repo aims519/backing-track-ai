@@ -54,6 +54,9 @@ public static class GenerationRequestDtoExtensions
         if(!ValidBeatUnits.Contains(request.TimeSignatureBeatUnit))
             validationProblemDetails.Errors.Add(nameof(request.TimeSignatureBeatUnit), [$"Invalid beat unit {request.TimeSignatureBeatUnit} provided. Must be in [{string.Join(',', ValidBeatUnits)}]"]);
         
+        if (string.IsNullOrWhiteSpace(request.Style))
+            validationProblemDetails.Errors.Add(nameof(request.Style), ["Style guidance must be provided"]);
+        
         return validationProblemDetails.Errors.Any() ? validationProblemDetails : null;
     }
 }

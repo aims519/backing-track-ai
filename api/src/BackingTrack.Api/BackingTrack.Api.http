@@ -21,9 +21,8 @@ X-API-Key: {{ApiKey}}
     "Key": "C",
     "Chords": ["C", "F", "G", "G7"],
     "Tempo": 150,
-  
     "Mode": "Precise",
-    "Style": null,
+    "Style": "Style notes",
     "TimeSignatureBeatCount": 4,
     "TimeSignatureBeatUnit": 4
 }
