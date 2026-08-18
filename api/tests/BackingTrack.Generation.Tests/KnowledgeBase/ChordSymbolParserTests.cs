@@ -25,7 +25,7 @@ public class ChordSymbolParserTests
         InMemoryVectorStore store = new(items);
         return new ChordSymbolParser(store);
     }
-    
+
     [Theory]
     [InlineData("")]
     [InlineData(null)]
@@ -33,7 +33,7 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string _, string _, bool bValid, string _) = parser.ValidateChords([chord]).Single();
 
         Assert.False(bValid);
     }
@@ -50,31 +50,35 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string root, string quality, bool bValid, string reason) = parser.ValidateChords([chord]).Single();
 
         Assert.True(bValid);
         Assert.Equal(string.Empty, reason);
+        Assert.Equal(chord, root);
+        Assert.Equal("maj", quality);
     }
 
     [Theory]
-    [InlineData("Cmaj")]
-    [InlineData("Cmin")]
-    [InlineData("C7")]
-    [InlineData("Cmaj7")]
-    [InlineData("Cmin7")]
-    [InlineData("Csus2")]
-    [InlineData("Csus4")]
-    [InlineData("Cdim")]
-    public void ValidateChords_KnownRootAndType_IsValid(string chord)
+    [InlineData("Cmaj", "C", "maj")]
+    [InlineData("Cmin", "C", "min")]
+    [InlineData("C7", "C", "7")]
+    [InlineData("Cmaj7", "C", "maj7")]
+    [InlineData("Cmin7", "C", "min7")]
+    [InlineData("Csus2", "C", "sus2")]
+    [InlineData("Csus4", "C", "sus4")]
+    [InlineData("Cdim", "C", "dim")]
+    public void ValidateChords_KnownRootAndType_IsValid(string chord, string expectedRoot, string expectedQuality)
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string root, string quality, bool bValid, string reason) = parser.ValidateChords([chord]).Single();
 
         Assert.True(bValid);
         Assert.Equal(string.Empty, reason);
+        Assert.Equal(expectedRoot, root);
+        Assert.Equal(expectedQuality, quality);
     }
-    
+
     [Theory]
     [InlineData("CMaj")]
     [InlineData("CmIN")]
@@ -88,12 +92,13 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string _, string quality, bool bValid, string reason) = parser.ValidateChords([chord]).Single();
 
         Assert.True(bValid);
         Assert.Equal(string.Empty, reason);
+        Assert.Equal(quality, quality.ToLower());
     }
-    
+
     [Theory]
     [InlineData(" Cmaj")]
     [InlineData("Cmin ")]
@@ -105,7 +110,7 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string _, string _, bool bValid, string reason) = parser.ValidateChords([chord]).Single();
 
         Assert.True(bValid);
         Assert.Equal(string.Empty, reason);
@@ -119,7 +124,7 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string _, string _, bool bValid, string reason) = parser.ValidateChords([chord]).Single();
 
         Assert.False(bValid);
         Assert.Contains("invalid", reason);
@@ -133,7 +138,7 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string _, string _, bool bValid, string reason) = parser.ValidateChords([chord]).Single();
 
         Assert.False(bValid);
         Assert.Contains("invalid", reason);
@@ -146,7 +151,7 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string _, string _, bool bValid, string _) = parser.ValidateChords([chord]).Single();
 
         Assert.False(bValid);
     }
@@ -156,47 +161,167 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        List<(bool bValid, string reason)> results = parser.ValidateChords(["C", "Dmin7", "H7"]).ToList();
+        List<(string root, string quality, bool bValid, string reason)> results =
+            parser.ValidateChords(["C", "Dmin7", "H7"]).ToList();
 
         Assert.Equal(3, results.Count);
         Assert.True(results[0].bValid);
         Assert.True(results[1].bValid);
         Assert.False(results[2].bValid);
     }
-    
+
     [Fact]
-    public void ValidateChords_LowercaseRootNote_IsValid()
+    public void ValidateChords_LowercaseRootNote_IsValidAndRootIsUppercased()
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string _) = parser.ValidateChords(["c7"]).Single();
+        (string root, string quality, bool bValid, string _) = parser.ValidateChords(["c7"]).Single();
 
         Assert.True(bValid);
+        Assert.Equal("C", root);
+        Assert.Equal("7", quality);
+    }
+
+    [Theory]
+    [InlineData("C#", "C#", "maj")]
+    [InlineData("F#dim", "F#", "dim")]
+    [InlineData("D#min", "D#", "min")]
+    public void ValidateChords_SharpRootNote_IsValid(string chord, string expectedRoot, string expectedQuality)
+    {
+        ChordSymbolParser parser = CreateParser();
+
+        (string root, string quality, bool bValid, string _) = parser.ValidateChords([chord]).Single();
+
+        Assert.True(bValid);
+        Assert.Equal(expectedRoot, root);
+        Assert.Equal(expectedQuality, quality);
+    }
+
+    [Theory]
+    [InlineData("Db", "Db", "maj")]
+    [InlineData("Bbdim", "Bb", "dim")]
+    [InlineData("Ebmin", "Eb", "min")]
+    public void ValidateChords_FlatRootNote_IsValid(string chord, string expectedRoot, string expectedQuality)
+    {
+        ChordSymbolParser parser = CreateParser();
+
+        (string root, string quality, bool bValid, string _) = parser.ValidateChords([chord]).Single();
+
+        Assert.True(bValid);
+        Assert.Equal(expectedRoot, root);
+        Assert.Equal(expectedQuality, quality);
+    }
+
+    [Theory]
+    [InlineData("A")]
+    [InlineData("B")]
+    [InlineData("C")]
+    [InlineData("D")]
+    [InlineData("E")]
+    [InlineData("F")]
+    [InlineData("G")]
+    public void ValidateRoot_NaturalRoot_IsValid(string root)
+    {
+        ChordSymbolParser parser = CreateParser();
+
+        (bool bValid, string _, string reason) = parser.ValidateRoot(root);
+
+        Assert.True(bValid);
+        Assert.Equal(string.Empty, reason);
+    }
+
+    [Theory]
+    [InlineData("c", "C")]
+    [InlineData("g", "G")]
+    public void ValidateRoot_LowercaseRoot_IsValidAndNormalisedToUppercase(string root, string expectedRoot)
+    {
+        ChordSymbolParser parser = CreateParser();
+
+        (bool bValid, string normalisedRoot, string _) = parser.ValidateRoot(root);
+
+        Assert.True(bValid);
+        Assert.Equal(expectedRoot, normalisedRoot);
     }
 
     [Theory]
     [InlineData("C#")]
-    [InlineData("F#dim")]
-    [InlineData("D#min")]
-    public void ValidateChords_SharpRootNote_IsValid(string chord)
+    [InlineData("F#")]
+    [InlineData("D#")]
+    [InlineData("d#")]
+    public void ValidateRoot_SharpRoot_IsValid(string root)
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string _) = parser.ValidateChords([chord]).Single();
+        (bool bValid, string _, string _) = parser.ValidateRoot(root);
 
         Assert.True(bValid);
     }
-    
+
     [Theory]
     [InlineData("Db")]
-    [InlineData("Bbdim")]
-    [InlineData("Ebmin")]
-    public void ValidateChords_FlatRootNote_IsValid(string chord)
+    [InlineData("Bb")]
+    [InlineData("Eb")]
+    [InlineData("eb")]
+    public void ValidateRoot_FlatRoot_IsValid(string root)
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string _) = parser.ValidateChords([chord]).Single();
+        (bool bValid, string _, string _) = parser.ValidateRoot(root);
 
         Assert.True(bValid);
+    }
+
+    [Theory]
+    [InlineData(" C")]
+    [InlineData("C ")]
+    [InlineData("  F#  ")]
+    public void ValidateRoot_LeadingOrTrailingWhitespace_IsValid(string root)
+    {
+        ChordSymbolParser parser = CreateParser();
+
+        (bool bValid, string _, string _) = parser.ValidateRoot(root);
+
+        Assert.True(bValid);
+    }
+
+    [Theory]
+    [InlineData("H")]
+    [InlineData("X")]
+    [InlineData("1")]
+    public void ValidateRoot_UnknownNoteLetter_IsInvalid(string root)
+    {
+        ChordSymbolParser parser = CreateParser();
+
+        (bool bValid, string _, string reason) = parser.ValidateRoot(root);
+
+        Assert.False(bValid);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ValidateRoot_EmptyOrWhitespace_IsInvalid(string root)
+    {
+        ChordSymbolParser parser = CreateParser();
+
+        (bool bValid, string _, string _) = parser.ValidateRoot(root);
+
+        Assert.False(bValid);
+    }
+
+    // A key must be JUST a root, not a full chord symbol - "Cmaj7" as a Key should not
+    // silently be accepted as key "C" with the quality ignored.
+    [Theory]
+    [InlineData("Cmaj7")]
+    [InlineData("Cdim")]
+    [InlineData("Csus2")]
+    [InlineData("Am")]
+    public void ValidateRoot_ChordSymbolWithQualitySuffix_IsInvalid(string root)
+    {
+        ChordSymbolParser parser = CreateParser();
+
+        (bool bValid, string _, string _) = parser.ValidateRoot(root);
+
+        Assert.False(bValid);
     }
 }

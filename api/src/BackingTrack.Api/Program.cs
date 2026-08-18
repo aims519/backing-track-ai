@@ -184,6 +184,7 @@ builder.Services.AddTransient<IRetrieveStep, RetrieveStep>();
 builder.Services.AddKnowledgeBaseVectorStore();
 
 builder.Services.AddSingleton<ChordSymbolParser>();
+builder.Services.AddSingleton<ScaleMatcher>();
 
 builder.Services.AddHttpClient<IQueryEmbeddingService, VoyageAiQueryEmbeddingService>(client =>
 {

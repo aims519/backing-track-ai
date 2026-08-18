@@ -1,12 +1,14 @@
 using System.Threading.Channels;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps;
+
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace BackingTrack.Generation.Jobs;
 
-public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQueue jobQueue, ILogger<GenerationJobWorkerHostedService> logger, IRetrieveStep retrieveStep) : BackgroundService
+public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQueue jobQueue, ILogger<GenerationJobWorkerHostedService> logger, IServiceScopeFactory serviceScopeFactory) : BackgroundService
 {
     private readonly ChannelReader<Guid> _jobReader = jobQueue.Reader;
 
@@ -27,6 +29,11 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
 
             // Process the generation job here
             // Update the job state as needed
+            using IServiceScope scope = serviceScopeFactory.CreateScope();
+            IRetrieveStep retrieveStep = scope.ServiceProvider.GetRequiredService<IRetrieveStep>();
+            
+            #region Style
+
             StyleEntry? matchingStyleEntry;
             try
             {
@@ -54,6 +61,56 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
             }
 
             logger.LogInformation("Job {Id} found matching style entry, {Style}", jobId, matchingStyleEntry.Id);
+
+            #endregion
+
+            #region Chords
+
+            IReadOnlyList<(string chordRoot, ChordEntry chordEntry)> matchingChords;
+            try
+            {
+                matchingChords = retrieveStep.RetrieveMatchingChords(generationJob.Chords);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Job {Id} failed during chord retrieval", jobId);
+                GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
+                jobStore.AddOrUpdate(failedJob);
+                continue;
+            }
+
+            #endregion
+
+            #region Scales
+
+            IReadOnlyList<ScaleEntry> matchingScaleEntries;
+            try
+            {
+                matchingScaleEntries = retrieveStep.RetrieveMatchingScaleEntries(generationJob.Key,
+                    matchingChords.Select(c => (c.chordRoot, c.chordEntry.Id)).ToList(),
+                    stoppingToken)
+                    .ToList();
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                // Service shutdown, not a job failure - let it propagate and stop the loop.
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Job {Id} failed during scale retrieval", jobId);
+                GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
+                jobStore.AddOrUpdate(failedJob);
+                continue;
+            }
+            
+            if(!matchingScaleEntries.Any())
+                logger.LogInformation("Job {Id} has found no matching scales",  jobId);
+            else
+                logger.LogInformation("Job {Id} found matching scales: {ScalesString}", jobId, 
+                    string.Join(',', matchingScaleEntries.Select(s => s.Id)));
+
+            #endregion
 
             GenerationJob completedJob = updatedJob with { State = JobStates.Complete, EndTime = DateTimeOffset.UtcNow };
             jobStore.AddOrUpdate(completedJob);

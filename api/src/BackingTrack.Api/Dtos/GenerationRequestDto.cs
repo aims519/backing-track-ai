@@ -47,6 +47,8 @@ public static class GenerationRequestDtoExtensions
         
         if (string.IsNullOrWhiteSpace(request.Key))
             validationProblemDetails.Errors.Add(nameof(request.Key), ["Key must be provided"]);
+        else if (!chordSymbolParser.ValidateRoot(request.Key).bValid)
+            validationProblemDetails.Errors.Add(nameof(request.Key), [$"Key '{request.Key}' is not a valid root note"]);
         
         if (request.TimeSignatureBeatCount< ValidBeatCountMin || request.TimeSignatureBeatCount > ValidBeatCountMax)
             validationProblemDetails.Errors.Add(nameof(request.TimeSignatureBeatCount), [$"Time signature beat count must be between {ValidBeatCountMin} and {ValidBeatCountMax}"]);
