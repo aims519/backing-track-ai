@@ -32,7 +32,7 @@ public class ScaleMatcher
     public int RootToPitchClass(string root) => PitchClasses.GetValueOrDefault(root, -1);
 
     public IReadOnlyList<ScaleEntry> FindMatchingScales(string key,
-        IReadOnlyList<(string chordRoot, string chordQuality, int[] intervals)> chords,
+        IReadOnlyList<MatchedChord> chords,
         IReadOnlyList<ScaleEntry> possibleScaleEntries)
     {
         int keyPitchClass = RootToPitchClass(key);
@@ -41,13 +41,13 @@ public class ScaleMatcher
         
         HashSet<ScaleEntry> allMatchingScales = possibleScaleEntries.ToHashSet();
         
-        foreach ((string chordRoot, string _, int[] chordIntervals) in chords)
+        foreach (MatchedChord chord in chords)
         {
-            int chordPitchClass = RootToPitchClass(chordRoot);
+            int chordPitchClass = RootToPitchClass(chord.Root);
             if(chordPitchClass == -1)
-                throw new ArgumentException("Pitch class not found", nameof(chordRoot));
+                throw new ArgumentException("Pitch class not found", nameof(chord.Root));
 
-            int[] adjustedChordIntervals = TransposeIntervalsByPitchClass(chordPitchClass, chordIntervals);
+            int[] adjustedChordIntervals = TransposeIntervalsByPitchClass(chordPitchClass, chord.ChordEntry.Intervals);
             
             IEnumerable<ScaleEntry> matchingScaleEntriesForChord = possibleScaleEntries.Where(x => IsScaleValidForChord(adjustedChordIntervals,
                 TransposeIntervalsByPitchClass(keyPitchClass, x.Intervals)));

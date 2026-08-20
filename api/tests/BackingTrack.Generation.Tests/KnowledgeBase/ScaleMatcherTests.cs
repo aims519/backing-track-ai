@@ -121,10 +121,8 @@ public class ScaleMatcherTests
 
     private static readonly IReadOnlyList<ScaleEntry> AllScales = [MajorScale, MinorScale, MixolydianScale];
 
-    private const string MajQuality = "maj";
-    private const string MinQuality = "min";
-    private static readonly int[] MajIntervals = [0, 4, 7];
-    private static readonly int[] MinIntervals = [0, 3, 7];
+    private static readonly ChordEntry MajChordEntry = new() { Id = "maj", Intervals = [0, 4, 7], Description = "Major triad" };
+    private static readonly ChordEntry MinChordEntry = new() { Id = "min", Intervals = [0, 3, 7], Description = "Minor triad" };
 
     [Fact]
     public void FindMatchingScales_CMajorChordInKeyOfG_ReturnsMajorAndMixolydian()
@@ -132,7 +130,7 @@ public class ScaleMatcherTests
         ScaleMatcher scaleMatcher = new();
 
         IReadOnlyList<ScaleEntry> results = scaleMatcher.FindMatchingScales(
-            "G", [("C", MajQuality, MajIntervals)], AllScales);
+            "G", [new MatchedChord(MajChordEntry, "C")], AllScales);
 
         List<string> ids = results.Select(s => s.Id).ToList();
         Assert.Contains("major", ids);
@@ -150,7 +148,7 @@ public class ScaleMatcherTests
         ScaleMatcher scaleMatcher = new();
 
         IReadOnlyList<ScaleEntry> results = scaleMatcher.FindMatchingScales(
-            "C", [("F#", MajQuality, MajIntervals)], AllScales);
+            "C", [new MatchedChord(MajChordEntry, "F#")], AllScales);
 
         Assert.DoesNotContain("major", results.Select(s => s.Id));
     }
@@ -163,7 +161,7 @@ public class ScaleMatcherTests
         // C maj and G maj are both diatonic to C major, but G maj (tones {2,7,11}) is not
         // diatonic to C mixolydian (which flattens the 7th, so it lacks pitch class 11).
         IReadOnlyList<ScaleEntry> results = scaleMatcher.FindMatchingScales(
-            "C", [("C", MajQuality, MajIntervals), ("G", MajQuality, MajIntervals)], AllScales);
+            "C", [new MatchedChord(MajChordEntry, "C"), new MatchedChord(MajChordEntry, "G")], AllScales);
 
         List<string> ids = results.Select(s => s.Id).ToList();
         Assert.Contains("major", ids);
@@ -179,7 +177,7 @@ public class ScaleMatcherTests
         // C maj (needs pitch class 4, the major third) and C min (needs pitch class 3, the
         // minor third) can never both be diatonic to the same scale at the same root.
         IReadOnlyList<ScaleEntry> results = scaleMatcher.FindMatchingScales(
-            "C", [("C", MajQuality, MajIntervals), ("C", MinQuality, MinIntervals)], AllScales);
+            "C", [new MatchedChord(MajChordEntry, "C"), new MatchedChord(MinChordEntry, "C")], AllScales);
 
         Assert.Empty(results);
     }
@@ -190,6 +188,6 @@ public class ScaleMatcherTests
         ScaleMatcher scaleMatcher = new();
 
         Assert.Throws<ArgumentException>(() =>
-            scaleMatcher.FindMatchingScales("C", [("H", MajQuality, MajIntervals)], AllScales));
+            scaleMatcher.FindMatchingScales("C", [new MatchedChord(MajChordEntry, "H")], AllScales));
     }
 }

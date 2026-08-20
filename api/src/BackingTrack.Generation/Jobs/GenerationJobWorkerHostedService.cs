@@ -34,10 +34,10 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
             
             #region Style
 
-            StyleEntry? matchingStyleEntry;
+            MatchedStyle? matchedStyle;
             try
             {
-                matchingStyleEntry = await retrieveStep.RetrieveTopMatchingStyleAsync(updatedJob.Style, stoppingToken);
+                matchedStyle = await retrieveStep.RetrieveTopMatchingStyleAsync(updatedJob.Style, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -52,7 +52,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
                 continue;
             }
 
-            if (matchingStyleEntry == null)
+            if (matchedStyle == null)
             {
                 logger.LogWarning("Job {Id} found no matching style entry for style '{Style}'", jobId, updatedJob.Style);
                 GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
@@ -60,13 +60,13 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
                 continue;
             }
 
-            logger.LogInformation("Job {Id} found matching style entry, {Style}", jobId, matchingStyleEntry.Id);
+            logger.LogInformation("Job {Id} found matching style entry, {Style}", jobId, matchedStyle.StyleEntry.Id);
 
             #endregion
 
             #region Chords
 
-            IReadOnlyList<(string chordRoot, ChordEntry chordEntry)> matchingChords;
+            IReadOnlyList<MatchedChord> matchingChords;
             try
             {
                 matchingChords = retrieveStep.RetrieveMatchingChords(generationJob.Chords);
@@ -87,7 +87,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
             try
             {
                 matchingScaleEntries = retrieveStep.RetrieveMatchingScaleEntries(generationJob.Key,
-                    matchingChords.Select(c => (c.chordRoot, c.chordEntry.Id)).ToList(),
+                    matchingChords,
                     stoppingToken)
                     .ToList();
             }
