@@ -12,7 +12,7 @@ public class EmbeddingDataItemDto
 {
     [JsonPropertyName("index")]
     public int Index { get; init; }
-    
-    [JsonPropertyName("embedding")]
-    public float[] Embedding { get; init; }   
+
+    [JsonPropertyName("embedding")] 
+    public float[] Embedding { get; init; } = [];
 }

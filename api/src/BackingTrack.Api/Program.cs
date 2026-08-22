@@ -10,7 +10,11 @@ using BackingTrack.Api.Errors;
 using BackingTrack.Api.HealthChecks;
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
+using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
+using BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAI;
+using BackingTrack.Generation.Steps;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Logs;
@@ -35,6 +39,7 @@ builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("Auth"
 builder.Services.Configure<OtelSettings>(builder.Configuration.GetSection("Otel"));
 builder.Services.Configure<RateLimitSettings>(builder.Configuration.GetSection("RateLimit"));
 builder.Services.Configure<TrackStorageSettings>(builder.Configuration.GetSection("TrackStorage"));
+builder.Services.Configure<VoyageAISettings>(builder.Configuration.GetSection("VoyageAI"));
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -173,9 +178,19 @@ builder.Services.AddSingleton<JobStore>();
 Channel<Guid> jobChannel = Channel.CreateUnbounded<Guid>();
 builder.Services.AddSingleton(new GenerationJobQueue(jobChannel));
 builder.Services.AddHostedService<GenerationJobWorkerHostedService>();
+builder.Services.AddTransient<IRetrieveStep, RetrieveStep>();
 
 // Vector Store Initialisation
 builder.Services.AddKnowledgeBaseVectorStore();
+
+builder.Services.AddSingleton<ChordSymbolParser>();
+builder.Services.AddSingleton<ScaleMatcher>();
+
+builder.Services.AddHttpClient<IQueryEmbeddingService, VoyageAiQueryEmbeddingService>(client =>
+{
+    client.BaseAddress = new(builder.Configuration.GetValue<string>("VoyageAI:RestApiBaseUrl")!);
+    client.DefaultRequestHeaders.Authorization = new("Bearer", builder.Configuration.GetValue<string>("VoyageAI:ApiKey"));
+});
 
 WebApplication app = builder.Build();
 app.Services.GetRequiredService<InMemoryVectorStore>(); // forces eager load + logging

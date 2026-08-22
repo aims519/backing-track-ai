@@ -1,4 +1,6 @@
 using BackingTrack.Generation.Jobs;
+using BackingTrack.Generation.KnowledgeBase;
+
 using Microsoft.AspNetCore.Mvc;
 namespace BackingTrack.Api.Dtos;
 
@@ -7,7 +9,7 @@ public class GenerationRequestDto
     public string? Mode { get; init; }
     public int Tempo { get; init; }
     public IReadOnlyList<string>? Chords { get; init; }
-    public string? Key { get; init; }
+    public string? KeyRoot { get; init; }
     public string? Style { get; init; }
     public int TimeSignatureBeatCount { get; init; }
     public int TimeSignatureBeatUnit { get; init; }
@@ -19,7 +21,7 @@ public static class GenerationRequestDtoExtensions
     private const int ValidBeatCountMin = 2;
     private const int ValidBeatCountMax = 32;
 
-    public static ValidationProblemDetails? Validate(this GenerationRequestDto request)
+    public static ValidationProblemDetails? Validate(this GenerationRequestDto request, ChordSymbolParser chordSymbolParser)
     {
         ValidationProblemDetails validationProblemDetails = new();
         
@@ -33,14 +35,29 @@ public static class GenerationRequestDtoExtensions
         if (request.Chords == null || request.Chords.Count == 0)
             validationProblemDetails.Errors.Add(nameof(request.Chords), ["At least one chord must be provided"]);
 
-        if (string.IsNullOrWhiteSpace(request.Key))
-            validationProblemDetails.Errors.Add(nameof(request.Key), ["Key must be provided"]);
+        if (request.Chords != null)
+        {
+            List<string> chordErrors = chordSymbolParser.ValidateChords(request.Chords)
+                .Where(r => !r.bValid)
+                .Select(r => r.reason)
+                .ToList();
+            if (chordErrors.Count > 0)
+                validationProblemDetails.Errors[nameof(request.Chords)] = chordErrors.ToArray();
+        }
+        
+        if (string.IsNullOrWhiteSpace(request.KeyRoot))
+            validationProblemDetails.Errors.Add(nameof(request.KeyRoot), ["KeyRoot must be provided"]);
+        else if (!chordSymbolParser.ValidateRoot(request.KeyRoot).bValid)
+            validationProblemDetails.Errors.Add(nameof(request.KeyRoot), [$"KeyRoot '{request.KeyRoot}' is not a valid root note"]);
         
         if (request.TimeSignatureBeatCount< ValidBeatCountMin || request.TimeSignatureBeatCount > ValidBeatCountMax)
             validationProblemDetails.Errors.Add(nameof(request.TimeSignatureBeatCount), [$"Time signature beat count must be between {ValidBeatCountMin} and {ValidBeatCountMax}"]);
         
         if(!ValidBeatUnits.Contains(request.TimeSignatureBeatUnit))
             validationProblemDetails.Errors.Add(nameof(request.TimeSignatureBeatUnit), [$"Invalid beat unit {request.TimeSignatureBeatUnit} provided. Must be in [{string.Join(',', ValidBeatUnits)}]"]);
+        
+        if (string.IsNullOrWhiteSpace(request.Style))
+            validationProblemDetails.Errors.Add(nameof(request.Style), ["Style guidance must be provided"]);
         
         return validationProblemDetails.Errors.Any() ? validationProblemDetails : null;
     }

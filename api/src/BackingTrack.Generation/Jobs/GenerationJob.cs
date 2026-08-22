@@ -11,8 +11,8 @@ public sealed record GenerationJob
     public required GenerationMode Mode { get; init; }
     public required int Tempo { get; init; }
     public required IReadOnlyList<string> Chords { get; init; }
-    public required string Key { get; init; }
-    public string? Style { get; init; }
+    public required string KeyRoot { get; init; }
+    public required string Style { get; init; }
     
     public required int TimeSignatureBeatCount { get; init; }
     public required int TimeSignatureBeatUnit { get; init; }

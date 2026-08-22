@@ -18,12 +18,11 @@ Content-Type: application/json
 X-API-Key: {{ApiKey}}
 
 {
-    "Key": "C",
+    "KeyRoot": "C",
     "Chords": ["C", "F", "G", "G7"],
     "Tempo": 150,
-  
     "Mode": "Precise",
-    "Style": null,
+    "Style": "Style notes",
     "TimeSignatureBeatCount": 4,
     "TimeSignatureBeatUnit": 4
 }
@@ -40,7 +39,7 @@ Content-Type: application/json
 X-API-Key: {{ApiKey}}
 
 {
-    "Key": "",
+    "KeyRoot": "",
     "Mode": "InvalidMode",
     "TimeSignatureBeatCount": 1000,
     "TimeSignatureBeatUnit": 1
@@ -51,6 +50,36 @@ X-API-Key: {{ApiKey}}
         client.assert(response.status === 400, "Expected 400 but got " + response.status);
         client.assert(response.body.errors !== undefined, "Expected an errors object in the response body");
         client.assert(response.body.errors.Mode !== undefined, "Expected a Mode validation error");
+    });
+%}
+
+###
+
+// Two invalid chords in one request: regression check for a bug where the second invalid
+// chord's error threw ArgumentException on Errors.Add (duplicate "Chords" key) instead of
+// being collected, turning what should be a 400 into an unhandled 500.
+# @name generateJobMultipleInvalidChords
+POST {{HostAddress}}/tracks/generate
+Accept: application/json
+Content-Type: application/json
+X-API-Key: {{ApiKey}}
+
+{
+    "KeyRoot": "C",
+    "Chords": ["H7", "Q9"],
+    "Tempo": 150,
+    "Mode": "Precise",
+    "Style": null,
+    "TimeSignatureBeatCount": 4,
+    "TimeSignatureBeatUnit": 4
+}
+
+> {%
+    client.test("Returns 400 with both invalid chord reasons, not a 500", function() {
+        client.assert(response.status === 400, "Expected 400 but got " + response.status);
+        client.assert(response.body.errors !== undefined, "Expected an errors object in the response body");
+        client.assert(response.body.errors.Chords !== undefined, "Expected a Chords validation error");
+        client.assert(response.body.errors.Chords.length === 2, "Expected 2 chord errors but got " + response.body.errors.Chords.length);
     });
 %}
 
@@ -67,7 +96,7 @@ Content-Type: application/json
 X-API-Key: {{ApiKey}}
 
 {
-    "Key": "C",
+    "KeyRoot": "C",
     "Chords": "C",
     "Tempo": 175,
     "Mode": "Vibe"
