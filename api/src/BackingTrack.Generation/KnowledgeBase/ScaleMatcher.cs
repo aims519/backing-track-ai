@@ -28,34 +28,37 @@ public class ScaleMatcher
         ["Cb"] = 11,
         ["B#"] = 0,
     };
+    
+    private static readonly int[] MajorScaleIntervals = [0, 2, 4, 5, 7, 9, 11];
 
     public int RootToPitchClass(string root) => PitchClasses.GetValueOrDefault(root, -1);
 
-    public IReadOnlyList<ScaleEntry> FindMatchingScales(string key,
+    public IReadOnlyList<MatchedScale> FindMatchingScalesForChords(string keyRoot,
         IReadOnlyList<MatchedChord> chords,
         IReadOnlyList<ScaleEntry> possibleScaleEntries)
     {
-        int keyPitchClass = RootToPitchClass(key);
-        if(keyPitchClass == -1)
-            throw new ArgumentException($"Key pitch class not found for '{key}'", nameof(key));
-        
-        HashSet<ScaleEntry> allMatchingScales = possibleScaleEntries.ToHashSet();
-        
+        int keyPitchClass = RootToPitchClass(keyRoot);
+        if (keyPitchClass == -1)
+            throw new ArgumentException($"KeyRoot pitch class not found for '{keyRoot}'", nameof(keyRoot));
+
+        int[] keyDiatonicTones = TransposeIntervalsByPitchClass(keyPitchClass, MajorScaleIntervals);
+
+        HashSet<MatchedScale> matchedScalesSet = new(new MatchedScaleComparer());
         foreach (MatchedChord chord in chords)
         {
             int chordPitchClass = RootToPitchClass(chord.Root);
-            if(chordPitchClass == -1)
+            if (chordPitchClass == -1)
                 throw new ArgumentException("Pitch class not found", nameof(chord.Root));
 
-            int[] adjustedChordIntervals = TransposeIntervalsByPitchClass(chordPitchClass, chord.ChordEntry.Intervals);
-            
-            IEnumerable<ScaleEntry> matchingScaleEntriesForChord = possibleScaleEntries.Where(x => IsScaleValidForChord(adjustedChordIntervals,
-                TransposeIntervalsByPitchClass(keyPitchClass, x.Intervals)));
+            IEnumerable<ScaleEntry> matchingScaleEntriesForChord = possibleScaleEntries.Where(x =>
+                IsScaleValidForChord(chord.ChordEntry.Intervals, x.Intervals)
+                && IsScaleValidForChord(TransposeIntervalsByPitchClass(chordPitchClass, x.Intervals), keyDiatonicTones));
 
-            allMatchingScales = allMatchingScales.Intersect(matchingScaleEntriesForChord).ToHashSet();
+            foreach (ScaleEntry scaleEntryForChord in matchingScaleEntriesForChord)
+                matchedScalesSet.Add(new(scaleEntryForChord, chord));
         }
-        
-        return allMatchingScales.ToList();
+
+        return matchedScalesSet.ToList();
     }
     
     public int[] TransposeIntervalsByPitchClass(int pitchClass, int[] intervals)
@@ -66,5 +69,14 @@ public class ScaleMatcher
     public bool IsScaleValidForChord(int[] chordTones, int[] scaleTones)
     {
         return chordTones.All(tone => scaleTones.Contains(tone));
+    }
+    
+    private sealed class MatchedScaleComparer : IEqualityComparer<MatchedScale>
+    {
+        public bool Equals(MatchedScale? x, MatchedScale? y) =>
+            x?.Chord.ChordEntry.Id == y?.Chord.ChordEntry.Id && x?.Chord.Root == y?.Chord.Root && x?.ScaleEntry.Id == y?.ScaleEntry.Id;
+
+        public int GetHashCode(MatchedScale scale) =>
+            HashCode.Combine(scale.Chord.ChordEntry.Id, scale.Chord.Root, scale.ScaleEntry.Id);
     }
 }

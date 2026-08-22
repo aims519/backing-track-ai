@@ -18,7 +18,7 @@ Content-Type: application/json
 X-API-Key: {{ApiKey}}
 
 {
-    "Key": "C",
+    "KeyRoot": "C",
     "Chords": ["C", "F", "G", "G7"],
     "Tempo": 150,
     "Mode": "Precise",
@@ -39,7 +39,7 @@ Content-Type: application/json
 X-API-Key: {{ApiKey}}
 
 {
-    "Key": "",
+    "KeyRoot": "",
     "Mode": "InvalidMode",
     "TimeSignatureBeatCount": 1000,
     "TimeSignatureBeatUnit": 1
@@ -65,7 +65,7 @@ Content-Type: application/json
 X-API-Key: {{ApiKey}}
 
 {
-    "Key": "C",
+    "KeyRoot": "C",
     "Chords": ["H7", "Q9"],
     "Tempo": 150,
     "Mode": "Precise",
@@ -96,7 +96,7 @@ Content-Type: application/json
 X-API-Key: {{ApiKey}}
 
 {
-    "Key": "C",
+    "KeyRoot": "C",
     "Chords": "C",
     "Tempo": 175,
     "Mode": "Vibe"

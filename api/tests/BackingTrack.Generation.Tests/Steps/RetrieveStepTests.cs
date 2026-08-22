@@ -42,12 +42,14 @@ public class RetrieveStepTests
     {
         RetrieveStep retrieveStep = CreateRetrieveStep();
 
-        IEnumerable<ScaleEntry> results = retrieveStep.RetrieveMatchingScaleEntries(
-            "G", [new MatchedChord(MajChordEntry, "C")]);
+        // C major chord as the tonic in the key of C: mixolydian's flattened 7th (Bb) isn't
+        // diatonic to C major, so only "major" should survive the key filter.
+        IEnumerable<MatchedScale> results = retrieveStep.RetrieveMatchingScales(
+            "C", [new MatchedChord(MajChordEntry, "C")]);
 
-        List<string> ids = results.Select(s => s.Id).ToList();
+        List<string> ids = results.Select(s => s.ScaleEntry.Id).ToList();
         Assert.Contains("major", ids);
-        Assert.Contains("mixolydian", ids);
+        Assert.DoesNotContain("mixolydian", ids);
         Assert.DoesNotContain("minor", ids);
     }
 
@@ -57,7 +59,7 @@ public class RetrieveStepTests
         RetrieveStep retrieveStep = CreateRetrieveStep();
 
         Assert.Throws<ArgumentException>(() =>
-            retrieveStep.RetrieveMatchingScaleEntries("C", [new MatchedChord(MajChordEntry, "H")]));
+            retrieveStep.RetrieveMatchingScales("C", [new MatchedChord(MajChordEntry, "H")]));
     }
     
     [Fact]

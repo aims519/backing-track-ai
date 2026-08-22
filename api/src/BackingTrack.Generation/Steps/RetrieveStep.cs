@@ -7,7 +7,7 @@ namespace BackingTrack.Generation.Steps;
 public class RetrieveStep(InMemoryVectorStore vectorStore, IQueryEmbeddingService queryEmbeddingService, ScaleMatcher scaleMatcher, ChordSymbolParser chordSymbolParser)
     : IRetrieveStep
 {
-    public async Task<MatchedStyle?> RetrieveTopMatchingStyleAsync(string styleQuery, CancellationToken cancellationToken = default)
+    public async Task<MatchedStyle?> RetrieveTopMatchingStyles(string styleQuery, CancellationToken cancellationToken = default)
     {
         float[] queryVector = await queryEmbeddingService.EmbedQueryAsync(styleQuery, cancellationToken);
 
@@ -16,13 +16,13 @@ public class RetrieveStep(InMemoryVectorStore vectorStore, IQueryEmbeddingServic
         return new(results.FirstOrDefault().Entry);
     }
 
-    public IEnumerable<ScaleEntry> RetrieveMatchingScaleEntries(string key, IReadOnlyList<MatchedChord> chords, CancellationToken cancellationToken = default)
+    public IReadOnlyList<MatchedScale> RetrieveMatchingScales(string keyRoot, IReadOnlyList<MatchedChord> chords, CancellationToken cancellationToken = default)
     {
         IReadOnlyList<ScaleEntry> allScaleEntries = vectorStore.Items.Where(i => i.Entry is ScaleEntry)
             .Select(i => (ScaleEntry)i.Entry)
             .ToList();
-        
-        IReadOnlyList<ScaleEntry> matchingScaleEntries = scaleMatcher.FindMatchingScales(key, chords, allScaleEntries);
+
+        IReadOnlyList<MatchedScale> matchingScaleEntries = scaleMatcher.FindMatchingScalesForChords(keyRoot, chords, allScaleEntries);
         
         return matchingScaleEntries;
     }

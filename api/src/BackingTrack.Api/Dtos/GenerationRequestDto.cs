@@ -9,7 +9,7 @@ public class GenerationRequestDto
     public string? Mode { get; init; }
     public int Tempo { get; init; }
     public IReadOnlyList<string>? Chords { get; init; }
-    public string? Key { get; init; }
+    public string? KeyRoot { get; init; }
     public string? Style { get; init; }
     public int TimeSignatureBeatCount { get; init; }
     public int TimeSignatureBeatUnit { get; init; }
@@ -45,10 +45,10 @@ public static class GenerationRequestDtoExtensions
                 validationProblemDetails.Errors[nameof(request.Chords)] = chordErrors.ToArray();
         }
         
-        if (string.IsNullOrWhiteSpace(request.Key))
-            validationProblemDetails.Errors.Add(nameof(request.Key), ["Key must be provided"]);
-        else if (!chordSymbolParser.ValidateRoot(request.Key).bValid)
-            validationProblemDetails.Errors.Add(nameof(request.Key), [$"Key '{request.Key}' is not a valid root note"]);
+        if (string.IsNullOrWhiteSpace(request.KeyRoot))
+            validationProblemDetails.Errors.Add(nameof(request.KeyRoot), ["KeyRoot must be provided"]);
+        else if (!chordSymbolParser.ValidateRoot(request.KeyRoot).bValid)
+            validationProblemDetails.Errors.Add(nameof(request.KeyRoot), [$"KeyRoot '{request.KeyRoot}' is not a valid root note"]);
         
         if (request.TimeSignatureBeatCount< ValidBeatCountMin || request.TimeSignatureBeatCount > ValidBeatCountMax)
             validationProblemDetails.Errors.Add(nameof(request.TimeSignatureBeatCount), [$"Time signature beat count must be between {ValidBeatCountMin} and {ValidBeatCountMax}"]);

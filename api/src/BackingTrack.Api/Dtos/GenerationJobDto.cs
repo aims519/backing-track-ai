@@ -13,7 +13,7 @@ public class GenerationJobDto
     public required string Mode { get; init; }
     public required int Tempo { get; init; }
     public required IReadOnlyList<string> Chords { get; init; }
-    public required string Key { get; init; }
+    public required string KeyRoot { get; init; }
     public required int TimeSignatureBeatCount { get; init; }
     public required int TimeSignatureBeatUnit { get; init; }
 }
@@ -31,7 +31,7 @@ internal static class GenerationJobDtoExtensions
         Mode = job.Mode.ToString(),
         Tempo = job.Tempo,
         Chords = job.Chords,
-        Key = job.Key,
+        KeyRoot = job.KeyRoot,
         TimeSignatureBeatCount = job.TimeSignatureBeatCount,
         TimeSignatureBeatUnit = job.TimeSignatureBeatUnit,
     };

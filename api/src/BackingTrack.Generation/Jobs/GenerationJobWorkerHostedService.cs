@@ -37,7 +37,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
             MatchedStyle? matchedStyle;
             try
             {
-                matchedStyle = await retrieveStep.RetrieveTopMatchingStyleAsync(updatedJob.Style, stoppingToken);
+                matchedStyle = await retrieveStep.RetrieveTopMatchingStyles(updatedJob.Style, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -83,10 +83,10 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
 
             #region Scales
 
-            IReadOnlyList<ScaleEntry> matchingScaleEntries;
+            IReadOnlyList<MatchedScale> matchingScaleEntries;
             try
             {
-                matchingScaleEntries = retrieveStep.RetrieveMatchingScaleEntries(generationJob.Key,
+                matchingScaleEntries = retrieveStep.RetrieveMatchingScales(generationJob.KeyRoot,
                     matchingChords,
                     stoppingToken)
                     .ToList();
@@ -108,7 +108,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
                 logger.LogInformation("Job {Id} has found no matching scales",  jobId);
             else
                 logger.LogInformation("Job {Id} found matching scales: {ScalesString}", jobId, 
-                    string.Join(',', matchingScaleEntries.Select(s => s.Id)));
+                    string.Join(',', matchingScaleEntries.Select(s => s.ScaleEntry.Id)));
 
             #endregion
 

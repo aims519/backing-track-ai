@@ -34,7 +34,7 @@ internal static class TrackEndpoints
                 Mode = Enum.Parse<GenerationMode>(requestDto.Mode!),
                 Tempo = requestDto.Tempo,
                 Chords = requestDto.Chords!,
-                Key = requestDto.Key!,
+                KeyRoot = requestDto.KeyRoot!,
                 Style = requestDto.Style,
                 TimeSignatureBeatCount = requestDto.TimeSignatureBeatCount,
                 TimeSignatureBeatUnit = requestDto.TimeSignatureBeatUnit,
