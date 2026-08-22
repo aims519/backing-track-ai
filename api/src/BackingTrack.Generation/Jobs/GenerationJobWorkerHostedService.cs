@@ -108,7 +108,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
                 logger.LogInformation("Job {Id} has found no matching scales",  jobId);
             else
                 logger.LogInformation("Job {Id} found matching scales: {ScalesString}", jobId, 
-                    string.Join(',', matchingScaleEntries.Select(s => s.ScaleEntry.Id)));
+                    string.Join(',', matchingScaleEntries.Select(s => $"{s.Chord.Root}{s.ScaleEntry.Id}/{s.Chord.Root}{s.Chord.ChordEntry.Id}")));
 
             #endregion
 
