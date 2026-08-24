@@ -210,7 +210,7 @@ builder.Services.AddSingleton<IChatClient>(sp =>
     OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
     ChatClient client = new(settings.Model, new ApiKeyCredential(settings.ApiKey),new OpenAIClientOptions()
     {
-        Endpoint = new Uri(settings.BaseUrl)
+        Endpoint = new Uri(settings.BaseUrl),
     });
     return client.AsIChatClient();
 });

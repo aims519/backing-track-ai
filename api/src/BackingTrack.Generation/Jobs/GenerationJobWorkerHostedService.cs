@@ -3,7 +3,6 @@ using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps;
 using BackingTrack.Generation.Steps.Types;
 
-using Microsoft.Agents.AI.Workflows.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -142,7 +141,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
                 continue;
             }
             
-            logger.LogInformation("Job {Id} generate a candidate track\nLengthInBeats: {BeatCount}\nDrumEventCount: {DrumEventCount}\nChordVoicingEventCount: {ChordVoicingEventCount}", 
+            logger.LogInformation("Job {Id} generated a candidate track\nLengthInBeats: {BeatCount}\nDrumEventCount: {DrumEventCount}\nChordVoicingEventCount: {ChordVoicingEventCount}", 
                 jobId, candidateTrack.LengthInBeats, candidateTrack.Drums.Count, candidateTrack.ChordVoicings.Count);
             
             #endregion
