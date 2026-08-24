@@ -1,7 +1,9 @@
 using System.Threading.Channels;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps;
+using BackingTrack.Generation.Steps.Types;
 
+using Microsoft.Agents.AI.Workflows.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -30,8 +32,9 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
             // Process the generation job here
             // Update the job state as needed
             using IServiceScope scope = serviceScopeFactory.CreateScope();
-            IRetrieveStep retrieveStep = scope.ServiceProvider.GetRequiredService<IRetrieveStep>();
             
+            #region Retrieval
+            IRetrieveStep retrieveStep = scope.ServiceProvider.GetRequiredService<IRetrieveStep>();
             #region Style
 
             MatchedStyle? matchedStyle;
@@ -110,6 +113,36 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
                 logger.LogInformation("Job {Id} found matching scales: {ScalesString}", jobId, 
                     string.Join(',', matchingScaleEntries.Select(s => $"{s.Chord.Root}{s.ScaleEntry.Id}/{s.Chord.Root}{s.Chord.ChordEntry.Id}")));
 
+            #endregion
+            #endregion
+
+            #region Generation
+            IGenerateStep generateStep = scope.ServiceProvider.GetRequiredService<IGenerateStep>();
+            
+            CandidateTrack candidateTrack;
+            try
+            {
+                candidateTrack = await generateStep.GenerateCandidateTrackAsync(generationJob.KeyRoot,
+                    generationJob.Tempo,
+                    generationJob.TimeSignatureBeatCount,
+                    generationJob.TimeSignatureBeatUnit,
+                    matchedStyle, matchingChords,  matchingScaleEntries, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                // Service shutdown, not a job failure - let it propagate and stop the loop.
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Job {Id} failed during candidate track generation", jobId);
+                GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
+                jobStore.AddOrUpdate(failedJob);
+                continue;
+            }
+            
+            logger.LogInformation("Job {Id} generate a candidate track", jobId);
+            
             #endregion
 
             GenerationJob completedJob = updatedJob with { State = JobStates.Complete, EndTime = DateTimeOffset.UtcNow };

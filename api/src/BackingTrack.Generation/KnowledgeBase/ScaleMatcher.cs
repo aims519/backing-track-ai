@@ -71,6 +71,17 @@ public class ScaleMatcher
         return chordTones.All(tone => scaleTones.Contains(tone));
     }
     
+    public IReadOnlyList<string> GetChordToneNames(string root, int[] intervals)
+    {
+        int pitchClass = RootToPitchClass(root);
+        if (pitchClass == -1)
+            throw new ArgumentException($"Root pitch class not found for '{root}'", nameof(root));
+
+        return TransposeIntervalsByPitchClass(pitchClass, intervals)
+            .Select(PitchClassToRoot)
+            .ToList();
+    }
+    
     private sealed class MatchedScaleComparer : IEqualityComparer<MatchedScale>
     {
         public bool Equals(MatchedScale? x, MatchedScale? y) =>
@@ -79,4 +90,9 @@ public class ScaleMatcher
         public int GetHashCode(MatchedScale scale) =>
             HashCode.Combine(scale.Chord.ChordEntry.Id, scale.Chord.Root, scale.ScaleEntry.Id);
     }
+    
+    private static readonly string[] PitchClassNames =
+        ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    
+    private string PitchClassToRoot(int pitchClass) => PitchClassNames[((pitchClass % 12) + 12) % 12];
 }

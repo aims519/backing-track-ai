@@ -3,6 +3,10 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using System.Threading.RateLimiting;
+
+using Anthropic;
+using Anthropic.Core;
+
 using BackingTrack.Api.Auth;
 using BackingTrack.Api.Dtos;
 using BackingTrack.Api.Endpoints;
@@ -14,9 +18,14 @@ using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAI;
 using BackingTrack.Generation.Steps;
+using BackingTrack.Generation.TrackGeneration;
 
+using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
+
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -40,6 +49,7 @@ builder.Services.Configure<OtelSettings>(builder.Configuration.GetSection("Otel"
 builder.Services.Configure<RateLimitSettings>(builder.Configuration.GetSection("RateLimit"));
 builder.Services.Configure<TrackStorageSettings>(builder.Configuration.GetSection("TrackStorage"));
 builder.Services.Configure<VoyageAISettings>(builder.Configuration.GetSection("VoyageAI"));
+builder.Services.Configure<AnthropicSettings>(builder.Configuration.GetSection("Anthropic"));
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -191,6 +201,20 @@ builder.Services.AddHttpClient<IQueryEmbeddingService, VoyageAiQueryEmbeddingSer
     client.BaseAddress = new(builder.Configuration.GetValue<string>("VoyageAI:RestApiBaseUrl")!);
     client.DefaultRequestHeaders.Authorization = new("Bearer", builder.Configuration.GetValue<string>("VoyageAI:ApiKey"));
 });
+
+// Track Generation
+builder.Services.AddSingleton<IChatClient>(sp =>
+{
+    AnthropicSettings settings = sp.GetRequiredService<IOptions<AnthropicSettings>>().Value;
+    AnthropicClient client = new(new ClientOptions { ApiKey = settings.ApiKey });
+    return client.AsIChatClient(settings.Model, settings.MaxOutputTokens);
+});
+
+builder.Services.AddSingleton<AIAgent>(sp =>
+    sp.GetRequiredService<IChatClient>().AsAIAgent(instructions: GenerateStepPrompts.SystemInstructions));
+
+builder.Services.AddSingleton<ITrackGenerationClient, AnthropicTrackGenerationClient>();
+builder.Services.AddTransient<IGenerateStep, GenerateStep>();
 
 WebApplication app = builder.Build();
 app.Services.GetRequiredService<InMemoryVectorStore>(); // forces eager load + logging

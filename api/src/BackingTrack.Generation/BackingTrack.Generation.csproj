@@ -5,6 +5,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Anthropic" Version="12.42.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
     <PackageReference Include="System.Numerics.Tensors" Version="10.0.11" />
       <PackageReference Include="Microsoft.Agents.AI" Version="1.17.0" />
