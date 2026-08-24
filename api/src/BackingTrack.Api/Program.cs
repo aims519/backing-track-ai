@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using System.Threading.RateLimiting;
+
 using BackingTrack.Api.Auth;
 using BackingTrack.Api.Dtos;
 using BackingTrack.Api.Endpoints;
@@ -14,9 +15,11 @@ using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAI;
 using BackingTrack.Generation.Steps;
+using BackingTrack.Generation.TrackGeneration;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -40,6 +43,7 @@ builder.Services.Configure<OtelSettings>(builder.Configuration.GetSection("Otel"
 builder.Services.Configure<RateLimitSettings>(builder.Configuration.GetSection("RateLimit"));
 builder.Services.Configure<TrackStorageSettings>(builder.Configuration.GetSection("TrackStorage"));
 builder.Services.Configure<VoyageAISettings>(builder.Configuration.GetSection("VoyageAI"));
+builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAi"));
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -85,6 +89,8 @@ if (otelSettings.bEnabled)
         tracerProviderBuilder
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
+            .AddSource(TrackGenerationActivitySource.SourceName)
+            .AddSource(GenerationJobActivitySource.SourceName)
             .AddOtlpExporter(options =>
             {
                 options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
@@ -95,6 +101,7 @@ if (otelSettings.bEnabled)
         metricProviderBuilder
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
+            .AddMeter(TrackGenerationMetrics.MeterName)
             .AddOtlpExporter(options =>
             {
                 options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
@@ -191,6 +198,10 @@ builder.Services.AddHttpClient<IQueryEmbeddingService, VoyageAiQueryEmbeddingSer
     client.BaseAddress = new(builder.Configuration.GetValue<string>("VoyageAI:RestApiBaseUrl")!);
     client.DefaultRequestHeaders.Authorization = new("Bearer", builder.Configuration.GetValue<string>("VoyageAI:ApiKey"));
 });
+
+// Track Generation
+builder.Services.AddTrackGeneration(builder.Configuration);
+builder.Services.AddTransient<IGenerateStep, GenerateStep>();
 
 WebApplication app = builder.Build();
 app.Services.GetRequiredService<InMemoryVectorStore>(); // forces eager load + logging

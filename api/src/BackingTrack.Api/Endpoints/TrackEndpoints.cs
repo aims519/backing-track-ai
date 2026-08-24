@@ -73,7 +73,8 @@ internal static class TrackEndpoints
 
         FileInfo file = matches[0];
         string contentType = file.Extension.ToLowerInvariant() switch                                                                                                                                                  
-        {                                                                                                                                                                                                              
+        {                                
+            ".json" => "application/json",
             ".mp3" => "audio/mpeg",
             ".wav" => "audio/wav",                                                                                                                                                                                     
             ".ogg" => "audio/ogg",
