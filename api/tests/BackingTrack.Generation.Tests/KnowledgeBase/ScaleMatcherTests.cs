@@ -265,4 +265,46 @@ public class ScaleMatcherTests
 
         Assert.Single(results, m => m.ScaleEntry.Id == "dorian" && m.Chord.Root == "D");
     }
+    
+    [Fact]
+    public void GetChordToneNames_SharpRoot_SpellsWithSharps()
+    {
+        ScaleMatcher scaleMatcher = new();
+        IReadOnlyList<string> names = scaleMatcher.GetChordToneNames("C#", MajChordEntry.Intervals);
+        Assert.Equal(["C#", "F", "G#"], names);
+    }
+
+    [Fact]
+    public void GetChordToneNames_FlatRoot_SpellsWithFlats()
+    {
+        ScaleMatcher scaleMatcher = new();
+        IReadOnlyList<string> names = scaleMatcher.GetChordToneNames("Bb", MajChordEntry.Intervals);
+        Assert.Equal(["Bb", "D", "F"], names);
+    }
+
+    [Fact]
+    public void GetChordToneNames_FlatRoot_RootAppearsAmongItsOwnChordTones()
+    {
+        // Regression test: chord tones were always spelled with sharps regardless of the
+        // chord's own root spelling, so e.g. Bb's own root never appeared in its tone list.
+        ScaleMatcher scaleMatcher = new();
+        IReadOnlyList<string> names = scaleMatcher.GetChordToneNames("Bb", MajChordEntry.Intervals);
+        Assert.Contains("Bb", names);
+    }
+
+    [Fact]
+    public void GetChordToneNames_NaturalRoot_SpellsWithSharps()
+    {
+        ScaleMatcher scaleMatcher = new();
+        IReadOnlyList<string> names = scaleMatcher.GetChordToneNames("C", MajChordEntry.Intervals);
+        Assert.Equal(["C", "E", "G"], names);
+    }
+
+    [Fact]
+    public void GetChordToneNames_UnknownRoot_ThrowsArgumentException()
+    {
+        ScaleMatcher scaleMatcher = new();
+        Assert.Throws<ArgumentException>(() =>
+            scaleMatcher.GetChordToneNames("H", MajChordEntry.Intervals));
+    }
 }

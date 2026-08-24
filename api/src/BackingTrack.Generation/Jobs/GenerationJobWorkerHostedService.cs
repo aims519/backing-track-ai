@@ -1,5 +1,8 @@
 using System.Diagnostics;
+using System.Text.Json;
 using System.Threading.Channels;
+
+using BackingTrack.Core.Config;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps;
 using BackingTrack.Generation.Steps.Types;
@@ -8,10 +11,15 @@ using BackingTrack.Generation.TrackGeneration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace BackingTrack.Generation.Jobs;
 
-public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQueue jobQueue, ILogger<GenerationJobWorkerHostedService> logger, IServiceScopeFactory serviceScopeFactory) : BackgroundService
+public class GenerationJobWorkerHostedService(JobStore jobStore, 
+    GenerationJobQueue jobQueue, 
+    ILogger<GenerationJobWorkerHostedService> logger, 
+    IServiceScopeFactory serviceScopeFactory,
+    IOptions<TrackStorageSettings> trackStorageSettings) : BackgroundService
 {
     private readonly ChannelReader<Guid> _jobReader = jobQueue.Reader;
 
@@ -151,12 +159,35 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
                 continue;
             }
             
-            logger.LogInformation("Job {Id} generated a candidate track\nLengthInBeats: {BeatCount}\nDrumEventCount: {DrumEventCount}\nChordVoicingEventCount: {ChordVoicingEventCount}", 
-                jobId, candidateTrack.LengthInBeats, candidateTrack.Drums.Count, candidateTrack.ChordVoicings.Count);
+            logger.LogInformation("Job {Id} generated a candidate track\nLengthInBeats: {BeatCount}\nDrumEventCount: {DrumEventCount}\nBassEventCount: {BassEventCount}\nChordVoicingEventCount: {ChordVoicingEventCount}",
+                    jobId, candidateTrack.LengthInBeats, candidateTrack.Drums.Count, candidateTrack.Bass.Count, candidateTrack.ChordVoicings.Count);
+            #endregion
             
+            #region Persistance
+            Guid trackId = Guid.NewGuid();
+            try
+            {
+                Directory.CreateDirectory(trackStorageSettings.Value.BaseFolderPath);
+                string trackJson = JsonSerializer.Serialize(candidateTrack, CandidateTrackJsonContext.Default.CandidateTrack);
+                string trackFilePath = Path.Combine(trackStorageSettings.Value.BaseFolderPath, $"{trackId}.json");
+                await File.WriteAllTextAsync(trackFilePath, trackJson, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                // Service shutdown, not a job failure - let it propagate and stop the loop.
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Job {Id} failed to persist the candidate track", jobId);
+                GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
+                jobStore.AddOrUpdate(failedJob);
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                continue;
+            }
             #endregion
 
-            GenerationJob completedJob = updatedJob with { State = JobStates.Complete, EndTime = DateTimeOffset.UtcNow };
+            GenerationJob completedJob = updatedJob with { State = JobStates.Complete, EndTime = DateTimeOffset.UtcNow, TrackId = trackId };
             jobStore.AddOrUpdate(completedJob);
 
             logger.LogInformation("Job {Id} completed", jobId);

@@ -29,6 +29,12 @@ public class ScaleMatcher
         ["B#"] = 0,
     };
     
+    private static readonly string[] SharpPitchClassNames =
+        ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    
+    private static readonly string[] FlatPitchClassNames =
+        ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+    
     private static readonly int[] MajorScaleIntervals = [0, 2, 4, 5, 7, 9, 11];
 
     public int RootToPitchClass(string root) => PitchClasses.GetValueOrDefault(root, -1);
@@ -77,8 +83,10 @@ public class ScaleMatcher
         if (pitchClass == -1)
             throw new ArgumentException($"Root pitch class not found for '{root}'", nameof(root));
 
+        string[] pitchClassNames = root.Contains('b') ? FlatPitchClassNames : SharpPitchClassNames;
+        
         return TransposeIntervalsByPitchClass(pitchClass, intervals)
-            .Select(PitchClassToRoot)
+            .Select(pc => pitchClassNames[((pc % 12) + 12) % 12])
             .ToList();
     }
     
@@ -90,9 +98,4 @@ public class ScaleMatcher
         public int GetHashCode(MatchedScale scale) =>
             HashCode.Combine(scale.Chord.ChordEntry.Id, scale.Chord.Root, scale.ScaleEntry.Id);
     }
-    
-    private static readonly string[] PitchClassNames =
-        ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    
-    private string PitchClassToRoot(int pitchClass) => PitchClassNames[((pitchClass % 12) + 12) % 12];
 }

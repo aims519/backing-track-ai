@@ -1,4 +1,3 @@
-using System.ClientModel;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -18,14 +17,8 @@ using BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAI;
 using BackingTrack.Generation.Steps;
 using BackingTrack.Generation.TrackGeneration;
 
-using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Options;
-
-using OpenAI;
-using OpenAI.Chat;
 
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -50,7 +43,6 @@ builder.Services.Configure<OtelSettings>(builder.Configuration.GetSection("Otel"
 builder.Services.Configure<RateLimitSettings>(builder.Configuration.GetSection("RateLimit"));
 builder.Services.Configure<TrackStorageSettings>(builder.Configuration.GetSection("TrackStorage"));
 builder.Services.Configure<VoyageAISettings>(builder.Configuration.GetSection("VoyageAI"));
-builder.Services.Configure<AnthropicSettings>(builder.Configuration.GetSection("Anthropic"));
 builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAi"));
 
 builder.Services.AddProblemDetails();
@@ -208,27 +200,7 @@ builder.Services.AddHttpClient<IQueryEmbeddingService, VoyageAiQueryEmbeddingSer
 });
 
 // Track Generation
-builder.Services.AddSingleton<IChatClient>(sp =>
-{
-    OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
-    ChatClient client = new(settings.Model, new ApiKeyCredential(settings.ApiKey),new OpenAIClientOptions()
-    {
-        Endpoint = new Uri(settings.BaseUrl),
-    });
-    return client.AsIChatClient();
-});
-
-builder.Services.AddSingleton<AIAgent>(sp =>
-    sp.GetRequiredService<IChatClient>().AsAIAgent(instructions: GenerateStepPrompts.SystemInstructions));
-
-builder.Services.AddSingleton(sp =>
-{
-    OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
-    return new TrackGenerationProviderInfo("OpenAi", settings.Model, settings.MaxOutputTokens);
-});
-
-builder.Services.AddSingleton<TrackGenerationMetrics>();
-builder.Services.AddSingleton<ITrackGenerationClient, TrackGenerationClient>();
+builder.Services.AddTrackGeneration(builder.Configuration);
 builder.Services.AddTransient<IGenerateStep, GenerateStep>();
 
 WebApplication app = builder.Build();
