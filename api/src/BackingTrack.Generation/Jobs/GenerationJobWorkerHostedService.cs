@@ -119,6 +119,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
             #region Generation
             IGenerateStep generateStep = scope.ServiceProvider.GetRequiredService<IGenerateStep>();
             
+            logger.LogInformation("Job {Id} generating a candidate track...", jobId);
             CandidateTrack candidateTrack;
             try
             {

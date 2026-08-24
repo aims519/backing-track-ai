@@ -1,11 +1,9 @@
+using System.ClientModel;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using System.Threading.RateLimiting;
-
-using Anthropic;
-using Anthropic.Core;
 
 using BackingTrack.Api.Auth;
 using BackingTrack.Api.Dtos;
@@ -25,6 +23,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
+
+using OpenAI;
+using OpenAI.Chat;
 
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -50,6 +51,7 @@ builder.Services.Configure<RateLimitSettings>(builder.Configuration.GetSection("
 builder.Services.Configure<TrackStorageSettings>(builder.Configuration.GetSection("TrackStorage"));
 builder.Services.Configure<VoyageAISettings>(builder.Configuration.GetSection("VoyageAI"));
 builder.Services.Configure<AnthropicSettings>(builder.Configuration.GetSection("Anthropic"));
+builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAi"));
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -205,15 +207,18 @@ builder.Services.AddHttpClient<IQueryEmbeddingService, VoyageAiQueryEmbeddingSer
 // Track Generation
 builder.Services.AddSingleton<IChatClient>(sp =>
 {
-    AnthropicSettings settings = sp.GetRequiredService<IOptions<AnthropicSettings>>().Value;
-    AnthropicClient client = new(new ClientOptions { ApiKey = settings.ApiKey });
-    return client.AsIChatClient(settings.Model, settings.MaxOutputTokens);
+    OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
+    ChatClient client = new(settings.Model, new ApiKeyCredential(settings.ApiKey),new OpenAIClientOptions()
+    {
+        Endpoint = new Uri(settings.BaseUrl)
+    });
+    return client.AsIChatClient();
 });
 
 builder.Services.AddSingleton<AIAgent>(sp =>
     sp.GetRequiredService<IChatClient>().AsAIAgent(instructions: GenerateStepPrompts.SystemInstructions));
 
-builder.Services.AddSingleton<ITrackGenerationClient, AnthropicTrackGenerationClient>();
+builder.Services.AddSingleton<ITrackGenerationClient, OpenAiTrackGenerationClient>();
 builder.Services.AddTransient<IGenerateStep, GenerateStep>();
 
 WebApplication app = builder.Build();
