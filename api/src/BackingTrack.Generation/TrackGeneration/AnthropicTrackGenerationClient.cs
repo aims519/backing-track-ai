@@ -1,5 +1,4 @@
 using System.Text.Json;
-
 using BackingTrack.Generation.Steps.Types;
 using Microsoft.Agents.AI;
 
@@ -9,7 +8,8 @@ public class AnthropicTrackGenerationClient(AIAgent aiAgent) : ITrackGenerationC
 {
     public async Task<CandidateTrack> GenerateTrackAsync(string prompt, CancellationToken token = default)
     {
-        await aiAgent.RunAsync<CandidateTrack>(prompt, serializerOptions: new JsonSerializerOptions(), cancellationToken: token);
-        throw new NotImplementedException();
+        AgentResponse<CandidateTrack> agentResponse = await aiAgent.RunAsync<CandidateTrack>(prompt, serializerOptions: new JsonSerializerOptions { TypeInfoResolver = CandidateTrackJsonContext.Default }, cancellationToken: token);
+        
+        return agentResponse.Result;
     }
 }

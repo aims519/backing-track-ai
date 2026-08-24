@@ -24,10 +24,10 @@ public static class GenerateStepPrompts
                                              The result should only use notes/rhythms as allowed by the user's request, i.e. using chord tones and notes in the allowed scales provided for each chord in the progression.
                                              The output CandidateTrack should consist of
                                              
-                                             - Drum track. A list of NoteEvents describing what the drum track should play, complimenting what the pitched instruments are playing. 
+                                             - Drum track. A list of DrumNoteEvents describing what the drum track should play, complimenting what the pitched instruments are playing. 
                                              MidiNote values must follow the General MIDI percussion mapping, e.g. 36 = Acoustic Bass Drum, 38 = Acoustic Snare, 42 = Closed Hi-Hat, 46 = Open Hi-Hat, 49 = Crash Cymbal 1, 51 = Ride Cymbal 1. Only use notes from this mapping.
 
-                                             - Bass track. A list of NoteEvents describing what the bass line of the track should sound like, using low frequencies, and making the tonal center of each chord clear.
+                                             - Bass track. A list of BassNoteEvents describing what the bass line of the track should sound like, using low frequencies, and making the tonal center of each chord clear.
                                              
                                              - Chord track. A list of ChordVoicingEvents, which are then to be played by a chord-friendly instrument, e.g. piano. Should use mid-range frequencies and compliment the drum and bass tracks.
                                              

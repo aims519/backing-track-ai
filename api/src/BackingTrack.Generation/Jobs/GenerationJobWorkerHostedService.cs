@@ -141,7 +141,8 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
                 continue;
             }
             
-            logger.LogInformation("Job {Id} generate a candidate track", jobId);
+            logger.LogInformation("Job {Id} generate a candidate track\nLengthInBeats: {BeatCount}\nDrumEventCount: {DrumEventCount}\nChordVoicingEventCount: {ChordVoicingEventCount}", 
+                jobId, candidateTrack.LengthInBeats, candidateTrack.Drums.Count, candidateTrack.ChordVoicings.Count);
             
             #endregion
 
