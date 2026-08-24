@@ -87,7 +87,7 @@ EnvironmentFile=$ENV_FILE
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ReadWritePaths=$APP_ROOT/current
+ReadWritePaths=$APP_ROOT/current /mnt/ssd/backing-tracks
 ProtectHome=true
 
 [Install]
