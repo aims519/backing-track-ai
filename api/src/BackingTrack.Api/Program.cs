@@ -97,6 +97,8 @@ if (otelSettings.bEnabled)
         tracerProviderBuilder
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
+            .AddSource(TrackGenerationActivitySource.SourceName)
+            .AddSource(GenerationJobActivitySource.SourceName)
             .AddOtlpExporter(options =>
             {
                 options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
@@ -107,6 +109,7 @@ if (otelSettings.bEnabled)
         metricProviderBuilder
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
+            .AddMeter(TrackGenerationMetrics.MeterName)
             .AddOtlpExporter(options =>
             {
                 options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
@@ -218,7 +221,14 @@ builder.Services.AddSingleton<IChatClient>(sp =>
 builder.Services.AddSingleton<AIAgent>(sp =>
     sp.GetRequiredService<IChatClient>().AsAIAgent(instructions: GenerateStepPrompts.SystemInstructions));
 
-builder.Services.AddSingleton<ITrackGenerationClient, OpenAiTrackGenerationClient>();
+builder.Services.AddSingleton(sp =>
+{
+    OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
+    return new TrackGenerationProviderInfo("OpenAi", settings.Model, settings.MaxOutputTokens);
+});
+
+builder.Services.AddSingleton<TrackGenerationMetrics>();
+builder.Services.AddSingleton<ITrackGenerationClient, TrackGenerationClient>();
 builder.Services.AddTransient<IGenerateStep, GenerateStep>();
 
 WebApplication app = builder.Build();

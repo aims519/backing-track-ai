@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Threading.Channels;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps;
 using BackingTrack.Generation.Steps.Types;
+using BackingTrack.Generation.TrackGeneration;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,6 +25,10 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
                 logger.LogInformation("Job {Id} does not exist", jobId);
                 continue;
             }
+            
+            using Activity? activity = GenerationJobActivitySource.Instance.StartActivity("GenerationJobWorkerHostedService.ExecuteAsync");
+            activity?.SetTag("job.id", generationJob.Id);
+            activity?.SetTag("job.mode", generationJob.Mode);
 
             GenerationJob updatedJob = generationJob with { State = JobStates.InProgress };
             jobStore.AddOrUpdate(updatedJob);
@@ -51,6 +57,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
                 logger.LogError(ex, "Job {Id} failed during style retrieval", jobId);
                 GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                 jobStore.AddOrUpdate(failedJob);
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
                 continue;
             }
 
@@ -78,6 +85,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
                 logger.LogError(ex, "Job {Id} failed during chord retrieval", jobId);
                 GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                 jobStore.AddOrUpdate(failedJob);
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
                 continue;
             }
 
@@ -103,6 +111,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
                 logger.LogError(ex, "Job {Id} failed during scale retrieval", jobId);
                 GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                 jobStore.AddOrUpdate(failedJob);
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
                 continue;
             }
             
@@ -138,6 +147,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore, GenerationJobQu
                 logger.LogError(ex, "Job {Id} failed during candidate track generation", jobId);
                 GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                 jobStore.AddOrUpdate(failedJob);
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
                 continue;
             }
             
