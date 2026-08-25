@@ -1,4 +1,5 @@
 using BackingTrack.Generation.KnowledgeBase.Types;
+using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
 
 namespace BackingTrack.Generation.Steps.TrackGeneration;
@@ -12,5 +13,7 @@ public interface IGenerateStep
         MatchedStyle style, 
         IReadOnlyList<MatchedChord> chords,
         IReadOnlyList<MatchedScale> scales, 
+        CandidateTrack? previousAttempt = null,
+        IReadOnlyList<ValidationFailure>? previousAttemptFailures = null,
         CancellationToken cancellationToken = default);
 }

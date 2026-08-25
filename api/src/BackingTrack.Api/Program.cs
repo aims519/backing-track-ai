@@ -17,6 +17,7 @@ using BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAI;
 using BackingTrack.Generation.Steps;
 using BackingTrack.Generation.Steps.Retrieval;
 using BackingTrack.Generation.Steps.TrackGeneration;
+using BackingTrack.Generation.Steps.TrackValidation;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -203,6 +204,10 @@ builder.Services.AddHttpClient<IQueryEmbeddingService, VoyageAiQueryEmbeddingSer
 // Track Generation
 builder.Services.AddTrackGeneration(builder.Configuration);
 builder.Services.AddTransient<IGenerateStep, GenerateStep>();
+
+// Track Validation
+builder.Services.AddTransient<ITrackValidator, TrackValidator>();
+builder.Services.AddTransient<IValidateStep, ValidateStep>();
 
 WebApplication app = builder.Build();
 app.Services.GetRequiredService<InMemoryVectorStore>(); // forces eager load + logging

@@ -4,9 +4,9 @@ using System.Threading.Channels;
 
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.KnowledgeBase.Types;
-using BackingTrack.Generation.Steps;
 using BackingTrack.Generation.Steps.Retrieval;
 using BackingTrack.Generation.Steps.TrackGeneration;
+using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -28,14 +28,20 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
     {
         await foreach (Guid jobId in _jobReader.ReadAllAsync(stoppingToken))
         {
-            GenerationJob? generationJob = jobStore.TryGet(jobId);
+            await ProcessGenerationJobAsync(jobId, stoppingToken);
+        }
+    }
+
+    private async Task ProcessGenerationJobAsync(Guid jobId, CancellationToken stoppingToken)
+    {
+                    GenerationJob? generationJob = jobStore.TryGet(jobId);
             if (generationJob == null)
             {
                 logger.LogInformation("Job {Id} does not exist", jobId);
-                continue;
+                return;
             }
             
-            using Activity? activity = GenerationJobActivitySource.Instance.StartActivity("GenerationJobWorkerHostedService.ExecuteAsync");
+            using Activity? activity = GenerationJobActivitySource.Instance.StartActivity("GenerationJobWorkerHostedService.ProcessGenerationJobAsync");
             activity?.SetTag("job.id", generationJob.Id);
             activity?.SetTag("job.mode", generationJob.Mode);
 
@@ -67,7 +73,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                 jobStore.AddOrUpdate(failedJob);
                 activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                continue;
+                return;
             }
 
             if (matchedStyle == null)
@@ -75,7 +81,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 logger.LogWarning("Job {Id} found no matching style entry for style '{Style}'", jobId, updatedJob.Style);
                 GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                 jobStore.AddOrUpdate(failedJob);
-                continue;
+                return;
             }
 
             logger.LogInformation("Job {Id} found matching style entry, {Style}", jobId, matchedStyle.StyleEntry.Id);
@@ -95,7 +101,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                 jobStore.AddOrUpdate(failedJob);
                 activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                continue;
+                return;
             }
 
             #endregion
@@ -121,7 +127,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                 jobStore.AddOrUpdate(failedJob);
                 activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                continue;
+                return;
             }
             
             if(!matchingScaleEntries.Any())
@@ -144,7 +150,10 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     generationJob.Tempo,
                     generationJob.TimeSignatureBeatCount,
                     generationJob.TimeSignatureBeatUnit,
-                    matchedStyle, matchingChords,  matchingScaleEntries, stoppingToken);
+                    matchedStyle, matchingChords,  matchingScaleEntries, 
+                    previousAttempt: null,
+                    previousAttemptFailures: null,
+                    stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -157,11 +166,65 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                 jobStore.AddOrUpdate(failedJob);
                 activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                continue;
+                return;
             }
             
             logger.LogInformation("Job {Id} generated a candidate track\nLengthInBeats: {BeatCount}\nDrumEventCount: {DrumEventCount}\nBassEventCount: {BassEventCount}\nChordVoicingEventCount: {ChordVoicingEventCount}",
                     jobId, candidateTrack.LengthInBeats, candidateTrack.Drums.Count, candidateTrack.Bass.Count, candidateTrack.ChordVoicings.Count);
+            #endregion
+
+            #region Validation and Repair
+
+            IValidateStep validateStep = scope.ServiceProvider.GetRequiredService<IValidateStep>();
+
+            const int maxGenerationAttempts = 3;
+            TrackValidationResult? trackValidationResult = null;
+            for (int attempt = 1; attempt <= maxGenerationAttempts; attempt++)
+            {
+                trackValidationResult = validateStep.ValidateCandidateTrack(candidateTrack, generationJob, matchingChords, matchingScaleEntries);
+                if (trackValidationResult.IsValid) 
+                    break;
+                
+                logger.LogWarning("Job {Id} attempt {Attempt} failed validation: {Errors}", jobId, attempt, string.Join('\n', trackValidationResult.Failures.Select(f => f.Reason)));
+                
+                if(attempt == maxGenerationAttempts)
+                    break;
+                
+                try
+                {
+                    candidateTrack = await generateStep.GenerateCandidateTrackAsync(generationJob.KeyRoot,
+                        generationJob.Tempo,
+                        generationJob.TimeSignatureBeatCount,
+                        generationJob.TimeSignatureBeatUnit,
+                        matchedStyle, matchingChords,  matchingScaleEntries, 
+                        previousAttempt: candidateTrack,
+                        previousAttemptFailures: trackValidationResult.Failures,
+                        stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    // Service shutdown, not a job failure - let it propagate and stop the loop.
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Job {Id} failed during candidate track generation on retry attempt {Attempt}", jobId, attempt);
+                    GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
+                    jobStore.AddOrUpdate(failedJob);
+                    activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                    return;
+                }
+            }
+
+            if (trackValidationResult is null || !trackValidationResult.IsValid)
+            {
+                GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
+                jobStore.AddOrUpdate(failedJob);
+                activity?.SetStatus(ActivityStatusCode.Error, $"Valid track could not be generated after {maxGenerationAttempts} attempts");
+                logger.LogError("Job {Id} track generation exhausted all {Attempts} attempts and failed validation.\n{Errors}", generationJob.Id, maxGenerationAttempts, string.Join('\n', trackValidationResult?.Failures.Select(f => f.Reason) ?? Array.Empty<string>()));
+                return;
+            }
+            
             #endregion
             
             #region Persistance
@@ -184,7 +247,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                 jobStore.AddOrUpdate(failedJob);
                 activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                continue;
+                return;
             }
             #endregion
 
@@ -192,6 +255,5 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
             jobStore.AddOrUpdate(completedJob);
 
             logger.LogInformation("Job {Id} completed", jobId);
-        }
     }
 }
