@@ -24,8 +24,11 @@ public class TrackValidatorTests
         TimeSignatureBeatUnit = 4,
     };
 
-    private static CandidateTrack CreateCandidateTrack(double lengthInBeats) =>
-        new(lengthInBeats, [], [], []);
+    private static CandidateTrack CreateCandidateTrack(double lengthInBeats,
+        IReadOnlyList<DrumNoteEvent>? drums = null,
+        IReadOnlyList<BassNoteEvent>? bass = null,
+        IReadOnlyList<ChordVoicingEvent>? chordVoicings = null) =>
+        new(lengthInBeats, drums ?? [], bass ?? [], chordVoicings ?? []);
 
     [Theory]
     [InlineData(new[] { "C", "G", "Am", "F" }, 4, 16)]
@@ -258,5 +261,533 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBassNoteChoices(bassNoteEvents, matchedChords, matchedScales, generationJob);
 
         Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void ValidateChordVoicingNoteChoices_AllNotesAreChordTonesForBarsChord_ReturnsNoFailures()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G"], timeSignatureBeatCount: 4);
+
+        MatchedChord cMajor = new(MajChordEntry, "C");
+        MatchedChord gMajor = new(MajChordEntry, "G");
+        IReadOnlyList<MatchedChord> matchedChords = [cMajor, gMajor];
+        IReadOnlyList<MatchedScale> matchedScales = [];
+
+        ChordVoicingEvent[] chordVoicingEvents =
+        [
+            new(BeatPosition: 0, DurationInBeats: 4, MidiNotes: [48, 52, 55], Velocity: 100), // C major triad in bar 1
+            new(BeatPosition: 4, DurationInBeats: 4, MidiNotes: [55, 59, 62], Velocity: 100), // G major triad in bar 2
+        ];
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void ValidateChordVoicingNoteChoices_NoteIsScaleToneButNotChordTone_ReturnsNoFailures()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C"], timeSignatureBeatCount: 4);
+
+        MatchedChord cMajor = new(MajChordEntry, "C");
+        IReadOnlyList<MatchedChord> matchedChords = [cMajor];
+        IReadOnlyList<MatchedScale> matchedScales = [new(MajorScaleEntry, cMajor)];
+
+        // D (pitch class 2) is in the C major scale but not a C major chord tone.
+        ChordVoicingEvent[] chordVoicingEvents = [new(BeatPosition: 0, DurationInBeats: 4, MidiNotes: [48, 50, 55], Velocity: 100)];
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void ValidateChordVoicingNoteChoices_NoteOutsideChordAndScaleTones_ReturnsFailureNamingBarAndNote()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C"], timeSignatureBeatCount: 4);
+
+        MatchedChord cMajor = new(MajChordEntry, "C");
+        IReadOnlyList<MatchedChord> matchedChords = [cMajor];
+        IReadOnlyList<MatchedScale> matchedScales = [new(MajorScaleEntry, cMajor)];
+
+        // C# (pitch class 1) is in neither the C major chord nor the C major scale.
+        ChordVoicingEvent[] chordVoicingEvents = [new(BeatPosition: 0, DurationInBeats: 4, MidiNotes: [48, 49, 55], Velocity: 100)];
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains("bar 1", failure.Reason);
+        Assert.Contains("49", failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateChordVoicingNoteChoices_MultipleInvalidNotesInSameVoicing_ReturnsOneFailurePerInvalidNote()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C"], timeSignatureBeatCount: 4);
+
+        MatchedChord cMajor = new(MajChordEntry, "C");
+        IReadOnlyList<MatchedChord> matchedChords = [cMajor];
+        IReadOnlyList<MatchedScale> matchedScales = [];
+
+        // C# and D# (pitch classes 1 and 3) are both outside the C major chord tones.
+        ChordVoicingEvent[] chordVoicingEvents = [new(BeatPosition: 0, DurationInBeats: 4, MidiNotes: [48, 49, 51], Velocity: 100)];
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
+
+        Assert.Equal(2, failures.Count);
+    }
+
+    [Fact]
+    public void ValidateChordVoicingNoteChoices_NoteValidForWrongBarsChord_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G"], timeSignatureBeatCount: 4);
+
+        MatchedChord cMajor = new(MajChordEntry, "C");
+        MatchedChord gMajor = new(MajChordEntry, "G");
+        IReadOnlyList<MatchedChord> matchedChords = [cMajor, gMajor];
+        IReadOnlyList<MatchedScale> matchedScales = [];
+
+        // C major triad is valid for bar 1's chord but falls in bar 2 (G major).
+        ChordVoicingEvent[] chordVoicingEvents = [new(BeatPosition: 4, DurationInBeats: 4, MidiNotes: [48, 52, 55], Velocity: 100)];
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
+
+        Assert.NotEmpty(failures);
+        Assert.All(failures, f => Assert.Contains("bar 2", f.Reason));
+    }
+
+    [Fact]
+    public void ValidateChordVoicingNoteChoices_MinorChordTones_ReturnsNoFailures()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["Am"], timeSignatureBeatCount: 4);
+
+        MatchedChord aMinor = new(MinChordEntry, "A");
+        IReadOnlyList<MatchedChord> matchedChords = [aMinor];
+        IReadOnlyList<MatchedScale> matchedScales = [];
+
+        // A, C, E - the A minor triad.
+        ChordVoicingEvent[] chordVoicingEvents = [new(BeatPosition: 0, DurationInBeats: 4, MidiNotes: [57, 60, 64], Velocity: 100)];
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void ValidateChordVoicingNoteChoices_NoVoicingsInBar_ReturnsNoFailures()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C"], timeSignatureBeatCount: 4);
+
+        MatchedChord cMajor = new(MajChordEntry, "C");
+        IReadOnlyList<MatchedChord> matchedChords = [cMajor];
+        IReadOnlyList<MatchedScale> matchedScales = [];
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices([], matchedChords, matchedScales, generationJob);
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void ValidateChordVoicingNoteChoices_AllNotesWithinChordVoicingRange_ReturnsNoFailures()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C"], timeSignatureBeatCount: 4);
+
+        MatchedChord cMajor = new(MajChordEntry, "C");
+        IReadOnlyList<MatchedChord> matchedChords = [cMajor];
+        IReadOnlyList<MatchedScale> matchedScales = [];
+
+        // 48 and 79 are the inclusive range boundaries (C3 and G5).
+        ChordVoicingEvent[] chordVoicingEvents = [new(BeatPosition: 0, DurationInBeats: 4, MidiNotes: [48, 60, 79], Velocity: 100)];
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void ValidateChordVoicingNoteChoices_NoteBelowChordVoicingRange_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C"], timeSignatureBeatCount: 4);
+
+        MatchedChord cMajor = new(MajChordEntry, "C");
+        IReadOnlyList<MatchedChord> matchedChords = [cMajor];
+        IReadOnlyList<MatchedScale> matchedScales = [];
+
+        // C (a chord tone) an octave below the range floor.
+        ChordVoicingEvent[] chordVoicingEvents = [new(BeatPosition: 0, DurationInBeats: 4, MidiNotes: [36], Velocity: 100)];
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains("36", failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateChordVoicingNoteChoices_NoteAboveChordVoicingRange_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C"], timeSignatureBeatCount: 4);
+
+        MatchedChord cMajor = new(MajChordEntry, "C");
+        IReadOnlyList<MatchedChord> matchedChords = [cMajor];
+        IReadOnlyList<MatchedScale> matchedScales = [];
+
+        // C (a chord tone) an octave above the range ceiling.
+        ChordVoicingEvent[] chordVoicingEvents = [new(BeatPosition: 0, DurationInBeats: 4, MidiNotes: [84], Velocity: 100)];
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains("84", failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateChordVoicingNoteChoices_MultipleNotesOutOfRangeAcrossVoicings_ReturnsOneFailurePerOutOfRangeNote()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C"], timeSignatureBeatCount: 4);
+
+        MatchedChord cMajor = new(MajChordEntry, "C");
+        IReadOnlyList<MatchedChord> matchedChords = [cMajor];
+        IReadOnlyList<MatchedScale> matchedScales = [];
+
+        ChordVoicingEvent[] chordVoicingEvents =
+        [
+            new(BeatPosition: 0, DurationInBeats: 2, MidiNotes: [24, 60], Velocity: 100), // 24 (C) below range, 60 (C) in range
+            new(BeatPosition: 2, DurationInBeats: 2, MidiNotes: [96], Velocity: 100), // 96 (C) above range
+        ];
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
+
+        Assert.Equal(2, failures.Count);
+    }
+
+    [Fact]
+    public void ValidateMidiVelocities_AllVelocitiesWithinRange_ReturnsNoFailures()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 1)],
+            bass: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 127)],
+            chordVoicings: [new(BeatPosition: 0, DurationInBeats: 1, MidiNotes: [60], Velocity: 64)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateMidiVelocities(candidateTrack);
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void ValidateMidiVelocities_DrumVelocityBelowRange_ReturnsFailureNamingVelocity()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 0)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateMidiVelocities(candidateTrack);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(DrumNoteEvent), failure.Reason);
+        Assert.Contains("0", failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateMidiVelocities_BassVelocityAboveRange_ReturnsFailureNamingVelocity()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            bass: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 128)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateMidiVelocities(candidateTrack);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(BassNoteEvent), failure.Reason);
+        Assert.Contains("128", failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateMidiVelocities_ChordVoicingVelocityOutOfRange_ReturnsFailureNamingVelocity()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            chordVoicings: [new(BeatPosition: 0, DurationInBeats: 1, MidiNotes: [60], Velocity: -1)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateMidiVelocities(candidateTrack);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(ChordVoicingEvent), failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateMidiVelocities_MultiplePartsOutOfRange_ReturnsOneFailurePerPart()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 0)],
+            bass: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 200)],
+            chordVoicings: [new(BeatPosition: 0, DurationInBeats: 1, MidiNotes: [60], Velocity: -5)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateMidiVelocities(candidateTrack);
+
+        Assert.Equal(3, failures.Count);
+    }
+
+    [Fact]
+    public void ValidateNoPartEmpty_AllPartsHaveEvents_ReturnsNoFailures()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 100)],
+            bass: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 100)],
+            chordVoicings: [new(BeatPosition: 0, DurationInBeats: 1, MidiNotes: [60], Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateNoPartEmpty(candidateTrack);
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void ValidateNoPartEmpty_DrumsEmpty_ReturnsFailureNamingDrumNoteEvent()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            bass: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 100)],
+            chordVoicings: [new(BeatPosition: 0, DurationInBeats: 1, MidiNotes: [60], Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateNoPartEmpty(candidateTrack);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(DrumNoteEvent), failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateNoPartEmpty_BassEmpty_ReturnsFailureNamingBassNoteEvent()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 100)],
+            chordVoicings: [new(BeatPosition: 0, DurationInBeats: 1, MidiNotes: [60], Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateNoPartEmpty(candidateTrack);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(BassNoteEvent), failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateNoPartEmpty_ChordVoicingsEmpty_ReturnsFailureNamingChordVoicingEvent()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 100)],
+            bass: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateNoPartEmpty(candidateTrack);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(ChordVoicingEvent), failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateNoPartEmpty_AllPartsEmpty_ReturnsOneFailurePerPart()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        CandidateTrack candidateTrack = CreateCandidateTrack(16);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateNoPartEmpty(candidateTrack);
+
+        Assert.Equal(3, failures.Count);
+    }
+
+    [Fact]
+    public void ValidateBeatPositionsAndDurations_AllEventsWithinBoundsWithPositiveDurations_ReturnsNoFailures()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4); // maxBeatPosition = 16
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 100)],
+            bass: [new(BeatPosition: 4, DurationInBeats: 2, MidiNote: 40, Velocity: 100)],
+            chordVoicings: [new(BeatPosition: 12, DurationInBeats: 4, MidiNotes: [60], Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void ValidateBeatPositionsAndDurations_DrumNoteBeatPositionNegative_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(BeatPosition: -1, DurationInBeats: 1, MidiNote: 40, Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(DrumNoteEvent.BeatPosition), failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateBeatPositionsAndDurations_DrumNoteBeatPositionBeyondTrackEnd_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4); // maxBeatPosition = 16
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(BeatPosition: 17, DurationInBeats: 1, MidiNote: 40, Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
+
+        // A note starting beyond the track end also fails the "extends beyond track end" check,
+        // so this raises two failures rather than one.
+        Assert.Equal(2, failures.Count);
+        Assert.Contains(failures, f => f.Reason.Contains(nameof(DrumNoteEvent.BeatPosition)) && !f.Reason.Contains(nameof(DrumNoteEvent.DurationInBeats)));
+    }
+
+    [Fact]
+    public void ValidateBeatPositionsAndDurations_DrumNoteNegativeDuration_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(BeatPosition: 0, DurationInBeats: -1, MidiNote: 40, Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(DrumNoteEvent.DurationInBeats), failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateBeatPositionsAndDurations_DrumNoteExtendsBeyondTrackEnd_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4); // maxBeatPosition = 16
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(BeatPosition: 15, DurationInBeats: 4, MidiNote: 40, Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(DrumNoteEvent.BeatPosition), failure.Reason);
+        Assert.Contains(nameof(DrumNoteEvent.DurationInBeats), failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateBeatPositionsAndDurations_BassNoteBeatPositionNegative_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            bass: [new(BeatPosition: -1, DurationInBeats: 1, MidiNote: 40, Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(BassNoteEvent.BeatPosition), failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateBeatPositionsAndDurations_BassNoteExtendsBeyondTrackEnd_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4); // maxBeatPosition = 16
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            bass: [new(BeatPosition: 15, DurationInBeats: 4, MidiNote: 40, Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(BassNoteEvent.DurationInBeats), failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateBeatPositionsAndDurations_BassNoteNegativeDuration_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            bass: [new(BeatPosition: 0, DurationInBeats: -1, MidiNote: 40, Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(BassNoteEvent.DurationInBeats), failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateBeatPositionsAndDurations_ChordVoicingBeatPositionNegative_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            chordVoicings: [new(BeatPosition: -1, DurationInBeats: 1, MidiNotes: [60], Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(ChordVoicingEvent.BeatPosition), failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateBeatPositionsAndDurations_ChordVoicingExtendsBeyondTrackEnd_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4); // maxBeatPosition = 16
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            chordVoicings: [new(BeatPosition: 15, DurationInBeats: 4, MidiNotes: [60], Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(ChordVoicingEvent.DurationInBeats), failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateBeatPositionsAndDurations_ChordVoicingNegativeDuration_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            chordVoicings: [new(BeatPosition: 0, DurationInBeats: -1, MidiNotes: [60], Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(ChordVoicingEvent.DurationInBeats), failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateBeatPositionsAndDurations_ZeroDuration_ReturnsFailure()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(BeatPosition: 0, DurationInBeats: 0, MidiNote: 40, Velocity: 100)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Contains(nameof(DrumNoteEvent.DurationInBeats), failure.Reason);
     }
 }
