@@ -2,7 +2,7 @@ using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Types;
 
-namespace BackingTrack.Generation.Steps;
+namespace BackingTrack.Generation.Steps.Retrieval;
 
 public class RetrieveStep(InMemoryVectorStore vectorStore, IQueryEmbeddingService queryEmbeddingService, ScaleMatcher scaleMatcher, ChordSymbolParser chordSymbolParser)
     : IRetrieveStep

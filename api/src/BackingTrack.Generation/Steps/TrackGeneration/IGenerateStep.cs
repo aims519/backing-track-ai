@@ -1,7 +1,7 @@
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Types;
 
-namespace BackingTrack.Generation.Steps;
+namespace BackingTrack.Generation.Steps.TrackGeneration;
 
 public interface IGenerateStep
 {

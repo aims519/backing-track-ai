@@ -3,9 +3,8 @@ using System.Text;
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Types;
-using BackingTrack.Generation.TrackGeneration;
 
-namespace BackingTrack.Generation.Steps;
+namespace BackingTrack.Generation.Steps.TrackGeneration;
 
 public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMatcher scaleMatcher) : IGenerateStep
 {

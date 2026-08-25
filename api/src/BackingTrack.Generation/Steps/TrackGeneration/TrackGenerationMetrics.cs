@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-namespace BackingTrack.Generation.TrackGeneration;
+namespace BackingTrack.Generation.Steps.TrackGeneration;
 
 public class TrackGenerationMetrics : IDisposable
 {

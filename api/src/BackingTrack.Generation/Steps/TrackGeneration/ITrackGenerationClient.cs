@@ -1,6 +1,6 @@
 using BackingTrack.Generation.Steps.Types;
 
-namespace BackingTrack.Generation.TrackGeneration;
+namespace BackingTrack.Generation.Steps.TrackGeneration;
 
 public interface ITrackGenerationClient
 {

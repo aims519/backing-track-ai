@@ -15,7 +15,8 @@ using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAI;
 using BackingTrack.Generation.Steps;
-using BackingTrack.Generation.TrackGeneration;
+using BackingTrack.Generation.Steps.Retrieval;
+using BackingTrack.Generation.Steps.TrackGeneration;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;

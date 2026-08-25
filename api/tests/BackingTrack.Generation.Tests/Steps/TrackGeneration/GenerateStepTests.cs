@@ -1,10 +1,9 @@
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Types;
-using BackingTrack.Generation.Steps;
+using BackingTrack.Generation.Steps.TrackGeneration;
 using BackingTrack.Generation.Steps.Types;
-using BackingTrack.Generation.TrackGeneration;
 
-namespace BackingTrack.Generation.Tests.Steps;
+namespace BackingTrack.Generation.Tests.Steps.TrackGeneration;
 
 public class GenerateStepTests
 {

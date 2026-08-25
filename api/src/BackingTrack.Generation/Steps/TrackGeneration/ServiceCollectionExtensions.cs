@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 using OpenAI;
 using OpenAI.Chat;
 
-namespace BackingTrack.Generation.TrackGeneration;
+namespace BackingTrack.Generation.Steps.TrackGeneration;
 
 public static class ServiceCollectionExtensions
 {

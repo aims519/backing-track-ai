@@ -7,7 +7,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-namespace BackingTrack.Generation.TrackGeneration;
+namespace BackingTrack.Generation.Steps.TrackGeneration;
 
 public class TrackGenerationClient(
     AIAgent aiAgent,

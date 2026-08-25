@@ -1,6 +1,6 @@
 using BackingTrack.Generation.KnowledgeBase.Types;
 
-namespace BackingTrack.Generation.Steps;
+namespace BackingTrack.Generation.Steps.Retrieval;
 
 public interface IRetrieveStep
 {

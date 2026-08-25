@@ -1,9 +1,9 @@
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Types;
-using BackingTrack.Generation.Steps;
+using BackingTrack.Generation.Steps.Retrieval;
 
-namespace BackingTrack.Generation.Tests.Steps;
+namespace BackingTrack.Generation.Tests.Steps.Retrieval;
 
 public class RetrieveStepTests
 {

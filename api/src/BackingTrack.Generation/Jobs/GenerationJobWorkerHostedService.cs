@@ -5,8 +5,9 @@ using System.Threading.Channels;
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps;
+using BackingTrack.Generation.Steps.Retrieval;
+using BackingTrack.Generation.Steps.TrackGeneration;
 using BackingTrack.Generation.Steps.Types;
-using BackingTrack.Generation.TrackGeneration;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
