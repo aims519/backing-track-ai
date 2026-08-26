@@ -1,3 +1,3 @@
 namespace BackingTrack.Generation.Steps.Types;
 
-public record BassNoteEvent(double BeatPosition, double DurationInBeats, int MidiNote, int Velocity);
+public record BassNoteEvent(double BeatPosition, double DurationInBeats, int MidiNote, int Velocity) : NoteEvent(BeatPosition, DurationInBeats, Velocity);

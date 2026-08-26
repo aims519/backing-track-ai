@@ -6,6 +6,7 @@ using BackingTrack.Core.Config;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Retrieval;
 using BackingTrack.Generation.Steps.TrackGeneration;
+using BackingTrack.Generation.Steps.TrackRepair;
 using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
 
@@ -41,7 +42,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 return;
             }
             
-            using Activity? activity = GenerationJobActivitySource.Instance.StartActivity("GenerationJobWorkerHostedService.ProcessGenerationJobAsync");
+            using Activity? activity = GenerationJobActivitySource.Instance.StartActivity($"{nameof(GenerationJobWorkerHostedService)}.ProcessGenerationJobAsync");
             activity?.SetTag("job.id", generationJob.Id);
             activity?.SetTag("job.mode", generationJob.Mode);
 
@@ -176,6 +177,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
             #region Validation and Repair
 
             IValidateStep validateStep = scope.ServiceProvider.GetRequiredService<IValidateStep>();
+            IRepairStep  repairStep = scope.ServiceProvider.GetRequiredService<IRepairStep>();
 
             const int maxGenerationAttempts = 3;
             TrackValidationResult? trackValidationResult = null;
@@ -185,6 +187,8 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 if (trackValidationResult.IsValid) 
                     break;
                 
+                logger.LogDebug("Job {Id} attempt {Attempt} candidate track: {Track}", jobId, attempt,
+                    JsonSerializer.Serialize(candidateTrack, new JsonSerializerOptions { TypeInfoResolver = CandidateTrackJsonContext.Default }));
                 logger.LogWarning("Job {Id} attempt {Attempt} failed validation: {Errors}", jobId, attempt, string.Join('\n', trackValidationResult.Failures.Select(f => f.Reason)));
                 
                 if(attempt == maxGenerationAttempts)
@@ -192,14 +196,8 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 
                 try
                 {
-                    candidateTrack = await generateStep.GenerateCandidateTrackAsync(generationJob.KeyRoot,
-                        generationJob.Tempo,
-                        generationJob.TimeSignatureBeatCount,
-                        generationJob.TimeSignatureBeatUnit,
-                        matchedStyle, matchingChords,  matchingScaleEntries, 
-                        previousAttempt: candidateTrack,
-                        previousAttemptFailures: trackValidationResult.Failures,
-                        stoppingToken);
+                    candidateTrack = await repairStep.RepairCandidateTrackAsync(candidateTrack, 
+                        trackValidationResult.Failures, stoppingToken);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
@@ -251,6 +249,8 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
             }
             #endregion
 
+            logger.LogDebug("Job {Id} completed track saved: {Track}", generationJob.Id, JsonSerializer.Serialize(candidateTrack, new JsonSerializerOptions { TypeInfoResolver = CandidateTrackJsonContext.Default }));
+            
             GenerationJob completedJob = updatedJob with { State = JobStates.Complete, EndTime = DateTimeOffset.UtcNow, TrackId = trackId };
             jobStore.AddOrUpdate(completedJob);
 

@@ -64,7 +64,7 @@ public class ValidateStepTests
     public void ValidateCandidateTrack_LengthCheckReturnsFailure_ReturnsInvalidResultContainingThatFailure()
     {
         Mock<ITrackValidator> trackValidatorMock = CreateTrackValidatorMockWithNoFailures();
-        ValidationFailure lengthFailure = new("Length failure");
+        ValidationFailure lengthFailure = new(ValidationFailureType.InvalidTrackLengthInBeats, null, "Length failure");
         trackValidatorMock.Setup(v => v.ValidateLengthInBeats(It.IsAny<CandidateTrack>(), It.IsAny<GenerationJob>()))
             .Returns([lengthFailure]);
 
@@ -80,8 +80,8 @@ public class ValidateStepTests
     public void ValidateCandidateTrack_MultipleChecksReturnFailures_ReturnsInvalidResultContainingAllFailures()
     {
         Mock<ITrackValidator> trackValidatorMock = CreateTrackValidatorMockWithNoFailures();
-        ValidationFailure drumFailure = new("Drum failure");
-        ValidationFailure velocityFailure = new("Velocity failure");
+        ValidationFailure drumFailure = new(ValidationFailureType.InvalidDrumNoteChoice, null, "Drum failure");
+        ValidationFailure velocityFailure = new(ValidationFailureType.InvalidMidiVelocity, null, "Velocity failure");
         trackValidatorMock.Setup(v => v.ValidateDrumNoteChoices(It.IsAny<IReadOnlyList<DrumNoteEvent>>()))
             .Returns([drumFailure]);
         trackValidatorMock.Setup(v => v.ValidateMidiVelocities(It.IsAny<CandidateTrack>()))

@@ -10,6 +10,7 @@ using BackingTrack.Api.Endpoints;
 using BackingTrack.Api.Errors;
 using BackingTrack.Api.HealthChecks;
 using BackingTrack.Core.Config;
+using BackingTrack.Generation;
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
@@ -17,6 +18,7 @@ using BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAI;
 using BackingTrack.Generation.Steps;
 using BackingTrack.Generation.Steps.Retrieval;
 using BackingTrack.Generation.Steps.TrackGeneration;
+using BackingTrack.Generation.Steps.TrackRepair;
 using BackingTrack.Generation.Steps.TrackValidation;
 
 using Microsoft.AspNetCore.Mvc;
@@ -201,6 +203,9 @@ builder.Services.AddHttpClient<IQueryEmbeddingService, VoyageAiQueryEmbeddingSer
     client.DefaultRequestHeaders.Authorization = new("Bearer", builder.Configuration.GetValue<string>("VoyageAI:ApiKey"));
 });
 
+// LLM Chat Client, used by multiple workflow steps
+builder.Services.AddLlmChatClient(builder.Configuration);
+
 // Track Generation
 builder.Services.AddTrackGeneration(builder.Configuration);
 builder.Services.AddTransient<IGenerateStep, GenerateStep>();
@@ -208,6 +213,10 @@ builder.Services.AddTransient<IGenerateStep, GenerateStep>();
 // Track Validation
 builder.Services.AddTransient<ITrackValidator, TrackValidator>();
 builder.Services.AddTransient<IValidateStep, ValidateStep>();
+
+// Track Repair
+builder.Services.AddTrackRepair(builder.Configuration);
+builder.Services.AddTransient<IRepairStep, RepairStep>();
 
 WebApplication app = builder.Build();
 app.Services.GetRequiredService<InMemoryVectorStore>(); // forces eager load + logging

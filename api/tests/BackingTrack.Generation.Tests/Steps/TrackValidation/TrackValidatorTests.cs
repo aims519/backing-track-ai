@@ -55,6 +55,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateLengthInBeats(candidateTrack, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidTrackLengthInBeats, failure.Type);
+        Assert.Null(failure.NoteEvent);
         Assert.Contains("16", failure.Reason);
         Assert.Contains("12", failure.Reason);
     }
@@ -68,7 +70,9 @@ public class TrackValidatorTests
 
         IReadOnlyList<ValidationFailure> failures = validator.ValidateLengthInBeats(candidateTrack, generationJob);
 
-        Assert.Single(failures);
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidTrackLengthInBeats, failure.Type);
+        Assert.Null(failure.NoteEvent);
     }
 
     [Fact]
@@ -96,6 +100,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateDrumNoteChoices(drumNoteEvents);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidDrumNoteChoice, failure.Type);
+        Assert.Same(drumNoteEvents[0], failure.NoteEvent);
         Assert.Contains("34", failure.Reason);
         Assert.Contains("2.5", failure.Reason);
     }
@@ -108,7 +114,9 @@ public class TrackValidatorTests
 
         IReadOnlyList<ValidationFailure> failures = validator.ValidateDrumNoteChoices(drumNoteEvents);
 
-        Assert.Single(failures);
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidDrumNoteChoice, failure.Type);
+        Assert.Same(drumNoteEvents[0], failure.NoteEvent);
     }
 
     [Fact]
@@ -125,6 +133,9 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateDrumNoteChoices(drumNoteEvents);
 
         Assert.Equal(2, failures.Count);
+        Assert.All(failures, f => Assert.Equal(ValidationFailureType.InvalidDrumNoteChoice, f.Type));
+        Assert.Same(drumNoteEvents[0], failures[0].NoteEvent);
+        Assert.Same(drumNoteEvents[2], failures[1].NoteEvent);
     }
 
     private static readonly ChordEntry MajChordEntry = new() { Id = "maj", Intervals = [0, 4, 7], Description = "Major triad" };
@@ -187,6 +198,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBassNoteChoices(bassNoteEvents, matchedChords, matchedScales, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidBassNoteChoice, failure.Type);
+        Assert.Same(bassNoteEvents[0], failure.NoteEvent);
         Assert.Contains("bar 1", failure.Reason);
         Assert.Contains("37", failure.Reason);
     }
@@ -208,6 +221,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBassNoteChoices(bassNoteEvents, matchedChords, matchedScales, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidBassNoteChoice, failure.Type);
+        Assert.Same(bassNoteEvents[0], failure.NoteEvent);
         Assert.Contains("bar 2", failure.Reason);
     }
 
@@ -225,7 +240,9 @@ public class TrackValidatorTests
 
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBassNoteChoices(bassNoteEvents, matchedChords, matchedScales, generationJob);
 
-        Assert.Single(failures);
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.BassNoteOutOfExpectedRange, failure.Type);
+        Assert.Same(bassNoteEvents[0], failure.NoteEvent);
     }
 
     [Fact]
@@ -242,7 +259,9 @@ public class TrackValidatorTests
 
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBassNoteChoices(bassNoteEvents, matchedChords, matchedScales, generationJob);
 
-        Assert.Single(failures);
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.BassNoteOutOfExpectedRange, failure.Type);
+        Assert.Same(bassNoteEvents[0], failure.NoteEvent);
     }
 
     [Fact]
@@ -319,6 +338,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidChordVoicingNoteChoice, failure.Type);
+        Assert.Same(chordVoicingEvents[0], failure.NoteEvent);
         Assert.Contains("bar 1", failure.Reason);
         Assert.Contains("49", failure.Reason);
     }
@@ -339,6 +360,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
 
         Assert.Equal(2, failures.Count);
+        Assert.All(failures, f => Assert.Equal(ValidationFailureType.InvalidChordVoicingNoteChoice, f.Type));
+        Assert.All(failures, f => Assert.Same(chordVoicingEvents[0], f.NoteEvent));
     }
 
     [Fact]
@@ -359,6 +382,8 @@ public class TrackValidatorTests
 
         Assert.NotEmpty(failures);
         Assert.All(failures, f => Assert.Contains("bar 2", f.Reason));
+        Assert.All(failures, f => Assert.Equal(ValidationFailureType.InvalidChordVoicingNoteChoice, f.Type));
+        Assert.All(failures, f => Assert.Same(chordVoicingEvents[0], f.NoteEvent));
     }
 
     [Fact]
@@ -428,6 +453,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.ChordVoicingNoteOutOfExpectedRange, failure.Type);
+        Assert.Same(chordVoicingEvents[0], failure.NoteEvent);
         Assert.Contains("36", failure.Reason);
     }
 
@@ -447,6 +474,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.ChordVoicingNoteOutOfExpectedRange, failure.Type);
+        Assert.Same(chordVoicingEvents[0], failure.NoteEvent);
         Assert.Contains("84", failure.Reason);
     }
 
@@ -469,6 +498,9 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateChordVoicingNoteChoices(chordVoicingEvents, matchedChords, matchedScales, generationJob);
 
         Assert.Equal(2, failures.Count);
+        Assert.All(failures, f => Assert.Equal(ValidationFailureType.ChordVoicingNoteOutOfExpectedRange, f.Type));
+        Assert.Same(chordVoicingEvents[0], failures[0].NoteEvent);
+        Assert.Same(chordVoicingEvents[1], failures[1].NoteEvent);
     }
 
     [Fact]
@@ -489,12 +521,14 @@ public class TrackValidatorTests
     public void ValidateMidiVelocities_DrumVelocityBelowRange_ReturnsFailureNamingVelocity()
     {
         TrackValidator validator = CreateTrackValidator();
-        CandidateTrack candidateTrack = CreateCandidateTrack(16,
-            drums: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 0)]);
+        DrumNoteEvent drumNoteEvent = new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 0);
+        CandidateTrack candidateTrack = CreateCandidateTrack(16, drums: [drumNoteEvent]);
 
         IReadOnlyList<ValidationFailure> failures = validator.ValidateMidiVelocities(candidateTrack);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidMidiVelocity, failure.Type);
+        Assert.Same(drumNoteEvent, failure.NoteEvent);
         Assert.Contains(nameof(DrumNoteEvent), failure.Reason);
         Assert.Contains("0", failure.Reason);
     }
@@ -503,12 +537,14 @@ public class TrackValidatorTests
     public void ValidateMidiVelocities_BassVelocityAboveRange_ReturnsFailureNamingVelocity()
     {
         TrackValidator validator = CreateTrackValidator();
-        CandidateTrack candidateTrack = CreateCandidateTrack(16,
-            bass: [new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 128)]);
+        BassNoteEvent bassNoteEvent = new(BeatPosition: 0, DurationInBeats: 1, MidiNote: 40, Velocity: 128);
+        CandidateTrack candidateTrack = CreateCandidateTrack(16, bass: [bassNoteEvent]);
 
         IReadOnlyList<ValidationFailure> failures = validator.ValidateMidiVelocities(candidateTrack);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidMidiVelocity, failure.Type);
+        Assert.Same(bassNoteEvent, failure.NoteEvent);
         Assert.Contains(nameof(BassNoteEvent), failure.Reason);
         Assert.Contains("128", failure.Reason);
     }
@@ -517,12 +553,14 @@ public class TrackValidatorTests
     public void ValidateMidiVelocities_ChordVoicingVelocityOutOfRange_ReturnsFailureNamingVelocity()
     {
         TrackValidator validator = CreateTrackValidator();
-        CandidateTrack candidateTrack = CreateCandidateTrack(16,
-            chordVoicings: [new(BeatPosition: 0, DurationInBeats: 1, MidiNotes: [60], Velocity: -1)]);
+        ChordVoicingEvent chordVoicingEvent = new(BeatPosition: 0, DurationInBeats: 1, MidiNotes: [60], Velocity: -1);
+        CandidateTrack candidateTrack = CreateCandidateTrack(16, chordVoicings: [chordVoicingEvent]);
 
         IReadOnlyList<ValidationFailure> failures = validator.ValidateMidiVelocities(candidateTrack);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidMidiVelocity, failure.Type);
+        Assert.Same(chordVoicingEvent, failure.NoteEvent);
         Assert.Contains(nameof(ChordVoicingEvent), failure.Reason);
     }
 
@@ -538,6 +576,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateMidiVelocities(candidateTrack);
 
         Assert.Equal(3, failures.Count);
+        Assert.All(failures, f => Assert.Equal(ValidationFailureType.InvalidMidiVelocity, f.Type));
+        Assert.All(failures, f => Assert.NotNull(f.NoteEvent));
     }
 
     [Fact]
@@ -565,6 +605,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateNoPartEmpty(candidateTrack);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.PartEmpty, failure.Type);
+        Assert.Null(failure.NoteEvent);
         Assert.Contains(nameof(DrumNoteEvent), failure.Reason);
     }
 
@@ -579,6 +621,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateNoPartEmpty(candidateTrack);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.PartEmpty, failure.Type);
+        Assert.Null(failure.NoteEvent);
         Assert.Contains(nameof(BassNoteEvent), failure.Reason);
     }
 
@@ -593,6 +637,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateNoPartEmpty(candidateTrack);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.PartEmpty, failure.Type);
+        Assert.Null(failure.NoteEvent);
         Assert.Contains(nameof(ChordVoicingEvent), failure.Reason);
     }
 
@@ -605,6 +651,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateNoPartEmpty(candidateTrack);
 
         Assert.Equal(3, failures.Count);
+        Assert.All(failures, f => Assert.Equal(ValidationFailureType.PartEmpty, f.Type));
+        Assert.All(failures, f => Assert.Null(f.NoteEvent));
     }
 
     [Fact]
@@ -635,6 +683,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.BeatPositionOutOfRange, failure.Type);
+        Assert.Same(candidateTrack.Drums[0], failure.NoteEvent);
         Assert.Contains(nameof(DrumNoteEvent.BeatPosition), failure.Reason);
     }
 
@@ -652,6 +702,9 @@ public class TrackValidatorTests
         // A note starting beyond the track end also fails the "extends beyond track end" check,
         // so this raises two failures rather than one.
         Assert.Equal(2, failures.Count);
+        Assert.Contains(failures, f => f.Type == ValidationFailureType.BeatPositionOutOfRange);
+        Assert.Contains(failures, f => f.Type == ValidationFailureType.NoteBeyondTrackEnd);
+        Assert.All(failures, f => Assert.Same(candidateTrack.Drums[0], f.NoteEvent));
         Assert.Contains(failures, f => f.Reason.Contains(nameof(DrumNoteEvent.BeatPosition)) && !f.Reason.Contains(nameof(DrumNoteEvent.DurationInBeats)));
     }
 
@@ -667,6 +720,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidNoteDuration, failure.Type);
+        Assert.Same(candidateTrack.Drums[0], failure.NoteEvent);
         Assert.Contains(nameof(DrumNoteEvent.DurationInBeats), failure.Reason);
     }
 
@@ -682,6 +737,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.NoteBeyondTrackEnd, failure.Type);
+        Assert.Same(candidateTrack.Drums[0], failure.NoteEvent);
         Assert.Contains(nameof(DrumNoteEvent.BeatPosition), failure.Reason);
         Assert.Contains(nameof(DrumNoteEvent.DurationInBeats), failure.Reason);
     }
@@ -698,6 +755,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.BeatPositionOutOfRange, failure.Type);
+        Assert.Same(candidateTrack.Bass[0], failure.NoteEvent);
         Assert.Contains(nameof(BassNoteEvent.BeatPosition), failure.Reason);
     }
 
@@ -713,6 +772,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.NoteBeyondTrackEnd, failure.Type);
+        Assert.Same(candidateTrack.Bass[0], failure.NoteEvent);
         Assert.Contains(nameof(BassNoteEvent.DurationInBeats), failure.Reason);
     }
 
@@ -728,6 +789,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidNoteDuration, failure.Type);
+        Assert.Same(candidateTrack.Bass[0], failure.NoteEvent);
         Assert.Contains(nameof(BassNoteEvent.DurationInBeats), failure.Reason);
     }
 
@@ -743,6 +806,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.BeatPositionOutOfRange, failure.Type);
+        Assert.Same(candidateTrack.ChordVoicings[0], failure.NoteEvent);
         Assert.Contains(nameof(ChordVoicingEvent.BeatPosition), failure.Reason);
     }
 
@@ -758,6 +823,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.NoteBeyondTrackEnd, failure.Type);
+        Assert.Same(candidateTrack.ChordVoicings[0], failure.NoteEvent);
         Assert.Contains(nameof(ChordVoicingEvent.DurationInBeats), failure.Reason);
     }
 
@@ -773,6 +840,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidNoteDuration, failure.Type);
+        Assert.Same(candidateTrack.ChordVoicings[0], failure.NoteEvent);
         Assert.Contains(nameof(ChordVoicingEvent.DurationInBeats), failure.Reason);
     }
 
@@ -788,6 +857,8 @@ public class TrackValidatorTests
         IReadOnlyList<ValidationFailure> failures = validator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
 
         ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.InvalidNoteDuration, failure.Type);
+        Assert.Same(candidateTrack.Drums[0], failure.NoteEvent);
         Assert.Contains(nameof(DrumNoteEvent.DurationInBeats), failure.Reason);
     }
 }

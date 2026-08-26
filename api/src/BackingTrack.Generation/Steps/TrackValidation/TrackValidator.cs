@@ -14,7 +14,7 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
         IList<ValidationFailure> failures = [];
 
         if (Math.Abs(candidateTrack.LengthInBeats - (beatsPerBar * barCount)) > 0)
-            failures.Add(new($"Unexpected {nameof(candidateTrack.LengthInBeats)}. Expected {(beatsPerBar * barCount)} bars but got {candidateTrack.LengthInBeats}"));
+            failures.Add(new(Type: ValidationFailureType.InvalidTrackLengthInBeats,null,$"Unexpected {nameof(candidateTrack.LengthInBeats)}. Expected {(beatsPerBar * barCount)} bars but got {candidateTrack.LengthInBeats}"));
 
         return (IReadOnlyList<ValidationFailure>)failures;
     }
@@ -24,7 +24,7 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
         IList<ValidationFailure> failures = [];
         foreach (DrumNoteEvent drumNoteEvent in drumNoteEvents.Where(n => n.MidiNote is < GeneralMidiDrumNoteMin or > GeneralMidiDrumNoteMax))
         {
-            failures.Add(new($"Unexpected MIDI note in {nameof(DrumNoteEvent)}, {drumNoteEvent.MidiNote}, at position {drumNoteEvent.BeatPosition}. Expected {GeneralMidiDrumNoteMin} <= Note <= {GeneralMidiDrumNoteMax}"));
+            failures.Add(new(Type: ValidationFailureType.InvalidDrumNoteChoice,drumNoteEvent,$"Unexpected MIDI note in {nameof(DrumNoteEvent)}, {drumNoteEvent.MidiNote}, at position {drumNoteEvent.BeatPosition}. Expected {GeneralMidiDrumNoteMin} <= Note <= {GeneralMidiDrumNoteMax}"));
         }
 
         return (IReadOnlyList<ValidationFailure>)failures;
@@ -63,13 +63,13 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
             foreach (BassNoteEvent bassNoteEvent in bassNoteEventsInBar)
             {
                 if(!validPitchClasses.Contains(bassNoteEvent.MidiNote % 12))
-                    failures.Add(new ValidationFailure($"Unexpected {nameof(BassNoteEvent)} MIDI note in bar {bar}. Note: {bassNoteEvent.MidiNote}. Expected notes: [{string.Join(',', validPitchClasses)}]"));
+                    failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidBassNoteChoice, bassNoteEvent,$"Unexpected {nameof(BassNoteEvent)} MIDI note in bar {bar}. Note: {bassNoteEvent.MidiNote}, Pitch class {bassNoteEvent.MidiNote % 12}. Expected pitch classes: [{string.Join(',', validPitchClasses.Order())}]"));
             }
         }
         
         // Also Check no bass notes fall outside expected range
         foreach (BassNoteEvent bassNoteEvent in bassNoteEvents.Where(b => b.MidiNote is < BassMidiNoteMin or > BassMidiNoteMax)) 
-            failures.Add(new ValidationFailure($"Unexpected {nameof(BassNoteEvent)} MIDI note, {bassNoteEvent.MidiNote}. Expected range Expected {BassMidiNoteMin} <= Note <= {BassMidiNoteMax}"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.BassNoteOutOfExpectedRange,bassNoteEvent,$"Unexpected {nameof(BassNoteEvent)} MIDI note, {bassNoteEvent.MidiNote}. Expected range Expected {BassMidiNoteMin} <= Note <= {BassMidiNoteMax}"));
         
         return (IReadOnlyList<ValidationFailure>)failures;
     }
@@ -108,7 +108,7 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
                 foreach (int midiNote in chordVoicingEvent.MidiNotes)
                 {
                     if(!validPitchClasses.Contains(midiNote % 12))
-                        failures.Add(new ValidationFailure($"Unexpected {nameof(ChordVoicingEvent)} MIDI note in bar {bar}. Note: {midiNote}. Expected notes: [{string.Join(',', validPitchClasses)}]"));
+                        failures.Add(new ValidationFailure(ValidationFailureType.InvalidChordVoicingNoteChoice, chordVoicingEvent,$"Unexpected {nameof(ChordVoicingEvent)} MIDI note in bar {bar}. Note: {midiNote}, Pitch class: {midiNote % 12}. Expected pitch classes: [{string.Join(',', validPitchClasses.Order())}]"));
                 }
             }
         }
@@ -118,7 +118,7 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
         {
             foreach (int midiNote in chordVoicingEvent.MidiNotes.Where(n => n is < ChordVoicingNoteMin or > ChordVoicingNoteMax))
             {
-                failures.Add(new ValidationFailure($"Unexpected {nameof(ChordVoicingEvent)} MIDI note, {midiNote}. Expected range Expected {ChordVoicingNoteMin} <= Note <= {ChordVoicingNoteMax}"));
+                failures.Add(new ValidationFailure(Type: ValidationFailureType.ChordVoicingNoteOutOfExpectedRange, chordVoicingEvent,$"Unexpected {nameof(ChordVoicingEvent)} MIDI note, {midiNote}. Expected range Expected {ChordVoicingNoteMin} <= Note <= {ChordVoicingNoteMax}"));
             }
         } 
         
@@ -130,13 +130,13 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
         IList<ValidationFailure> failures = [];
 
         foreach (DrumNoteEvent drumNoteEvent in candidateTrack.Drums.Where(n => n.Velocity is < MidiVelocityMin or > MidiVelocityMax))
-            failures.Add(new ValidationFailure($"Unexpected {nameof(DrumNoteEvent)} velocity, {drumNoteEvent.Velocity}. Expected {MidiVelocityMin} <= Velocity <= {MidiVelocityMax}"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidMidiVelocity, drumNoteEvent, $"Unexpected {nameof(DrumNoteEvent)} velocity, {drumNoteEvent.Velocity}. Expected {MidiVelocityMin} <= Velocity <= {MidiVelocityMax}"));
         
         foreach (BassNoteEvent bassNoteEvent in candidateTrack.Bass.Where(n => n.Velocity is < MidiVelocityMin or > MidiVelocityMax))
-            failures.Add(new ValidationFailure($"Unexpected {nameof(BassNoteEvent)} velocity, {bassNoteEvent.Velocity}. Expected {MidiVelocityMin} <= Velocity <= {MidiVelocityMax}"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidMidiVelocity,bassNoteEvent, $"Unexpected {nameof(BassNoteEvent)} velocity, {bassNoteEvent.Velocity}. Expected {MidiVelocityMin} <= Velocity <= {MidiVelocityMax}"));
 
         foreach (ChordVoicingEvent chordVoicingEvent in candidateTrack.ChordVoicings.Where(n => n.Velocity is < MidiVelocityMin or > MidiVelocityMax))
-            failures.Add(new ValidationFailure($"Unexpected {nameof(ChordVoicingEvent)} velocity, {chordVoicingEvent.Velocity}. Expected {MidiVelocityMin} <= Velocity <= {MidiVelocityMax}"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidMidiVelocity, chordVoicingEvent, $"Unexpected {nameof(ChordVoicingEvent)} velocity, {chordVoicingEvent.Velocity}. Expected {MidiVelocityMin} <= Velocity <= {MidiVelocityMax}"));
         
         return (IReadOnlyList<ValidationFailure>)failures;
     }
@@ -146,13 +146,13 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
         IList<ValidationFailure> failures = [];
         
         if(candidateTrack.Drums.Count == 0)
-            failures.Add(new ValidationFailure($"{nameof(DrumNoteEvent)} list is empty"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.PartEmpty, null, $"{nameof(DrumNoteEvent)} list is empty"));
             
         if(candidateTrack.Bass.Count == 0)
-            failures.Add(new ValidationFailure($"{nameof(BassNoteEvent)} list is empty"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.PartEmpty, null,$"{nameof(BassNoteEvent)} list is empty"));
         
         if(candidateTrack.ChordVoicings.Count == 0)
-            failures.Add(new ValidationFailure($"{nameof(ChordVoicingEvent)} list is empty"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.PartEmpty, null, $"{nameof(ChordVoicingEvent)} list is empty"));
         
         return (IReadOnlyList<ValidationFailure>)failures;
     }
@@ -168,33 +168,33 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
 
         // Check all beatPositions are in the allowed range
         foreach (DrumNoteEvent drumNoteEvent in candidateTrack.Drums.Where(n => n.BeatPosition < minBeatPosition || n.BeatPosition > maxBeatPosition))
-            failures.Add(new ValidationFailure($"Unexpected {nameof(DrumNoteEvent)} {nameof(DrumNoteEvent.BeatPosition)}, {drumNoteEvent.BeatPosition}. Expected {minBeatPosition} <= {nameof(DrumNoteEvent.BeatPosition)} <= {maxBeatPosition}"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.BeatPositionOutOfRange, drumNoteEvent, $"Unexpected {nameof(DrumNoteEvent)} {nameof(DrumNoteEvent.BeatPosition)}, {drumNoteEvent.BeatPosition}. Expected {minBeatPosition} <= {nameof(DrumNoteEvent.BeatPosition)} <= {maxBeatPosition}"));
         
         foreach (BassNoteEvent bassNoteEvent in candidateTrack.Bass.Where(n => n.BeatPosition < minBeatPosition || n.BeatPosition > maxBeatPosition))
-            failures.Add(new ValidationFailure($"Unexpected {nameof(BassNoteEvent)} {nameof(BassNoteEvent.BeatPosition)}, {bassNoteEvent.BeatPosition}. Expected {minBeatPosition} <= {nameof(BassNoteEvent.BeatPosition)} <= {maxBeatPosition}"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.BeatPositionOutOfRange,bassNoteEvent, $"Unexpected {nameof(BassNoteEvent)} {nameof(BassNoteEvent.BeatPosition)}, {bassNoteEvent.BeatPosition}. Expected {minBeatPosition} <= {nameof(BassNoteEvent.BeatPosition)} <= {maxBeatPosition}"));
 
         foreach (ChordVoicingEvent chordVoicingEvent in candidateTrack.ChordVoicings.Where(n => n.BeatPosition < minBeatPosition || n.BeatPosition > maxBeatPosition))
-            failures.Add(new ValidationFailure($"Unexpected {nameof(ChordVoicingEvent)} {nameof(ChordVoicingEvent.BeatPosition)}, {chordVoicingEvent.BeatPosition}. Expected {minBeatPosition} <= {nameof(ChordVoicingEvent.BeatPosition)} <= {maxBeatPosition}"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.BeatPositionOutOfRange,chordVoicingEvent, $"Unexpected {nameof(ChordVoicingEvent)} {nameof(ChordVoicingEvent.BeatPosition)}, {chordVoicingEvent.BeatPosition}. Expected {minBeatPosition} <= {nameof(ChordVoicingEvent.BeatPosition)} <= {maxBeatPosition}"));
         
         // Check all durations are > 0
         foreach (DrumNoteEvent drumNoteEvent in candidateTrack.Drums.Where(n => n.DurationInBeats <= 0))
-            failures.Add(new ValidationFailure($"Unexpected {nameof(DrumNoteEvent)} {nameof(DrumNoteEvent.DurationInBeats)}, {drumNoteEvent.DurationInBeats}. Expected > 0"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidNoteDuration, drumNoteEvent,$"Unexpected {nameof(DrumNoteEvent)} {nameof(DrumNoteEvent.DurationInBeats)}, {drumNoteEvent.DurationInBeats}. Expected > 0"));
         
         foreach (BassNoteEvent bassNoteEvent in candidateTrack.Bass.Where(n => n.DurationInBeats <= 0))
-            failures.Add(new ValidationFailure($"Unexpected {nameof(BassNoteEvent)} {nameof(BassNoteEvent.DurationInBeats)}, {bassNoteEvent.DurationInBeats}. Expected > 0"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidNoteDuration,bassNoteEvent, $"Unexpected {nameof(BassNoteEvent)} {nameof(BassNoteEvent.DurationInBeats)}, {bassNoteEvent.DurationInBeats}. Expected > 0"));
 
         foreach (ChordVoicingEvent chordVoicingEvent in candidateTrack.ChordVoicings.Where(n => n.DurationInBeats <= 0))
-            failures.Add(new ValidationFailure($"Unexpected {nameof(ChordVoicingEvent)} {nameof(ChordVoicingEvent.DurationInBeats)}, {chordVoicingEvent.DurationInBeats}. Expected > 0"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidNoteDuration, chordVoicingEvent, $"Unexpected {nameof(ChordVoicingEvent)} {nameof(ChordVoicingEvent.DurationInBeats)}, {chordVoicingEvent.DurationInBeats}. Expected > 0"));
         
         // Check no notes extend beyond track end
         foreach (DrumNoteEvent drumNoteEvent in candidateTrack.Drums.Where(n => (n.BeatPosition + n.DurationInBeats) > maxBeatPosition))
-            failures.Add(new ValidationFailure($"Unexpected {nameof(DrumNoteEvent)} {nameof(DrumNoteEvent.BeatPosition)} + {nameof(DrumNoteEvent.DurationInBeats)}, ({drumNoteEvent.BeatPosition} + {drumNoteEvent.DurationInBeats}). Expected < {maxBeatPosition}"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.NoteBeyondTrackEnd, drumNoteEvent, $"Unexpected {nameof(DrumNoteEvent)} {nameof(DrumNoteEvent.BeatPosition)} + {nameof(DrumNoteEvent.DurationInBeats)}, ({drumNoteEvent.BeatPosition} + {drumNoteEvent.DurationInBeats}). Expected < {maxBeatPosition}"));
         
         foreach (BassNoteEvent bassNoteEvent in candidateTrack.Bass.Where(n => (n.BeatPosition + n.DurationInBeats) > maxBeatPosition))
-            failures.Add(new ValidationFailure($"Unexpected {nameof(BassNoteEvent)} {nameof(BassNoteEvent.BeatPosition)} + {nameof(BassNoteEvent.DurationInBeats)}, ({bassNoteEvent.BeatPosition} + {bassNoteEvent.DurationInBeats}). Expected < {maxBeatPosition}"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.NoteBeyondTrackEnd, bassNoteEvent,$"Unexpected {nameof(BassNoteEvent)} {nameof(BassNoteEvent.BeatPosition)} + {nameof(BassNoteEvent.DurationInBeats)}, ({bassNoteEvent.BeatPosition} + {bassNoteEvent.DurationInBeats}). Expected < {maxBeatPosition}"));
         
         foreach (ChordVoicingEvent chordVoicingNoteEvent in candidateTrack.ChordVoicings.Where(n => (n.BeatPosition + n.DurationInBeats) > maxBeatPosition))
-            failures.Add(new ValidationFailure($"Unexpected {nameof(ChordVoicingEvent)} {nameof(ChordVoicingEvent.BeatPosition)} + {nameof(ChordVoicingEvent.DurationInBeats)}, ({chordVoicingNoteEvent.BeatPosition} + {chordVoicingNoteEvent.DurationInBeats}). Expected < {maxBeatPosition}"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.NoteBeyondTrackEnd, chordVoicingNoteEvent,$"Unexpected {nameof(ChordVoicingEvent)} {nameof(ChordVoicingEvent.BeatPosition)} + {nameof(ChordVoicingEvent.DurationInBeats)}, ({chordVoicingNoteEvent.BeatPosition} + {chordVoicingNoteEvent.DurationInBeats}). Expected < {maxBeatPosition}"));
         
         return (IReadOnlyList<ValidationFailure>)failures;
     }

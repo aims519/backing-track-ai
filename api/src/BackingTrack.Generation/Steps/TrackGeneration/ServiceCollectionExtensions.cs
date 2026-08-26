@@ -20,24 +20,8 @@ public static class ServiceCollectionExtensions
         string? llmProvider = configuration.GetValue<string>("Llm:Provider");
         if(string.IsNullOrEmpty(llmProvider))
             throw new InvalidOperationException("llmProvider must be set.");
-        if (llmProvider == "OpenAi")
-        {
-            services.AddSingleton<IChatClient>(sp =>
-            {
-                OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
-                ChatClient client = new(settings.Model, new ApiKeyCredential(settings.ApiKey),new OpenAIClientOptions()
-                {
-                    Endpoint = new Uri(settings.BaseUrl),
-                });
-                return client.AsIChatClient();
-            });
-        }
-        else
-        {
-            throw new InvalidOperationException($"Llm:Provider value, '{llmProvider}', is not supported");
-        }
 
-        services.AddSingleton<AIAgent>(sp =>
+        services.AddKeyedSingleton<AIAgent>("generate", (sp, _) =>
             sp.GetRequiredService<IChatClient>().AsAIAgent(instructions: GenerateStepPrompts.SystemInstructions));
 
         services.AddSingleton(sp =>

@@ -5,19 +5,20 @@ using BackingTrack.Generation.Steps.Types;
 
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace BackingTrack.Generation.Steps.TrackGeneration;
 
 public class TrackGenerationClient(
-    AIAgent aiAgent,
+    [FromKeyedServices("generate")] AIAgent aiAgent,
     TrackGenerationProviderInfo providerInfo,
     TrackGenerationMetrics metrics,
     ILogger<TrackGenerationClient> logger) : ITrackGenerationClient
 {
     public async Task<CandidateTrack> GenerateTrackAsync(string prompt, CancellationToken token = default)
     {
-        using Activity? activity = TrackGenerationActivitySource.Instance.StartActivity("TrackGenerationClient.GenerateTrackAsync");
+        using Activity? activity = TrackGenerationActivitySource.Instance.StartActivity($"{nameof(TrackGenerationClient)}.GenerateTrackAsync");
         activity?.SetTag("track_generation.provider", providerInfo.Provider);
         activity?.SetTag("track_generation.model", providerInfo.Model);
         
