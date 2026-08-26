@@ -18,7 +18,7 @@ public class TrackGenerationClient(
 {
     public async Task<CandidateTrack> GenerateTrackAsync(string prompt, CancellationToken token = default)
     {
-        using Activity? activity = TrackGenerationActivitySource.Instance.StartActivity($"{nameof(TrackGenerationClient)}.GenerateTrackAsync");
+        using Activity? activity = TrackGenerationActivitySource.Instance.StartActivity($"{nameof(GenerateStep)}.{nameof(TrackGenerationClient)}.GenerateTrackAsync");
         activity?.SetTag("track_generation.provider", providerInfo.Provider);
         activity?.SetTag("track_generation.model", providerInfo.Model);
         

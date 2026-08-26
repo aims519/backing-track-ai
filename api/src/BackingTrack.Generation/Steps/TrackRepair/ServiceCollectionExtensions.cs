@@ -30,7 +30,9 @@ public static class ServiceCollectionExtensions
             OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
             return new TrackRepairProviderInfo(llmProvider, settings.Model, settings.MaxOutputTokens);
         });
-        
+
+        services.AddSingleton<TrackRepairMetrics>();
+
         return services;
     }
 }

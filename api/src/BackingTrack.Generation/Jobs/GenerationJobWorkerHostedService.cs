@@ -227,11 +227,15 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
             
             #region Persistance
             Guid trackId = Guid.NewGuid();
+            using Activity? persistActivity = GenerationJobActivitySource.Instance.StartActivity($"{nameof(GenerationJobWorkerHostedService)}.PersistCandidateTrackAsync");
+            persistActivity?.SetTag("job.id", generationJob.Id);
+            persistActivity?.SetTag("track.id", trackId);
             try
             {
                 Directory.CreateDirectory(trackStorageSettings.Value.BaseFolderPath);
                 string trackJson = JsonSerializer.Serialize(candidateTrack, CandidateTrackJsonContext.Default.CandidateTrack);
                 string trackFilePath = Path.Combine(trackStorageSettings.Value.BaseFolderPath, $"{trackId}.json");
+                persistActivity?.SetTag("track.filePath", trackFilePath);
                 await File.WriteAllTextAsync(trackFilePath, trackJson, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -244,6 +248,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 logger.LogError(ex, "Job {Id} failed to persist the candidate track", jobId);
                 GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                 jobStore.AddOrUpdate(failedJob);
+                persistActivity?.SetStatus(ActivityStatusCode.Error, ex.Message);
                 activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
                 return;
             }

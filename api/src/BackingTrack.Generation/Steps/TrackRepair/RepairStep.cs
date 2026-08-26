@@ -14,7 +14,8 @@ using OpenAI.Realtime;
 
 namespace BackingTrack.Generation.Steps.TrackRepair;
 
-public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepairProviderInfo providerInfo, ILogger<RepairStep> logger) : IRepairStep
+public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepairProviderInfo providerInfo,
+    TrackRepairMetrics metrics, ILogger<RepairStep> logger) : IRepairStep
 {
     public async Task<CandidateTrack> RepairCandidateTrackAsync(CandidateTrack previousAttempt, IReadOnlyList<ValidationFailure> failures,
         CancellationToken cancellationToken = default)
@@ -43,22 +44,25 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
         {
             stopwatch.Stop();
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            metrics.RecordFailure(providerInfo.Provider, providerInfo.Model, stopwatch.Elapsed);
             throw;
         }
         stopwatch.Stop();
-        
+
         logger.LogInformation("Generated Candidate Track Repair Patch. Input tokens: {InputCount}. Output tokens: {OutputCount}",
             agentResponse.Usage?.InputTokenCount, agentResponse.Usage?.OutputTokenCount);
         logger.LogDebug("Repair patch: {Patch}", JsonSerializer.Serialize(agentResponse.Result, new JsonSerializerOptions { TypeInfoResolver = TrackRepairJsonContext.Default }));
-        
+
+        activity?.SetTag("track_repair.input_tokens", agentResponse.Usage?.InputTokenCount);
+        activity?.SetTag("track_repair.output_tokens", agentResponse.Usage?.OutputTokenCount);
+        metrics.RecordSuccess(providerInfo.Provider, providerInfo.Model, stopwatch.Elapsed, agentResponse.Usage?.InputTokenCount, agentResponse.Usage?.OutputTokenCount);
+
         if (IsEmpty(agentResponse.Result))
         {
             logger.LogWarning("Job repair returned an empty patch with no corrections; returning previous attempt unchanged");
             return previousAttempt;
         }
-        
-        activity?.SetTag("track_repair.input_tokens", agentResponse.Usage?.InputTokenCount);
-        activity?.SetTag("track_repair.output_tokens", agentResponse.Usage?.OutputTokenCount);
+
         CandidateTrack updatedTrack = ApplyPatch(previousAttempt, agentResponse.Result);
 
         return updatedTrack;

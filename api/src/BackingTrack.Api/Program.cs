@@ -96,6 +96,8 @@ if (otelSettings.bEnabled)
             .AddHttpClientInstrumentation()
             .AddSource(TrackGenerationActivitySource.SourceName)
             .AddSource(GenerationJobActivitySource.SourceName)
+            .AddSource(TrackRepairActivitySource.SourceName)
+            .AddSource(QueryEmbeddingActivitySource.SourceName)
             .AddOtlpExporter(options =>
             {
                 options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
@@ -107,6 +109,7 @@ if (otelSettings.bEnabled)
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
             .AddMeter(TrackGenerationMetrics.MeterName)
+            .AddMeter(TrackRepairMetrics.MeterName)
             .AddOtlpExporter(options =>
             {
                 options.Endpoint = new Uri(otelSettings.CollectorEndpoint);

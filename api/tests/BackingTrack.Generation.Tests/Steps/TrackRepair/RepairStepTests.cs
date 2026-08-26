@@ -9,7 +9,7 @@ namespace BackingTrack.Generation.Tests.Steps.TrackRepair;
 public class RepairStepTests
 {
     private static RepairStep CreateRepairStep() =>
-        new(null!, new TrackRepairProviderInfo("test", "test-model", 4096), NullLogger<RepairStep>.Instance);
+        new(null!, new TrackRepairProviderInfo("test", "test-model", 4096), new TrackRepairMetrics(), NullLogger<RepairStep>.Instance);
 
     private static TrackRepairPatch EmptyPatch => new([], null, null, null, null);
 
