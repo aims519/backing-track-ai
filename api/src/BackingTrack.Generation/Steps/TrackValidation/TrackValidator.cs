@@ -63,7 +63,7 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
             foreach (BassNoteEvent bassNoteEvent in bassNoteEventsInBar)
             {
                 if(!validPitchClasses.Contains(bassNoteEvent.MidiNote % 12))
-                    failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidBassNoteChoice, bassNoteEvent,$"Unexpected {nameof(BassNoteEvent)} MIDI note in bar {bar}. Note: {bassNoteEvent.MidiNote}, Pitch class {bassNoteEvent.MidiNote % 12}. Expected pitch classes: [{string.Join(',', validPitchClasses.Order())}]"));
+                    failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidBassNoteChoice, bassNoteEvent,$"Unexpected {nameof(BassNoteEvent)} MIDI note in bar {bar} at position {bassNoteEvent.BeatPosition}. Note: {bassNoteEvent.MidiNote}, Pitch class {bassNoteEvent.MidiNote % 12}. Expected pitch classes: [{string.Join(',', validPitchClasses.Order())}]"));
             }
         }
         
@@ -108,7 +108,7 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
                 foreach (int midiNote in chordVoicingEvent.MidiNotes)
                 {
                     if(!validPitchClasses.Contains(midiNote % 12))
-                        failures.Add(new ValidationFailure(ValidationFailureType.InvalidChordVoicingNoteChoice, chordVoicingEvent,$"Unexpected {nameof(ChordVoicingEvent)} MIDI note in bar {bar}. Note: {midiNote}, Pitch class: {midiNote % 12}. Expected pitch classes: [{string.Join(',', validPitchClasses.Order())}]"));
+                        failures.Add(new ValidationFailure(ValidationFailureType.InvalidChordVoicingNoteChoice, chordVoicingEvent,$"Unexpected {nameof(ChordVoicingEvent)} MIDI note in bar {bar} at position {chordVoicingEvent.BeatPosition}. Note: {midiNote}, Pitch class: {midiNote % 12}. Expected pitch classes: [{string.Join(',', validPitchClasses.Order())}]"));
                 }
             }
         }

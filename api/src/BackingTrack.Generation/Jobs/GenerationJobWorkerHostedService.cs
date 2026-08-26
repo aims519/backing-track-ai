@@ -21,7 +21,8 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
     GenerationJobQueue jobQueue, 
     ILogger<GenerationJobWorkerHostedService> logger, 
     IServiceScopeFactory serviceScopeFactory,
-    IOptions<TrackStorageSettings> trackStorageSettings) : BackgroundService
+    IOptions<TrackStorageSettings> trackStorageSettings,
+    IOptions<TrackGenerationWorkflowSettings> trackGenerationWorkflowSettings) : BackgroundService
 {
     private readonly ChannelReader<Guid> _jobReader = jobQueue.Reader;
 
@@ -29,13 +30,13 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
     {
         await foreach (Guid jobId in _jobReader.ReadAllAsync(stoppingToken))
         {
-            await ProcessGenerationJobAsync(jobId, stoppingToken);
+            await ProcessGenerationJobAsync(jobId, trackGenerationWorkflowSettings.Value.GenerationMaxAttempts, stoppingToken);
         }
     }
 
-    private async Task ProcessGenerationJobAsync(Guid jobId, CancellationToken stoppingToken)
+    private async Task ProcessGenerationJobAsync(Guid jobId, int maxGenerationAttempts, CancellationToken stoppingToken)
     {
-                    GenerationJob? generationJob = jobStore.TryGet(jobId);
+            GenerationJob? generationJob = jobStore.TryGet(jobId);
             if (generationJob == null)
             {
                 logger.LogInformation("Job {Id} does not exist", jobId);
@@ -179,7 +180,6 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
             IValidateStep validateStep = scope.ServiceProvider.GetRequiredService<IValidateStep>();
             IRepairStep  repairStep = scope.ServiceProvider.GetRequiredService<IRepairStep>();
 
-            const int maxGenerationAttempts = 3;
             TrackValidationResult? trackValidationResult = null;
             for (int attempt = 1; attempt <= maxGenerationAttempts; attempt++)
             {

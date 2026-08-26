@@ -48,6 +48,7 @@ builder.Services.Configure<RateLimitSettings>(builder.Configuration.GetSection("
 builder.Services.Configure<TrackStorageSettings>(builder.Configuration.GetSection("TrackStorage"));
 builder.Services.Configure<VoyageAISettings>(builder.Configuration.GetSection("VoyageAI"));
 builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAi"));
+builder.Services.Configure<TrackGenerationWorkflowSettings>(builder.Configuration.GetSection("TrackGenerationWorkflow"));
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

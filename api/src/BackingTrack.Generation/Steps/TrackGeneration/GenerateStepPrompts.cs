@@ -46,7 +46,7 @@ public static class GenerateStepPrompts
 
         3. Chord track - a list of ChordVoicingEvents, to be played by a chord-friendly
            instrument, e.g. piano. Should use mid-range frequencies and compliment the drum and
-           bass tracks.
+           bass tracks. Duplicate notes in a single ChordNoteEvent are not allowed.
 
         4. LengthInBeats - the total number of beats in the track.
            Calculate this as (chords.Count * beatsPerBar), where beatsPerBar is always the Time

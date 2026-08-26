@@ -51,12 +51,25 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
             agentResponse.Usage?.InputTokenCount, agentResponse.Usage?.OutputTokenCount);
         logger.LogDebug("Repair patch: {Patch}", JsonSerializer.Serialize(agentResponse.Result, new JsonSerializerOptions { TypeInfoResolver = TrackRepairJsonContext.Default }));
         
+        if (IsEmpty(agentResponse.Result))
+        {
+            logger.LogWarning("Job repair returned an empty patch with no corrections; returning previous attempt unchanged");
+            return previousAttempt;
+        }
+        
         activity?.SetTag("track_repair.input_tokens", agentResponse.Usage?.InputTokenCount);
         activity?.SetTag("track_repair.output_tokens", agentResponse.Usage?.OutputTokenCount);
         CandidateTrack updatedTrack = ApplyPatch(previousAttempt, agentResponse.Result);
 
         return updatedTrack;
     }
+    
+    private static bool IsEmpty(TrackRepairPatch patch) =>
+        (patch.NoteCorrections.Count == 0) &&
+        patch.NewDrumPart is null &&
+        patch.NewBassPart is null &&
+        patch.NewChordVoicingPart is null &&
+        patch.NewLengthInBeats is null;
 
     private string GenerateRequestPrompt(CandidateTrack previousAttempt, IReadOnlyList<ValidationFailure> failures)
     {
@@ -69,14 +82,15 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
                """;
     }
 
-    private CandidateTrack ApplyPatch(CandidateTrack originalTrack, TrackRepairPatch trackPatch)
+    internal CandidateTrack ApplyPatch(CandidateTrack originalTrack, TrackRepairPatch trackPatch)
     {
-        IList<DrumNoteEvent> drumNoteEvents = originalTrack.Drums.ToList();
-        IList<BassNoteEvent> bassNoteEvents = originalTrack.Bass.ToList();
-        IList<ChordVoicingEvent> chordVoicingEvents = originalTrack.ChordVoicings.ToList();
+        // Establish each part's base list: a supplied whole-part replacement, or the original part
+        IList<DrumNoteEvent> drumNoteEvents = (trackPatch.NewDrumPart ?? originalTrack.Drums).ToList();
+        IList<BassNoteEvent> bassNoteEvents = (trackPatch.NewBassPart ?? originalTrack.Bass).ToList();
+        IList<ChordVoicingEvent> chordVoicingEvents = (trackPatch.NewChordVoicingPart ?? originalTrack.ChordVoicings).ToList();
 
-        // Apply note corrections
-        IEnumerable<IGrouping<NoteEvent, NoteCorrection>> correctionsByOriginal = trackPatch.NoteCorrections.GroupBy(c => c.Original);
+        // Apply note corrections on top of that base
+        IEnumerable<IGrouping<NoteEvent, NoteCorrection>> correctionsByOriginal = (trackPatch.NoteCorrections ?? []).GroupBy(c => c.Original);
         foreach (IGrouping<NoteEvent, NoteCorrection> group in correctionsByOriginal)
         {
             switch (group.Key)
@@ -143,14 +157,6 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
                     }
             }
         }
-        
-        // If any missing tracks have been supplied, add these here
-        if (trackPatch.NewDrumPart != null)
-            drumNoteEvents = trackPatch.NewDrumPart.ToList();
-        if (trackPatch.NewBassPart != null)
-            bassNoteEvents = trackPatch.NewBassPart.ToList();
-        if (trackPatch.NewChordVoicingPart != null)
-            chordVoicingEvents = trackPatch.NewChordVoicingPart.ToList();
         
         drumNoteEvents = drumNoteEvents.OrderBy(e => e.BeatPosition).ToList();
         bassNoteEvents = bassNoteEvents.OrderBy(e => e.BeatPosition).ToList();

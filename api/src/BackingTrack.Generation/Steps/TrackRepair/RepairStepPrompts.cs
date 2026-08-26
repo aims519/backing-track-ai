@@ -19,9 +19,19 @@ public static class RepairStepPrompts
            - FailureType: must match the ValidationFailureType being fixed.
            - Only set the field(s) relevant to this failure; leave the rest null.
              - NewBeatPosition, NewDurationInBeats (double?)
-             - NewMidiNotes (int[]?) - one element for drum/bass notes, multiple for chord voicings
+             - NewMidiNotes (int[]?) - one element for drum/bass notes, multiple for chord voicings.
              - NewVelocity (int?)
+             
+           Additional note about note corrections for chord voicings: all MIDI notes in the proposed correction should lie within the allowed
+           pitch class range specified in the ValidationFailure Reason message. Convert MIDI notes to pitch classes using (MIDINote % 12) = Pitch Class.
 
+            ### Example Note Corrections
+            Failure: Unexpected BassNoteEvent MIDI note in bar 4 at position 13.5. Note: 43, Pitch class 7.
+                     Expected pitch classes: [1,2,4,6,8,9,11]
+            
+            Correction: Original = (the BassNoteEvent above), NewMidiNotes = [44]
+            Reasoning: 44 % 12 = 8, which is in the allowed pitch class list.
+        
         2. Whole-part replacement - for PartEmpty failures. Provide a full replacement list in
            whichever of NewDrumPart / NewBassPart / NewChordVoicingPart is empty.
 
