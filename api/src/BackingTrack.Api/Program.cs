@@ -110,6 +110,7 @@ if (otelSettings.bEnabled)
             .AddHttpClientInstrumentation()
             .AddMeter(TrackGenerationMetrics.MeterName)
             .AddMeter(TrackRepairMetrics.MeterName)
+            .AddMeter(GenerationJobMetrics.MeterName)
             .AddOtlpExporter(options =>
             {
                 options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
@@ -192,6 +193,7 @@ builder.Services.AddSingleton<JobStore>();
 
 Channel<Guid> jobChannel = Channel.CreateUnbounded<Guid>();
 builder.Services.AddSingleton(new GenerationJobQueue(jobChannel));
+builder.Services.AddSingleton<GenerationJobMetrics>();
 builder.Services.AddHostedService<GenerationJobWorkerHostedService>();
 builder.Services.AddTransient<IRetrieveStep, RetrieveStep>();
 

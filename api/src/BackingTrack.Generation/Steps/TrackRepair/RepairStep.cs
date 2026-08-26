@@ -68,12 +68,13 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
         return updatedTrack;
     }
     
-    private static bool IsEmpty(TrackRepairPatch patch) =>
-        (patch.NoteCorrections.Count == 0) &&
+    private static bool IsEmpty(TrackRepairPatch? patch) =>
+        patch is null ||
+        ((patch.NoteCorrections is null || patch.NoteCorrections.Count == 0) &&
         patch.NewDrumPart is null &&
         patch.NewBassPart is null &&
         patch.NewChordVoicingPart is null &&
-        patch.NewLengthInBeats is null;
+        patch.NewLengthInBeats is null);
 
     private string GenerateRequestPrompt(CandidateTrack previousAttempt, IReadOnlyList<ValidationFailure> failures)
     {

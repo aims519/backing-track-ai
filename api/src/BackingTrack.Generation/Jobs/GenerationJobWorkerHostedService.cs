@@ -22,7 +22,8 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
     ILogger<GenerationJobWorkerHostedService> logger, 
     IServiceScopeFactory serviceScopeFactory,
     IOptions<TrackStorageSettings> trackStorageSettings,
-    IOptions<TrackGenerationWorkflowSettings> trackGenerationWorkflowSettings) : BackgroundService
+    IOptions<TrackGenerationWorkflowSettings> trackGenerationWorkflowSettings,
+    GenerationJobMetrics generationJobMetrics) : BackgroundService
 {
     private readonly ChannelReader<Guid> _jobReader = jobQueue.Reader;
 
@@ -181,22 +182,24 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
             IRepairStep  repairStep = scope.ServiceProvider.GetRequiredService<IRepairStep>();
 
             TrackValidationResult? trackValidationResult = null;
+            int finalAttempt = 0;
             for (int attempt = 1; attempt <= maxGenerationAttempts; attempt++)
             {
+                finalAttempt = attempt;
                 trackValidationResult = validateStep.ValidateCandidateTrack(candidateTrack, generationJob, matchingChords, matchingScaleEntries);
-                if (trackValidationResult.IsValid) 
+                if (trackValidationResult.IsValid)
                     break;
-                
+
                 logger.LogDebug("Job {Id} attempt {Attempt} candidate track: {Track}", jobId, attempt,
                     JsonSerializer.Serialize(candidateTrack, new JsonSerializerOptions { TypeInfoResolver = CandidateTrackJsonContext.Default }));
                 logger.LogWarning("Job {Id} attempt {Attempt} failed validation: {Errors}", jobId, attempt, string.Join('\n', trackValidationResult.Failures.Select(f => f.Reason)));
-                
+
                 if(attempt == maxGenerationAttempts)
                     break;
-                
+
                 try
                 {
-                    candidateTrack = await repairStep.RepairCandidateTrackAsync(candidateTrack, 
+                    candidateTrack = await repairStep.RepairCandidateTrackAsync(candidateTrack,
                         trackValidationResult.Failures, stoppingToken);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -210,6 +213,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                     jobStore.AddOrUpdate(failedJob);
                     activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                    generationJobMetrics.RecordAttempts(attempt, "error");
                     return;
                 }
             }
@@ -220,8 +224,11 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 jobStore.AddOrUpdate(failedJob);
                 activity?.SetStatus(ActivityStatusCode.Error, $"Valid track could not be generated after {maxGenerationAttempts} attempts");
                 logger.LogError("Job {Id} track generation exhausted all {Attempts} attempts and failed validation.\n{Errors}", generationJob.Id, maxGenerationAttempts, string.Join('\n', trackValidationResult?.Failures.Select(f => f.Reason) ?? Array.Empty<string>()));
+                generationJobMetrics.RecordAttempts(finalAttempt, "failed");
                 return;
             }
+
+            generationJobMetrics.RecordAttempts(finalAttempt, "success");
             
             #endregion
             

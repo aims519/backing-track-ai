@@ -23,12 +23,12 @@ public static class ServiceCollectionExtensions
             throw new InvalidOperationException("llmProvider must be set.");
 
         services.AddKeyedSingleton<AIAgent>("repair", (sp, _) =>
-            sp.GetRequiredService<IChatClient>().AsAIAgent(instructions: RepairStepPrompts.SystemInstructions));
+            sp.GetRequiredKeyedService<IChatClient>("repair").AsAIAgent(instructions: RepairStepPrompts.SystemInstructions));
 
         services.AddSingleton(sp =>
         {
             OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
-            return new TrackRepairProviderInfo(llmProvider, settings.Model, settings.MaxOutputTokens);
+            return new TrackRepairProviderInfo(llmProvider, settings.RepairModel, settings.MaxOutputTokens);
         });
 
         services.AddSingleton<TrackRepairMetrics>();
