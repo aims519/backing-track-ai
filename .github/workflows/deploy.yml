@@ -14,7 +14,13 @@ env:
   SERVICE_NAME: backingtrack-api.service
 
 jobs:
+  # Same build/test/format/AOT gate CI runs, re-run here against the exact SHA
+  # being deployed. No deploy step starts unless this passes.
+  verify:
+    uses: ./.github/workflows/verify.yml
+
   deploy:
+    needs: verify
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4

@@ -1,0 +1,78 @@
+name: Verify
+
+# Reusable build/test/format/AOT gate. Called by ci.yml (on PRs and pushes to main)
+# and by deploy.yml (as a prerequisite of the deploy job, so the exact SHA that ships
+# to the Pi has been verified).
+
+on:
+  workflow_call:
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install AOT prerequisites
+        # check-aot.sh publishes for the host RID (linux-x64), so it needs only the
+        # native linker (clang) — not the aarch64 cross toolchain that deploy.yml
+        # installs for its linux-arm64 publish. clang matches deploy.yml; zlib1g-dev
+        # is already on the ubuntu-24.04 image.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+
+      - name: Restore
+        run: dotnet restore api/BackingTrack.sln
+
+      - name: Build
+        # Directory.Build.props sets TreatWarningsAsErrors + EnforceCodeStyleInBuild,
+        # so analyzer and code-style violations fail here.
+        run: dotnet build api/BackingTrack.sln -c Release --no-restore
+
+      - name: Test
+        run: >
+          dotnet test api/BackingTrack.sln -c Release --no-build --verbosity normal
+          --logger trx
+          --collect "XPlat Code Coverage"
+          --results-directory "$GITHUB_WORKSPACE/TestResults"
+
+      - name: Coverage report
+        if: always()
+        # coverlet.collector emits one Cobertura file per test project under
+        # TestResults/<guid>/. ReportGenerator (the tool the .NET docs recommend for
+        # this) merges them, writes a per-assembly table to the run summary, and
+        # produces an HTML report that uploads with the other results.
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          reportgenerator \
+            -reports:"$GITHUB_WORKSPACE/TestResults/**/coverage.cobertura.xml" \
+            -targetdir:"$GITHUB_WORKSPACE/TestResults/CoverageReport" \
+            -reporttypes:"MarkdownSummaryGithub;HtmlInline_AzurePipelines"
+          cat "$GITHUB_WORKSPACE/TestResults/CoverageReport/SummaryGithub.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            ${{ github.workspace }}/TestResults/**/*.trx
+            ${{ github.workspace }}/TestResults/**/coverage.cobertura.xml
+            ${{ github.workspace }}/TestResults/CoverageReport
+          if-no-files-found: error
+
+      - name: Format check
+        # Whitespace only — style and analyzer rules are already build errors here
+        # (EnforceCodeStyleInBuild + TreatWarningsAsErrors), and AOT is covered by
+        # the publish check below. `dotnet build` never inspects whitespace.
+        run: dotnet format whitespace api/BackingTrack.sln --verify-no-changes --no-restore
+
+      - name: Native AOT publish check
+        run: scripts/check-aot.sh linux-x64
