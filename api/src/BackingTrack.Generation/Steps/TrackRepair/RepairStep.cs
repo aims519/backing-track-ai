@@ -23,14 +23,14 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
         using Activity? activity = TrackGenerationActivitySource.Instance.StartActivity($"{nameof(RepairStep)}.RepairCandidateTrackAsync");
         activity?.SetTag("track_repair.provider", providerInfo.Provider);
         activity?.SetTag("track_repair.model", providerInfo.Model);
-        
+
         string prompt = GenerateRequestPrompt(previousAttempt, failures);
-        
+
         ChatClientAgentRunOptions runOptions = new(new ChatOptions
         {
             MaxOutputTokens = providerInfo.MaxOutputTokens,
         });
-        
+
         Stopwatch stopwatch = Stopwatch.StartNew();
         AgentResponse<TrackRepairPatch> agentResponse;
         try
@@ -40,7 +40,7 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
                 options: runOptions,
                 cancellationToken: cancellationToken);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             stopwatch.Stop();
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
@@ -67,7 +67,7 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
 
         return updatedTrack;
     }
-    
+
     private static bool IsEmpty(TrackRepairPatch? patch) =>
         patch is null ||
         ((patch.NoteCorrections is null || patch.NoteCorrections.Count == 0) &&
@@ -164,12 +164,12 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
                     throw new ArgumentException($"Unknown original note type passed in a {nameof(NoteCorrection)}");
             }
         }
-        
+
         drumNoteEvents = drumNoteEvents.OrderBy(e => e.BeatPosition).ToList();
         bassNoteEvents = bassNoteEvents.OrderBy(e => e.BeatPosition).ToList();
         chordVoicingEvents = chordVoicingEvents.OrderBy(e => e.BeatPosition).ToList();
-        
-        CandidateTrack updatedTrack = new(trackPatch.NewLengthInBeats ?? originalTrack.LengthInBeats, (IReadOnlyList<DrumNoteEvent>)drumNoteEvents, 
+
+        CandidateTrack updatedTrack = new(trackPatch.NewLengthInBeats ?? originalTrack.LengthInBeats, (IReadOnlyList<DrumNoteEvent>)drumNoteEvents,
             (IReadOnlyList<BassNoteEvent>)bassNoteEvents,
             (IReadOnlyList<ChordVoicingEvent>)chordVoicingEvents);
 

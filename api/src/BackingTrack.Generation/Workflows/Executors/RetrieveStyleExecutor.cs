@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BackingTrack.Generation.Workflows.Executors;
 
-internal sealed class RetrieveStyleExecutor(IRetrieveStep retrieveStep, 
+internal sealed class RetrieveStyleExecutor(IRetrieveStep retrieveStep,
     ILogger<RetrieveStyleExecutor> logger) : Executor("RetrieveStyleExecutor")
 {
     internal async ValueTask HandleAsync(GenerationJob job, IWorkflowContext context,
@@ -42,7 +42,7 @@ internal sealed class RetrieveStyleExecutor(IRetrieveStep retrieveStep,
         await context.SendMessageAsync(new RetrieveChordsInput(job, matchedStyle), cancellationToken: cancellationToken);
     }
 
-    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) => 
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<GenerationJob>(HandleAsync))
             .SendsMessage<RetrieveChordsInput>()

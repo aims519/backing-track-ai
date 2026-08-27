@@ -14,7 +14,7 @@ namespace BackingTrack.Generation.Workflows.Executors;
 
 internal sealed class ValidateCandidateTrackExecutor(
     IValidateStep validateStep,
-    IOptions<TrackGenerationWorkflowSettings>  trackGenerationWorkflowSettings,
+    IOptions<TrackGenerationWorkflowSettings> trackGenerationWorkflowSettings,
     ILogger<ValidateCandidateTrackExecutor> logger) : Executor("ValidateCandidateTrackExecutor")
 {
     internal async ValueTask HandleAsync(ValidateCandidateTrackInput input, IWorkflowContext context,
@@ -22,7 +22,7 @@ internal sealed class ValidateCandidateTrackExecutor(
     {
         try
         {
-            TrackValidationResult trackValidationResult = validateStep.ValidateCandidateTrack(input.CandidateTrack, 
+            TrackValidationResult trackValidationResult = validateStep.ValidateCandidateTrack(input.CandidateTrack,
                 input.GenerationJob, input.MatchedChords, input.MatchedScales);
 
             if (trackValidationResult.IsValid)
@@ -34,7 +34,7 @@ internal sealed class ValidateCandidateTrackExecutor(
             logger.LogDebug("Job {Id} attempt {Attempt} candidate track: {Track}", input.GenerationJob.Id, input.Attempts,
                 JsonSerializer.Serialize(input.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
             logger.LogWarning("Job {Id} attempt {Attempt} failed validation: {Errors}", input.GenerationJob.Id, input.Attempts, string.Join('\n', trackValidationResult.Failures.Select(f => f.Reason)));
-            
+
             // Failed with max attempts reached
             if (input.Attempts >= trackGenerationWorkflowSettings.Value.GenerationMaxAttempts)
             {
@@ -42,7 +42,7 @@ internal sealed class ValidateCandidateTrackExecutor(
                 await context.YieldOutputAsync(new GenerationFailed($"Max {trackGenerationWorkflowSettings.Value.GenerationMaxAttempts} track generation attempts reached with failed validation", input.Attempts), cancellationToken);
                 return;
             }
-            
+
             // Failed with retry, send Repair Message
             await context.SendMessageAsync(new RepairCandidateTrackInput(input.CandidateTrack, trackValidationResult, input.GenerationJob, input.MatchedChords, input.MatchedScales, input.Attempts), cancellationToken);
         }
@@ -56,8 +56,8 @@ internal sealed class ValidateCandidateTrackExecutor(
             await context.YieldOutputAsync(new GenerationFailed(ex.Message), cancellationToken);
         }
     }
-    
-    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) => 
+
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<ValidateCandidateTrackInput>(HandleAsync))
             .SendsMessage<RepairCandidateTrackInput>()

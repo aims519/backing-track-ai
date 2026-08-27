@@ -17,14 +17,14 @@ public class GenerationRequestDto
 
 public static class GenerationRequestDtoExtensions
 {
-    private static readonly IReadOnlySet<int> ValidBeatUnits = new HashSet<int>() { 2, 4, 8, 16, 32};
+    private static readonly IReadOnlySet<int> ValidBeatUnits = new HashSet<int>() { 2, 4, 8, 16, 32 };
     private const int ValidBeatCountMin = 2;
     private const int ValidBeatCountMax = 32;
 
     public static ValidationProblemDetails? Validate(this GenerationRequestDto request, ChordSymbolParser chordSymbolParser)
     {
         ValidationProblemDetails validationProblemDetails = new();
-        
+
         if (!Enum.TryParse<GenerationMode>(request.Mode, out _))
             validationProblemDetails.Errors.Add(nameof(request.Mode), [$"Invalid generation mode: {request.Mode}. Accepted values are {string.Join(',', Enum.GetNames(typeof(GenerationMode)))}"]);
 
@@ -44,22 +44,21 @@ public static class GenerationRequestDtoExtensions
             if (chordErrors.Count > 0)
                 validationProblemDetails.Errors[nameof(request.Chords)] = chordErrors.ToArray();
         }
-        
+
         if (string.IsNullOrWhiteSpace(request.KeyRoot))
             validationProblemDetails.Errors.Add(nameof(request.KeyRoot), ["KeyRoot must be provided"]);
         else if (!chordSymbolParser.ValidateRoot(request.KeyRoot).bValid)
             validationProblemDetails.Errors.Add(nameof(request.KeyRoot), [$"KeyRoot '{request.KeyRoot}' is not a valid root note"]);
-        
-        if (request.TimeSignatureBeatCount< ValidBeatCountMin || request.TimeSignatureBeatCount > ValidBeatCountMax)
+
+        if (request.TimeSignatureBeatCount < ValidBeatCountMin || request.TimeSignatureBeatCount > ValidBeatCountMax)
             validationProblemDetails.Errors.Add(nameof(request.TimeSignatureBeatCount), [$"Time signature beat count must be between {ValidBeatCountMin} and {ValidBeatCountMax}"]);
-        
-        if(!ValidBeatUnits.Contains(request.TimeSignatureBeatUnit))
+
+        if (!ValidBeatUnits.Contains(request.TimeSignatureBeatUnit))
             validationProblemDetails.Errors.Add(nameof(request.TimeSignatureBeatUnit), [$"Invalid beat unit {request.TimeSignatureBeatUnit} provided. Must be in [{string.Join(',', ValidBeatUnits)}]"]);
-        
+
         if (string.IsNullOrWhiteSpace(request.Style))
             validationProblemDetails.Errors.Add(nameof(request.Style), ["Style guidance must be provided"]);
-        
+
         return validationProblemDetails.Errors.Any() ? validationProblemDetails : null;
     }
 }
-

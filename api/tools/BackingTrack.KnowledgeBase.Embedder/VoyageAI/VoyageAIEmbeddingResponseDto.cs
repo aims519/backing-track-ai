@@ -13,6 +13,6 @@ public class EmbeddingDataItemDto
     [JsonPropertyName("index")]
     public int Index { get; init; }
 
-    [JsonPropertyName("embedding")] 
+    [JsonPropertyName("embedding")]
     public float[] Embedding { get; init; } = [];
 }

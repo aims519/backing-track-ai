@@ -10,15 +10,15 @@ public class JobStore
     {
         _generationJobs.AddOrUpdate(job.Id, job, (_, _) => job);
     }
-    
+
     public void Remove(Guid jobId)
     {
         _generationJobs.TryRemove(jobId, out _);
     }
-    
+
     public GenerationJob? TryGet(Guid jobId)
-    { 
-        _generationJobs.TryGetValue(jobId,  out GenerationJob? foundJob);
+    {
+        _generationJobs.TryGetValue(jobId, out GenerationJob? foundJob);
         return foundJob;
     }
 

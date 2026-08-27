@@ -21,21 +21,21 @@ internal class EmbeddingOrchestrator
         _logger = logger;
         _embeddingService = embeddingService;
         _contentEntries = _embeddingService.ParseRagFiles();
-        
-        _logger.LogInformation("Read raw content files.\nChords: {ChordItemCount}\nScales: {ScaleItemCount}\nStyles: {StyleItemCount}", 
-            _contentEntries.chordEntries.Count(),  _contentEntries.scaleEntries.Count(), _contentEntries.styleEntries.Count());
+
+        _logger.LogInformation("Read raw content files.\nChords: {ChordItemCount}\nScales: {ScaleItemCount}\nStyles: {StyleItemCount}",
+            _contentEntries.chordEntries.Count(), _contentEntries.scaleEntries.Count(), _contentEntries.styleEntries.Count());
     }
 
     internal Task<IList<(string Id, VectorEntry VectorEntry)>> GetChordRecordsToWriteAsync() => GetRecordsToWriteAsync(_contentEntries.chordEntries.ToList());
-    
+
     internal Task<IList<(string Id, VectorEntry VectorEntry)>> GetScaleRecordsToWriteAsync() => GetRecordsToWriteAsync(_contentEntries.scaleEntries.ToList());
-    
+
     internal Task<IList<(string Id, VectorEntry VectorEntry)>> GetStyleRecordsToWriteAsync() => GetRecordsToWriteAsync(_contentEntries.styleEntries.ToList());
 
     internal async Task WriteRecords<T>(IList<(string Id, VectorEntry VectorEntry)> recordsToWrite) where T : class, IEmbeddable
     {
-        string outputPath  = Path.Combine(_contentDirectory, KnowledgeBaseContentPaths.ResolveVectorFilePath<T>());
-        _logger.LogInformation("Writing {Count} {Type} records to {Path}...", recordsToWrite.Count,  typeof(T).Name, outputPath);
+        string outputPath = Path.Combine(_contentDirectory, KnowledgeBaseContentPaths.ResolveVectorFilePath<T>());
+        _logger.LogInformation("Writing {Count} {Type} records to {Path}...", recordsToWrite.Count, typeof(T).Name, outputPath);
 
         await using StreamWriter writer = new(outputPath, append: false);
         foreach ((string Id, VectorEntry VectorEntry) vectorEntry in recordsToWrite)
@@ -52,7 +52,7 @@ internal class EmbeddingOrchestrator
             throw new InvalidOperationException($"Duplicate entry ids are not allowed across all record types. Duplicates found: {string.Join(", ", duplicateIds)}");
         }
     }
-    
+
     private async Task<IList<(string Id, VectorEntry VectorEntry)>> GetRecordsToWriteAsync<T>(IReadOnlyList<T> rawContentEntries) where T : class, IEmbeddable
     {
         string vectorFilePath = Path.Combine(_contentDirectory, KnowledgeBaseContentPaths.ResolveVectorFilePath<T>());
@@ -62,12 +62,12 @@ internal class EmbeddingOrchestrator
         (existingVectorEntries, int entriesPruned) = existingVectorEntries.PruneVectorEntries(rawContentEntries);
 
         _logger.LogInformation("New/Updated {NewUpdatedType} entries to embed: {Count}.\n{RemoveType} entries to remove: {RemoveCount}",
-            typeof(T).Name, newOrUpdated.Count,  typeof(T).Name, entriesPruned);
+            typeof(T).Name, newOrUpdated.Count, typeof(T).Name, entriesPruned);
 
         // Fetch Chords Embeddings if necessary
         await foreach ((IEmbeddable embeddable, float[] embedVector) in _embeddingService.EmbedBatchAsync(newOrUpdated))
         {
-            VectorEntry vectorEntry = new(embeddable.Id,VectorDiffHelper.ComputeHash(embeddable.SearchText), embedVector);
+            VectorEntry vectorEntry = new(embeddable.Id, VectorDiffHelper.ComputeHash(embeddable.SearchText), embedVector);
             existingVectorEntries[vectorEntry.Id] = vectorEntry;
         }
 

@@ -265,7 +265,7 @@ public class ScaleMatcherTests
 
         Assert.Single(results, m => m.ScaleEntry.Id == "dorian" && m.Chord.Root == "D");
     }
-    
+
     [Fact]
     public void GetChordToneNames_SharpRoot_SpellsWithSharps()
     {

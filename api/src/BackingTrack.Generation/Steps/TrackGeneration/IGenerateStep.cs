@@ -10,9 +10,9 @@ public interface IGenerateStep
         int tempo,
         int timeSignatureBeatCount,
         int timeSignatureBeatUnit,
-        MatchedStyle style, 
+        MatchedStyle style,
         IReadOnlyList<MatchedChord> chords,
-        IReadOnlyList<MatchedScale> scales, 
+        IReadOnlyList<MatchedScale> scales,
         CandidateTrack? previousAttempt = null,
         IReadOnlyList<ValidationFailure>? previousAttemptFailures = null,
         CancellationToken cancellationToken = default);
