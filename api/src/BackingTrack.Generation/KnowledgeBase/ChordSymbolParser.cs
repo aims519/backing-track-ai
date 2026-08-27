@@ -75,6 +75,6 @@ public class ChordSymbolParser
         if (!_chordTypes.Contains(quality))
             return (root, quality, false, $"Chord type {quality} is invalid");
 
-        return (root, quality, true, string.Empty); ;
+        return (root, quality, true, string.Empty);
     }
 }
