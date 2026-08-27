@@ -49,7 +49,7 @@ public class PersistCandidateTrackExecutorTests
         // A regular file sitting at the target path makes Directory.CreateDirectory throw,
         // giving a deterministic write failure without needing to fake the filesystem.
         string blockingFilePath = Path.Combine(Path.GetTempPath(), $"backing-track-tests-{Guid.NewGuid()}");
-        await File.WriteAllTextAsync(blockingFilePath, "not a directory");
+        await File.WriteAllTextAsync(blockingFilePath, "not a directory", TestContext.Current.CancellationToken);
         try
         {
             GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
