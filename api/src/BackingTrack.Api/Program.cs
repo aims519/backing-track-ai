@@ -10,12 +10,17 @@ using BackingTrack.Api.Endpoints;
 using BackingTrack.Api.Errors;
 using BackingTrack.Api.HealthChecks;
 using BackingTrack.Core.Config;
+using BackingTrack.Generation;
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAI;
 using BackingTrack.Generation.Steps;
-using BackingTrack.Generation.TrackGeneration;
+using BackingTrack.Generation.Steps.Retrieval;
+using BackingTrack.Generation.Steps.TrackGeneration;
+using BackingTrack.Generation.Steps.TrackPersistence;
+using BackingTrack.Generation.Steps.TrackRepair;
+using BackingTrack.Generation.Steps.TrackValidation;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -44,6 +49,7 @@ builder.Services.Configure<RateLimitSettings>(builder.Configuration.GetSection("
 builder.Services.Configure<TrackStorageSettings>(builder.Configuration.GetSection("TrackStorage"));
 builder.Services.Configure<VoyageAISettings>(builder.Configuration.GetSection("VoyageAI"));
 builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAi"));
+builder.Services.Configure<TrackGenerationWorkflowSettings>(builder.Configuration.GetSection("TrackGenerationWorkflow"));
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -91,6 +97,9 @@ if (otelSettings.bEnabled)
             .AddHttpClientInstrumentation()
             .AddSource(TrackGenerationActivitySource.SourceName)
             .AddSource(GenerationJobActivitySource.SourceName)
+            .AddSource(TrackRepairActivitySource.SourceName)
+            .AddSource(QueryEmbeddingActivitySource.SourceName)
+            .AddSource(TrackPersistenceActivitySource.SourceName)
             .AddOtlpExporter(options =>
             {
                 options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
@@ -102,6 +111,8 @@ if (otelSettings.bEnabled)
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
             .AddMeter(TrackGenerationMetrics.MeterName)
+            .AddMeter(TrackRepairMetrics.MeterName)
+            .AddMeter(GenerationJobMetrics.MeterName)
             .AddOtlpExporter(options =>
             {
                 options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
@@ -184,6 +195,7 @@ builder.Services.AddSingleton<JobStore>();
 
 Channel<Guid> jobChannel = Channel.CreateUnbounded<Guid>();
 builder.Services.AddSingleton(new GenerationJobQueue(jobChannel));
+builder.Services.AddSingleton<GenerationJobMetrics>();
 builder.Services.AddHostedService<GenerationJobWorkerHostedService>();
 builder.Services.AddTransient<IRetrieveStep, RetrieveStep>();
 
@@ -199,9 +211,23 @@ builder.Services.AddHttpClient<IQueryEmbeddingService, VoyageAiQueryEmbeddingSer
     client.DefaultRequestHeaders.Authorization = new("Bearer", builder.Configuration.GetValue<string>("VoyageAI:ApiKey"));
 });
 
+// LLM Chat Client, used by multiple workflow steps
+builder.Services.AddLlmChatClient(builder.Configuration);
+
 // Track Generation
 builder.Services.AddTrackGeneration(builder.Configuration);
 builder.Services.AddTransient<IGenerateStep, GenerateStep>();
+
+// Track Validation
+builder.Services.AddTransient<ITrackValidator, TrackValidator>();
+builder.Services.AddTransient<IValidateStep, ValidateStep>();
+
+// Track Repair
+builder.Services.AddTrackRepair(builder.Configuration);
+builder.Services.AddTransient<IRepairStep, RepairStep>();
+
+// Workflow
+builder.Services.AddTrackGenerationWorkflow();
 
 WebApplication app = builder.Build();
 app.Services.GetRequiredService<InMemoryVectorStore>(); // forces eager load + logging

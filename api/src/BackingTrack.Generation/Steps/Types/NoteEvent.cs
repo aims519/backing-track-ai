@@ -1,5 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace BackingTrack.Generation.Steps.Types;
 
-public record DrumNoteEvent(double BeatPosition, double DurationInBeats, int MidiNote, int Velocity);
-
-public record BassNoteEvent(double BeatPosition, double DurationInBeats, int MidiNote, int Velocity);
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+[JsonDerivedType(typeof(DrumNoteEvent), "drum")]
+[JsonDerivedType(typeof(BassNoteEvent), "bass")]
+[JsonDerivedType(typeof(ChordVoicingEvent), "chord")]
+public abstract record NoteEvent(double BeatPosition, double DurationInBeats, int Velocity);
