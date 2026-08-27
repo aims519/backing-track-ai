@@ -18,6 +18,7 @@ using BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAI;
 using BackingTrack.Generation.Steps;
 using BackingTrack.Generation.Steps.Retrieval;
 using BackingTrack.Generation.Steps.TrackGeneration;
+using BackingTrack.Generation.Steps.TrackPersistence;
 using BackingTrack.Generation.Steps.TrackRepair;
 using BackingTrack.Generation.Steps.TrackValidation;
 
@@ -98,6 +99,7 @@ if (otelSettings.bEnabled)
             .AddSource(GenerationJobActivitySource.SourceName)
             .AddSource(TrackRepairActivitySource.SourceName)
             .AddSource(QueryEmbeddingActivitySource.SourceName)
+            .AddSource(TrackPersistenceActivitySource.SourceName)
             .AddOtlpExporter(options =>
             {
                 options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
@@ -223,6 +225,9 @@ builder.Services.AddTransient<IValidateStep, ValidateStep>();
 // Track Repair
 builder.Services.AddTrackRepair(builder.Configuration);
 builder.Services.AddTransient<IRepairStep, RepairStep>();
+
+// Workflow
+builder.Services.AddTrackGenerationWorkflow();
 
 WebApplication app = builder.Build();
 app.Services.GetRequiredService<InMemoryVectorStore>(); // forces eager load + logging

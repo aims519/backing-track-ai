@@ -28,12 +28,12 @@ internal sealed class RepairCandidateTrackExecutor(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Job {Id} failed during candidate track generation on retry attempt {Attempt}", input.GenerationJob.Id, input.AttemptCount);
-            await context.YieldOutputAsync(new GenerationFailed(ex.Message), cancellationToken);
+            logger.LogError(ex, "Job {Id} failed during candidate track generation on retry attempt {Attempt}", input.GenerationJob.Id, input.Attempts);
+            await context.YieldOutputAsync(new GenerationFailed(ex.Message, input.Attempts), cancellationToken);
             return;
         }
         
-        int attemptCount = input.AttemptCount + 1;
+        int attemptCount = input.Attempts + 1;
         await context.SendMessageAsync(new ValidateCandidateTrackInput(repairedTrack, input.GenerationJob, 
             input.MatchedChords, input.MatchedScales, attemptCount), cancellationToken);
     }

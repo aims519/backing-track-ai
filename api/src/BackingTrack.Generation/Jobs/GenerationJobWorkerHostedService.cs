@@ -2,28 +2,22 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Threading.Channels;
 
-using BackingTrack.Core.Config;
-using BackingTrack.Generation.KnowledgeBase.Types;
-using BackingTrack.Generation.Steps.Retrieval;
-using BackingTrack.Generation.Steps.TrackGeneration;
-using BackingTrack.Generation.Steps.TrackRepair;
-using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
+using BackingTrack.Generation.Workflows;
+using BackingTrack.Generation.Workflows.Outputs;
 
+using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace BackingTrack.Generation.Jobs;
 
 public class GenerationJobWorkerHostedService(JobStore jobStore, 
     GenerationJobQueue jobQueue, 
     ILogger<GenerationJobWorkerHostedService> logger, 
-    IServiceScopeFactory serviceScopeFactory,
-    IOptions<TrackStorageSettings> trackStorageSettings,
-    IOptions<TrackGenerationWorkflowSettings> trackGenerationWorkflowSettings,
-    GenerationJobMetrics generationJobMetrics) : BackgroundService
+    GenerationJobMetrics generationJobMetrics,
+    IServiceScopeFactory serviceScopeFactory) : BackgroundService
 {
     private readonly ChannelReader<Guid> _jobReader = jobQueue.Reader;
 
@@ -31,11 +25,11 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
     {
         await foreach (Guid jobId in _jobReader.ReadAllAsync(stoppingToken))
         {
-            await ProcessGenerationJobAsync(jobId, trackGenerationWorkflowSettings.Value.GenerationMaxAttempts, stoppingToken);
+            await ProcessGenerationJobAsync(jobId, stoppingToken);
         }
     }
 
-    private async Task ProcessGenerationJobAsync(Guid jobId, int maxGenerationAttempts, CancellationToken stoppingToken)
+    private async Task ProcessGenerationJobAsync(Guid jobId, CancellationToken stoppingToken)
     {
             GenerationJob? generationJob = jobStore.TryGet(jobId);
             if (generationJob == null)
@@ -55,217 +49,49 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
             // Process the generation job here
             // Update the job state as needed
             using IServiceScope scope = serviceScopeFactory.CreateScope();
+
+            Workflow generationWorkflow = GenerationWorkflowBuilder.Build(scope.ServiceProvider);
             
-            #region Retrieval
-            IRetrieveStep retrieveStep = scope.ServiceProvider.GetRequiredService<IRetrieveStep>();
-            #region Style
-
-            MatchedStyle? matchedStyle;
-            try
-            {
-                matchedStyle = await retrieveStep.RetrieveTopMatchingStyles(updatedJob.Style, stoppingToken);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                // Service shutdown, not a job failure - let it propagate and stop the loop.
-                throw;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Job {Id} failed during style retrieval", jobId);
-                GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
-                jobStore.AddOrUpdate(failedJob);
-                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                return;
-            }
-
-            if (matchedStyle == null)
-            {
-                logger.LogWarning("Job {Id} found no matching style entry for style '{Style}'", jobId, updatedJob.Style);
-                GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
-                jobStore.AddOrUpdate(failedJob);
-                return;
-            }
-
-            logger.LogInformation("Job {Id} found matching style entry, {Style}", jobId, matchedStyle.StyleEntry.Id);
-
-            #endregion
-
-            #region Chords
-
-            IReadOnlyList<MatchedChord> matchingChords;
-            try
-            {
-                matchingChords = retrieveStep.RetrieveMatchingChords(generationJob.Chords);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Job {Id} failed during chord retrieval", jobId);
-                GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
-                jobStore.AddOrUpdate(failedJob);
-                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                return;
-            }
-
-            #endregion
-
-            #region Scales
-
-            IReadOnlyList<MatchedScale> matchingScaleEntries;
-            try
-            {
-                matchingScaleEntries = retrieveStep.RetrieveMatchingScales(generationJob.KeyRoot,
-                    matchingChords,
-                    stoppingToken)
-                    .ToList();
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                // Service shutdown, not a job failure - let it propagate and stop the loop.
-                throw;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Job {Id} failed during scale retrieval", jobId);
-                GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
-                jobStore.AddOrUpdate(failedJob);
-                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                return;
-            }
+            Run run = await InProcessExecution.RunAsync(generationWorkflow,  generationJob, cancellationToken: stoppingToken);
+            GenerationOutcome? outcome = run.OutgoingEvents
+                .OfType<WorkflowOutputEvent>()
+                .Select(e => e.As<GenerationOutcome>())
+                .OfType<GenerationOutcome>()
+                .LastOrDefault();
             
-            if(!matchingScaleEntries.Any())
-                logger.LogInformation("Job {Id} has found no matching scales",  jobId);
-            else
-                logger.LogInformation("Job {Id} found matching scales: {ScalesString}", jobId, 
-                    string.Join(',', matchingScaleEntries.Select(s => $"{s.Chord.Root}{s.ScaleEntry.Id}/{s.Chord.Root}{s.Chord.ChordEntry.Id}")));
-
-            #endregion
-            #endregion
-
-            #region Generation
-            IGenerateStep generateStep = scope.ServiceProvider.GetRequiredService<IGenerateStep>();
-            
-            logger.LogInformation("Job {Id} generating a candidate track...", jobId);
-            CandidateTrack candidateTrack;
-            try
+            switch (outcome)
             {
-                candidateTrack = await generateStep.GenerateCandidateTrackAsync(generationJob.KeyRoot,
-                    generationJob.Tempo,
-                    generationJob.TimeSignatureBeatCount,
-                    generationJob.TimeSignatureBeatUnit,
-                    matchedStyle, matchingChords,  matchingScaleEntries, 
-                    previousAttempt: null,
-                    previousAttemptFailures: null,
-                    stoppingToken);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                // Service shutdown, not a job failure - let it propagate and stop the loop.
-                throw;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Job {Id} failed during candidate track generation", jobId);
-                GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
-                jobStore.AddOrUpdate(failedJob);
-                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                return;
-            }
-            
-            logger.LogInformation("Job {Id} generated a candidate track\nLengthInBeats: {BeatCount}\nDrumEventCount: {DrumEventCount}\nBassEventCount: {BassEventCount}\nChordVoicingEventCount: {ChordVoicingEventCount}",
-                    jobId, candidateTrack.LengthInBeats, candidateTrack.Drums.Count, candidateTrack.Bass.Count, candidateTrack.ChordVoicings.Count);
-            #endregion
-
-            #region Validation and Repair
-
-            IValidateStep validateStep = scope.ServiceProvider.GetRequiredService<IValidateStep>();
-            IRepairStep  repairStep = scope.ServiceProvider.GetRequiredService<IRepairStep>();
-
-            TrackValidationResult? trackValidationResult = null;
-            int finalAttempt = 0;
-            for (int attempt = 1; attempt <= maxGenerationAttempts; attempt++)
-            {
-                finalAttempt = attempt;
-                trackValidationResult = validateStep.ValidateCandidateTrack(candidateTrack, generationJob, matchingChords, matchingScaleEntries);
-                if (trackValidationResult.IsValid)
+                case GenerationSucceeded succeeded:
+                    GenerationJob completedJob = updatedJob with
+                    {
+                        State = JobStates.Complete, EndTime = DateTimeOffset.UtcNow, TrackId = succeeded.TrackId
+                    };
+                    jobStore.AddOrUpdate(completedJob);
+                    
+                    logger.LogDebug("Job {Id} completed track saved: {Track}", generationJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, new JsonSerializerOptions { TypeInfoResolver = CandidateTrackJsonContext.Default }));
+                    logger.LogInformation("Job {Id} completed", jobId);
+                    
+                    generationJobMetrics.RecordAttempts(succeeded.Attempts, "success");
                     break;
 
-                logger.LogDebug("Job {Id} attempt {Attempt} candidate track: {Track}", jobId, attempt,
-                    JsonSerializer.Serialize(candidateTrack, new JsonSerializerOptions { TypeInfoResolver = CandidateTrackJsonContext.Default }));
-                logger.LogWarning("Job {Id} attempt {Attempt} failed validation: {Errors}", jobId, attempt, string.Join('\n', trackValidationResult.Failures.Select(f => f.Reason)));
-
-                if(attempt == maxGenerationAttempts)
-                    break;
-
-                try
-                {
-                    candidateTrack = await repairStep.RepairCandidateTrackAsync(candidateTrack,
-                        trackValidationResult.Failures, stoppingToken);
-                }
-                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-                {
-                    // Service shutdown, not a job failure - let it propagate and stop the loop.
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Job {Id} failed during candidate track generation on retry attempt {Attempt}", jobId, attempt);
+                case GenerationFailed failed:
                     GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                     jobStore.AddOrUpdate(failedJob);
-                    activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                    generationJobMetrics.RecordAttempts(attempt, "error");
-                    return;
-                }
-            }
+                    
+                    activity?.SetStatus(ActivityStatusCode.Error, failed.Reason);
+                    logger.LogError("Job {Id} failed: {Reason}", jobId, failed.Reason);
 
-            if (trackValidationResult is null || !trackValidationResult.IsValid)
-            {
-                GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
-                jobStore.AddOrUpdate(failedJob);
-                activity?.SetStatus(ActivityStatusCode.Error, $"Valid track could not be generated after {maxGenerationAttempts} attempts");
-                logger.LogError("Job {Id} track generation exhausted all {Attempts} attempts and failed validation.\n{Errors}", generationJob.Id, maxGenerationAttempts, string.Join('\n', trackValidationResult?.Failures.Select(f => f.Reason) ?? Array.Empty<string>()));
-                generationJobMetrics.RecordAttempts(finalAttempt, "failed");
-                return;
-            }
+                    if (failed.Attempts.HasValue)
+                    {
+                        generationJobMetrics.RecordAttempts(failed.Attempts.Value, "failed");
+                    }
+                    break;
 
-            generationJobMetrics.RecordAttempts(finalAttempt, "success");
-            
-            #endregion
-            
-            #region Persistance
-            Guid trackId = Guid.NewGuid();
-            using Activity? persistActivity = GenerationJobActivitySource.Instance.StartActivity($"{nameof(GenerationJobWorkerHostedService)}.PersistCandidateTrackAsync");
-            persistActivity?.SetTag("job.id", generationJob.Id);
-            persistActivity?.SetTag("track.id", trackId);
-            try
-            {
-                Directory.CreateDirectory(trackStorageSettings.Value.BaseFolderPath);
-                string trackJson = JsonSerializer.Serialize(candidateTrack, CandidateTrackJsonContext.Default.CandidateTrack);
-                string trackFilePath = Path.Combine(trackStorageSettings.Value.BaseFolderPath, $"{trackId}.json");
-                persistActivity?.SetTag("track.filePath", trackFilePath);
-                await File.WriteAllTextAsync(trackFilePath, trackJson, stoppingToken);
+                case null:
+                    // Workflow run completed without any executor yielding an outcome - shouldn't
+                    // happen given every terminal path yields one, but worth guarding/logging loudly
+                    // rather than silently leaving the job stuck InProgress.
+                    break;
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                // Service shutdown, not a job failure - let it propagate and stop the loop.
-                throw;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Job {Id} failed to persist the candidate track", jobId);
-                GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
-                jobStore.AddOrUpdate(failedJob);
-                persistActivity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                return;
-            }
-            #endregion
-
-            logger.LogDebug("Job {Id} completed track saved: {Track}", generationJob.Id, JsonSerializer.Serialize(candidateTrack, new JsonSerializerOptions { TypeInfoResolver = CandidateTrackJsonContext.Default }));
-            
-            GenerationJob completedJob = updatedJob with { State = JobStates.Complete, EndTime = DateTimeOffset.UtcNow, TrackId = trackId };
-            jobStore.AddOrUpdate(completedJob);
-
-            logger.LogInformation("Job {Id} completed", jobId);
     }
 }

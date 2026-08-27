@@ -25,24 +25,24 @@ internal sealed class ValidateCandidateTrackExecutor(
 
             if (trackValidationResult.IsValid)
             {
-                await context.SendMessageAsync(new PersistCandidateTrackInput(input.CandidateTrack, input.GenerationJob), cancellationToken);
+                await context.SendMessageAsync(new PersistCandidateTrackInput(input.CandidateTrack, input.GenerationJob, input.Attempts), cancellationToken);
                 return;
             }
 
-            logger.LogDebug("Job {Id} attempt {Attempt} candidate track: {Track}", input.GenerationJob.Id, input.AttemptCount,
+            logger.LogDebug("Job {Id} attempt {Attempt} candidate track: {Track}", input.GenerationJob.Id, input.Attempts,
                 JsonSerializer.Serialize(input.CandidateTrack, new JsonSerializerOptions { TypeInfoResolver = CandidateTrackJsonContext.Default }));
-            logger.LogWarning("Job {Id} attempt {Attempt} failed validation: {Errors}", input.GenerationJob.Id, input.AttemptCount, string.Join('\n', trackValidationResult.Failures.Select(f => f.Reason)));
+            logger.LogWarning("Job {Id} attempt {Attempt} failed validation: {Errors}", input.GenerationJob.Id, input.Attempts, string.Join('\n', trackValidationResult.Failures.Select(f => f.Reason)));
             
             // Failed with max attempts reached
-            if (input.AttemptCount == trackGenerationWorkflowSettings.Value.GenerationMaxAttempts)
+            if (input.Attempts == trackGenerationWorkflowSettings.Value.GenerationMaxAttempts)
             {
                 logger.LogError("Job {Id} track generation exhausted all {Attempts} attempts and failed validation.\n{Errors}", input.GenerationJob.Id, trackGenerationWorkflowSettings.Value.GenerationMaxAttempts, string.Join('\n', trackValidationResult?.Failures.Select(f => f.Reason) ?? Array.Empty<string>()));
-                await context.YieldOutputAsync(new GenerationFailed($"Max {trackGenerationWorkflowSettings.Value.GenerationMaxAttempts} track generation attempts reached with failed validation"), cancellationToken);
+                await context.YieldOutputAsync(new GenerationFailed($"Max {trackGenerationWorkflowSettings.Value.GenerationMaxAttempts} track generation attempts reached with failed validation", input.Attempts), cancellationToken);
                 return;
             }
             
             // Failed with retry, send Repair Message
-            await context.SendMessageAsync(new RepairCandidateTrackInput(input.CandidateTrack, trackValidationResult, input.GenerationJob, input.MatchedChords, input.MatchedScales, input.AttemptCount), cancellationToken);
+            await context.SendMessageAsync(new RepairCandidateTrackInput(input.CandidateTrack, trackValidationResult, input.GenerationJob, input.MatchedChords, input.MatchedScales, input.Attempts), cancellationToken);
     }
     
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) => 

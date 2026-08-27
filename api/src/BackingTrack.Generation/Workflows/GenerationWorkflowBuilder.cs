@@ -6,9 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace BackingTrack.Generation.Workflows;
 
-public class GenerationWorkflowBuilder
+public static class GenerationWorkflowBuilder
 {
-    public Workflow Build(IServiceProvider scopedProvider)
+    public static Workflow Build(IServiceProvider scopedProvider)
     {
         RetrieveStyleExecutor style = scopedProvider.GetRequiredService<RetrieveStyleExecutor>();
         RetrieveChordsExecutor chords = scopedProvider.GetRequiredService<RetrieveChordsExecutor>();

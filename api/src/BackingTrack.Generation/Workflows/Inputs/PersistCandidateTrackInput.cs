@@ -3,4 +3,4 @@ using BackingTrack.Generation.Steps.Types;
 
 namespace BackingTrack.Generation.Workflows.Inputs;
 
-public record PersistCandidateTrackInput(CandidateTrack CandidateTrack, GenerationJob GenerationJob);
+public record PersistCandidateTrackInput(CandidateTrack CandidateTrack, GenerationJob GenerationJob, int Attempts);
