@@ -1,3 +1,9 @@
+# Production OTel Collector config — runs on the Pi alongside the API.
+# Listens on loopback only; forwards traces/metrics/logs to Grafana Cloud.
+# For the local-dev equivalent (binds 0.0.0.0, exports to a local grafana-lgtm
+# container) see api/local-observability/otel-collector-config.yaml.
+# See docs/adr/0011-hosted-otel-backend-static-collector-config.md.
+
 receivers:
   otlp:
     protocols:

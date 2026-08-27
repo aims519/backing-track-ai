@@ -1,3 +1,9 @@
+# Local-dev OTel Collector config — used by the docker-compose stack in this
+# directory. Binds 0.0.0.0 (container networking) and exports to the local
+# grafana-lgtm container plus a debug exporter.
+# The production config that runs on the Pi (loopback-only, exports to Grafana
+# Cloud) is scripts/otel-collector/otel-collector-config.yaml.
+
 receivers:
   otlp:
     protocols:
