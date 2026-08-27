@@ -13,7 +13,7 @@ internal sealed class RetrieveChordsExecutor(
     IRetrieveStep retrieveStep,
     ILogger<RetrieveChordsExecutor> logger) : Executor("RetrieveChordsExecutor")
 {
-    private async ValueTask HandleAsync(RetrieveChordsInput input, IWorkflowContext context,
+    internal async ValueTask HandleAsync(RetrieveChordsInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
         GenerationJob job = input.Job;

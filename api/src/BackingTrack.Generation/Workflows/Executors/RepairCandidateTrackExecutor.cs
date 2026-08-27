@@ -12,7 +12,7 @@ internal sealed class RepairCandidateTrackExecutor(
     IRepairStep repairStep,
     ILogger<RepairCandidateTrackExecutor> logger) : Executor("RepairCandidateTrackExecutor")
 {
-    private async ValueTask HandleAsync(RepairCandidateTrackInput input, IWorkflowContext context,
+    internal async ValueTask HandleAsync(RepairCandidateTrackInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
         CandidateTrack repairedTrack;

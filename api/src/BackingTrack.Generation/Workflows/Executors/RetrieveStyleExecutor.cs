@@ -12,7 +12,7 @@ namespace BackingTrack.Generation.Workflows.Executors;
 internal sealed class RetrieveStyleExecutor(IRetrieveStep retrieveStep, 
     ILogger<RetrieveStyleExecutor> logger) : Executor("RetrieveStyleExecutor")
 {
-    private async ValueTask HandleAsync(GenerationJob job, IWorkflowContext context,
+    internal async ValueTask HandleAsync(GenerationJob job, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
         MatchedStyle? matchedStyle;

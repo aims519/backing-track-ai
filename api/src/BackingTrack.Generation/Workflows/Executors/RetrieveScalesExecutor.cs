@@ -12,7 +12,7 @@ internal sealed class RetrieveScalesExecutor(
     IRetrieveStep retrieveStep,
     ILogger<RetrieveScalesExecutor> logger) : Executor("RetrieveScalesExecutor")
 {
-    private async ValueTask HandleAsync(RetrieveScalesInput input, IWorkflowContext context,
+    internal async ValueTask HandleAsync(RetrieveScalesInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
         IReadOnlyList<MatchedScale> matchingScaleEntries;

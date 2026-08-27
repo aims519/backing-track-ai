@@ -13,7 +13,7 @@ internal sealed class GenerateCandidateTrackExecutor(
     IGenerateStep generateStep,
     ILogger<GenerateCandidateTrackExecutor> logger) : Executor("GenerateCandidateTrackExecutor")
 {
-    private async ValueTask HandleAsync(GenerateCandidateTrackInput input, IWorkflowContext context,
+    internal async ValueTask HandleAsync(GenerateCandidateTrackInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
         GenerationJob generationJob = input.GenerationJob;

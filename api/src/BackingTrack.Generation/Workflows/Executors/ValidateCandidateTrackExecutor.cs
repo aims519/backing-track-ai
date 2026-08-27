@@ -17,7 +17,7 @@ internal sealed class ValidateCandidateTrackExecutor(
     IOptions<TrackGenerationWorkflowSettings>  trackGenerationWorkflowSettings,
     ILogger<ValidateCandidateTrackExecutor> logger) : Executor("ValidateCandidateTrackExecutor")
 {
-    private async ValueTask HandleAsync(ValidateCandidateTrackInput input, IWorkflowContext context,
+    internal async ValueTask HandleAsync(ValidateCandidateTrackInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
         try

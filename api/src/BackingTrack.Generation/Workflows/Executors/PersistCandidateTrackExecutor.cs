@@ -18,7 +18,7 @@ internal sealed class PersistCandidateTrackExecutor(
     IOptions<TrackStorageSettings> trackStorageSettings,
     ILogger<PersistCandidateTrackExecutor> logger) : Executor("PersistCandidateTrackExecutor")
 {
-    private async ValueTask HandleAsync(PersistCandidateTrackInput input, IWorkflowContext context,
+    internal async ValueTask HandleAsync(PersistCandidateTrackInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
         using Activity? activity = TrackPersistenceActivitySource.Instance.StartActivity($"{nameof(PersistCandidateTrackExecutor)}.{nameof(HandleAsync)}");
