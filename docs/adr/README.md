@@ -22,3 +22,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0015](0015-in-memory-vector-retrieval-for-rag-kb.md) | Self-written in-memory vector retrieval over a vector DB for the RAG knowledge base |
 | [0016](0016-aot-safe-json-typeinfo-overload.md) | Always serialize via `JsonTypeInfo<T>`, never `JsonSerializerOptions` with a resolver |
 | [0017](0017-patch-based-track-repair.md) | Patch-based track repair over full-track regeneration |
+| [0018](0018-xunit-v3-and-nsubstitute.md) | xUnit v3 on Microsoft.Testing.Platform, and NSubstitute over Moq |

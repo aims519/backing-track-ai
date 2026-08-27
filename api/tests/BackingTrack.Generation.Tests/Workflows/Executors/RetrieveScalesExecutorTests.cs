@@ -7,14 +7,15 @@ using BackingTrack.Generation.Workflows.Outputs;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using Moq;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class RetrieveScalesExecutorTests
 {
-    private static RetrieveScalesExecutor CreateExecutor(Mock<IRetrieveStep> retrieveStepMock) =>
-        new(retrieveStepMock.Object, NullLogger<RetrieveScalesExecutor>.Instance);
+    private static RetrieveScalesExecutor CreateExecutor(IRetrieveStep retrieveStepMock) =>
+        new(retrieveStepMock, NullLogger<RetrieveScalesExecutor>.Instance);
 
     [Fact]
     public async Task HandleAsync_ScalesMatched_SendsGenerateCandidateTrackInputPreservingStyleAndChords()
@@ -23,8 +24,8 @@ public class RetrieveScalesExecutorTests
         MatchedStyle matchedStyle = WorkflowTestFixtures.CreateMatchedStyle();
         MatchedChord chord = WorkflowTestFixtures.CreateMatchedChord();
         MatchedScale[] matchedScales = [WorkflowTestFixtures.CreateMatchedScale(chord)];
-        Mock<IRetrieveStep> retrieveStepMock = new();
-        retrieveStepMock.Setup(s => s.RetrieveMatchingScales(job.KeyRoot, It.IsAny<IReadOnlyList<MatchedChord>>(), It.IsAny<CancellationToken>()))
+        IRetrieveStep retrieveStepMock = Substitute.For<IRetrieveStep>();
+        retrieveStepMock.RetrieveMatchingScales(job.KeyRoot, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<CancellationToken>())
             .Returns(matchedScales);
         FakeWorkflowContext context = new();
 
@@ -44,8 +45,8 @@ public class RetrieveScalesExecutorTests
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         MatchedChord chord = WorkflowTestFixtures.CreateMatchedChord();
-        Mock<IRetrieveStep> retrieveStepMock = new();
-        retrieveStepMock.Setup(s => s.RetrieveMatchingScales(job.KeyRoot, It.IsAny<IReadOnlyList<MatchedChord>>(), It.IsAny<CancellationToken>()))
+        IRetrieveStep retrieveStepMock = Substitute.For<IRetrieveStep>();
+        retrieveStepMock.RetrieveMatchingScales(job.KeyRoot, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<CancellationToken>())
             .Returns([]);
         FakeWorkflowContext context = new();
 
@@ -62,8 +63,8 @@ public class RetrieveScalesExecutorTests
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         MatchedChord chord = WorkflowTestFixtures.CreateMatchedChord();
-        Mock<IRetrieveStep> retrieveStepMock = new();
-        retrieveStepMock.Setup(s => s.RetrieveMatchingScales(job.KeyRoot, It.IsAny<IReadOnlyList<MatchedChord>>(), It.IsAny<CancellationToken>()))
+        IRetrieveStep retrieveStepMock = Substitute.For<IRetrieveStep>();
+        retrieveStepMock.RetrieveMatchingScales(job.KeyRoot, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<CancellationToken>())
             .Throws(new InvalidOperationException("scale lookup failed"));
         FakeWorkflowContext context = new();
 

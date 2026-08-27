@@ -4,6 +4,9 @@ api/**/obj/
 api/**/publish/
 *.user
 
+# Test runner output (Microsoft.Testing.Platform --results-directory)
+TestResults/
+
 # JetBrains Rider
 .idea/
 

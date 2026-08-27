@@ -10,14 +10,15 @@ using BackingTrack.Generation.Workflows.Outputs;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-using Moq;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class ValidateCandidateTrackExecutorTests
 {
-    private static ValidateCandidateTrackExecutor CreateExecutor(Mock<IValidateStep> validateStepMock, int maxAttempts) =>
-        new(validateStepMock.Object, Options.Create(new TrackGenerationWorkflowSettings { GenerationMaxAttempts = maxAttempts }),
+    private static ValidateCandidateTrackExecutor CreateExecutor(IValidateStep validateStepMock, int maxAttempts) =>
+        new(validateStepMock, Options.Create(new TrackGenerationWorkflowSettings { GenerationMaxAttempts = maxAttempts }),
             NullLogger<ValidateCandidateTrackExecutor>.Instance);
 
     private static ValidateCandidateTrackInput CreateInput(CandidateTrack track, GenerationJob job, int attempts) =>
@@ -28,8 +29,8 @@ public class ValidateCandidateTrackExecutorTests
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         CandidateTrack track = new(16, [], [], []);
-        Mock<IValidateStep> validateStepMock = new();
-        validateStepMock.Setup(v => v.ValidateCandidateTrack(track, job, It.IsAny<IReadOnlyList<MatchedChord>>(), It.IsAny<IReadOnlyList<MatchedScale>>()))
+        IValidateStep validateStepMock = Substitute.For<IValidateStep>();
+        validateStepMock.ValidateCandidateTrack(track, job, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>())
             .Returns(new TrackValidationResult(true, []));
         FakeWorkflowContext context = new();
 
@@ -48,8 +49,8 @@ public class ValidateCandidateTrackExecutorTests
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         CandidateTrack track = new(16, [], [], []);
         ValidationFailure failure = new(ValidationFailureType.PartEmpty, null, "no drum notes");
-        Mock<IValidateStep> validateStepMock = new();
-        validateStepMock.Setup(v => v.ValidateCandidateTrack(track, job, It.IsAny<IReadOnlyList<MatchedChord>>(), It.IsAny<IReadOnlyList<MatchedScale>>()))
+        IValidateStep validateStepMock = Substitute.For<IValidateStep>();
+        validateStepMock.ValidateCandidateTrack(track, job, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>())
             .Returns(new TrackValidationResult(false, [failure]));
         FakeWorkflowContext context = new();
 
@@ -68,8 +69,8 @@ public class ValidateCandidateTrackExecutorTests
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         CandidateTrack track = new(16, [], [], []);
-        Mock<IValidateStep> validateStepMock = new();
-        validateStepMock.Setup(v => v.ValidateCandidateTrack(track, job, It.IsAny<IReadOnlyList<MatchedChord>>(), It.IsAny<IReadOnlyList<MatchedScale>>()))
+        IValidateStep validateStepMock = Substitute.For<IValidateStep>();
+        validateStepMock.ValidateCandidateTrack(track, job, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>())
             .Returns(new TrackValidationResult(false, [new ValidationFailure(ValidationFailureType.PartEmpty, null, "no drum notes")]));
         FakeWorkflowContext context = new();
 
@@ -87,8 +88,8 @@ public class ValidateCandidateTrackExecutorTests
         // GenerationMaxAttempts must still stop the loop rather than send another repair message.
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         CandidateTrack track = new(16, [], [], []);
-        Mock<IValidateStep> validateStepMock = new();
-        validateStepMock.Setup(v => v.ValidateCandidateTrack(track, job, It.IsAny<IReadOnlyList<MatchedChord>>(), It.IsAny<IReadOnlyList<MatchedScale>>()))
+        IValidateStep validateStepMock = Substitute.For<IValidateStep>();
+        validateStepMock.ValidateCandidateTrack(track, job, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>())
             .Returns(new TrackValidationResult(false, [new ValidationFailure(ValidationFailureType.PartEmpty, null, "no drum notes")]));
         FakeWorkflowContext context = new();
 
@@ -103,8 +104,8 @@ public class ValidateCandidateTrackExecutorTests
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         CandidateTrack track = new(16, [], [], []);
-        Mock<IValidateStep> validateStepMock = new();
-        validateStepMock.Setup(v => v.ValidateCandidateTrack(track, job, It.IsAny<IReadOnlyList<MatchedChord>>(), It.IsAny<IReadOnlyList<MatchedScale>>()))
+        IValidateStep validateStepMock = Substitute.For<IValidateStep>();
+        validateStepMock.ValidateCandidateTrack(track, job, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>())
             .Throws(new InvalidOperationException("validator blew up"));
         FakeWorkflowContext context = new();
 

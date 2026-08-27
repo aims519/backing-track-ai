@@ -8,14 +8,15 @@ using BackingTrack.Generation.Workflows.Outputs;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using Moq;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class GenerateCandidateTrackExecutorTests
 {
-    private static GenerateCandidateTrackExecutor CreateExecutor(Mock<IGenerateStep> generateStepMock) =>
-        new(generateStepMock.Object, NullLogger<GenerateCandidateTrackExecutor>.Instance);
+    private static GenerateCandidateTrackExecutor CreateExecutor(IGenerateStep generateStepMock) =>
+        new(generateStepMock, NullLogger<GenerateCandidateTrackExecutor>.Instance);
 
     [Fact]
     public async Task HandleAsync_TrackGenerated_SendsValidateCandidateTrackInputStartingAtAttemptOne()
@@ -25,11 +26,10 @@ public class GenerateCandidateTrackExecutorTests
         MatchedChord chord = WorkflowTestFixtures.CreateMatchedChord();
         MatchedScale scale = WorkflowTestFixtures.CreateMatchedScale(chord);
         CandidateTrack candidateTrack = new(16, [], [], []);
-        Mock<IGenerateStep> generateStepMock = new();
-        generateStepMock.Setup(s => s.GenerateCandidateTrackAsync(job.KeyRoot, job.Tempo, job.TimeSignatureBeatCount,
-                job.TimeSignatureBeatUnit, matchedStyle, It.IsAny<IReadOnlyList<MatchedChord>>(), It.IsAny<IReadOnlyList<MatchedScale>>(),
-                null, null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(candidateTrack);
+        IGenerateStep generateStepMock = Substitute.For<IGenerateStep>();
+        generateStepMock.GenerateCandidateTrackAsync(job.KeyRoot, job.Tempo, job.TimeSignatureBeatCount,
+                job.TimeSignatureBeatUnit, matchedStyle, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>(),
+                null, null, Arg.Any<CancellationToken>()).Returns(candidateTrack);
         FakeWorkflowContext context = new();
 
         await CreateExecutor(generateStepMock).HandleAsync(
@@ -49,11 +49,10 @@ public class GenerateCandidateTrackExecutorTests
         MatchedStyle matchedStyle = WorkflowTestFixtures.CreateMatchedStyle();
         MatchedChord chord = WorkflowTestFixtures.CreateMatchedChord();
         MatchedScale scale = WorkflowTestFixtures.CreateMatchedScale(chord);
-        Mock<IGenerateStep> generateStepMock = new();
-        generateStepMock.Setup(s => s.GenerateCandidateTrackAsync(job.KeyRoot, job.Tempo, job.TimeSignatureBeatCount,
-                job.TimeSignatureBeatUnit, matchedStyle, It.IsAny<IReadOnlyList<MatchedChord>>(), It.IsAny<IReadOnlyList<MatchedScale>>(),
-                null, null, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("generation failed"));
+        IGenerateStep generateStepMock = Substitute.For<IGenerateStep>();
+        generateStepMock.GenerateCandidateTrackAsync(job.KeyRoot, job.Tempo, job.TimeSignatureBeatCount,
+                job.TimeSignatureBeatUnit, matchedStyle, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>(),
+                null, null, Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("generation failed"));
         FakeWorkflowContext context = new();
 
         await CreateExecutor(generateStepMock).HandleAsync(

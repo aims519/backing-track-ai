@@ -7,23 +7,23 @@ using BackingTrack.Generation.Workflows.Outputs;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using Moq;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class RetrieveStyleExecutorTests
 {
-    private static RetrieveStyleExecutor CreateExecutor(Mock<IRetrieveStep> retrieveStepMock) =>
-        new(retrieveStepMock.Object, NullLogger<RetrieveStyleExecutor>.Instance);
+    private static RetrieveStyleExecutor CreateExecutor(IRetrieveStep retrieveStepMock) =>
+        new(retrieveStepMock, NullLogger<RetrieveStyleExecutor>.Instance);
 
     [Fact]
     public async Task HandleAsync_StyleMatched_SendsRetrieveChordsInputWithJobAndMatchedStyle()
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         MatchedStyle matchedStyle = WorkflowTestFixtures.CreateMatchedStyle();
-        Mock<IRetrieveStep> retrieveStepMock = new();
-        retrieveStepMock.Setup(s => s.RetrieveTopMatchingStyles(job.Style, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(matchedStyle);
+        IRetrieveStep retrieveStepMock = Substitute.For<IRetrieveStep>();
+        retrieveStepMock.RetrieveTopMatchingStyles(job.Style, Arg.Any<CancellationToken>()).Returns(matchedStyle);
         FakeWorkflowContext context = new();
 
         await CreateExecutor(retrieveStepMock).HandleAsync(job, context, CancellationToken.None);
@@ -38,9 +38,8 @@ public class RetrieveStyleExecutorTests
     public async Task HandleAsync_NoMatchingStyle_YieldsGenerationFailedAndSendsNothing()
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
-        Mock<IRetrieveStep> retrieveStepMock = new();
-        retrieveStepMock.Setup(s => s.RetrieveTopMatchingStyles(job.Style, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((MatchedStyle?)null);
+        IRetrieveStep retrieveStepMock = Substitute.For<IRetrieveStep>();
+        retrieveStepMock.RetrieveTopMatchingStyles(job.Style, Arg.Any<CancellationToken>()).Returns((MatchedStyle?)null);
         FakeWorkflowContext context = new();
 
         await CreateExecutor(retrieveStepMock).HandleAsync(job, context, CancellationToken.None);
@@ -54,8 +53,8 @@ public class RetrieveStyleExecutorTests
     public async Task HandleAsync_RetrieveStepThrows_YieldsGenerationFailedWithExceptionMessage()
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
-        Mock<IRetrieveStep> retrieveStepMock = new();
-        retrieveStepMock.Setup(s => s.RetrieveTopMatchingStyles(job.Style, It.IsAny<CancellationToken>()))
+        IRetrieveStep retrieveStepMock = Substitute.For<IRetrieveStep>();
+        retrieveStepMock.RetrieveTopMatchingStyles(job.Style, Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("style lookup failed"));
         FakeWorkflowContext context = new();
 
