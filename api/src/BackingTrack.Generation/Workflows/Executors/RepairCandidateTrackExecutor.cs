@@ -28,7 +28,7 @@ internal sealed class RepairCandidateTrackExecutor(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Job {Id} failed during candidate track generation on retry attempt {Attempt}", input.GenerationJob.Id, input.Attempts);
+            logger.LogError(ex, "Job {Id} failed during candidate track repair during attempt {Attempt}", input.GenerationJob.Id, input.Attempts);
             await context.YieldOutputAsync(new GenerationFailed(ex.Message, input.Attempts), cancellationToken);
             return;
         }

@@ -20,6 +20,8 @@ internal sealed class ValidateCandidateTrackExecutor(
     private async ValueTask HandleAsync(ValidateCandidateTrackInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
+        try
+        {
             TrackValidationResult trackValidationResult = validateStep.ValidateCandidateTrack(input.CandidateTrack, 
                 input.GenerationJob, input.MatchedChords, input.MatchedScales);
 
@@ -34,7 +36,7 @@ internal sealed class ValidateCandidateTrackExecutor(
             logger.LogWarning("Job {Id} attempt {Attempt} failed validation: {Errors}", input.GenerationJob.Id, input.Attempts, string.Join('\n', trackValidationResult.Failures.Select(f => f.Reason)));
             
             // Failed with max attempts reached
-            if (input.Attempts == trackGenerationWorkflowSettings.Value.GenerationMaxAttempts)
+            if (input.Attempts >= trackGenerationWorkflowSettings.Value.GenerationMaxAttempts)
             {
                 logger.LogError("Job {Id} track generation exhausted all {Attempts} attempts and failed validation.\n{Errors}", input.GenerationJob.Id, trackGenerationWorkflowSettings.Value.GenerationMaxAttempts, string.Join('\n', trackValidationResult?.Failures.Select(f => f.Reason) ?? Array.Empty<string>()));
                 await context.YieldOutputAsync(new GenerationFailed($"Max {trackGenerationWorkflowSettings.Value.GenerationMaxAttempts} track generation attempts reached with failed validation", input.Attempts), cancellationToken);
@@ -43,6 +45,16 @@ internal sealed class ValidateCandidateTrackExecutor(
             
             // Failed with retry, send Repair Message
             await context.SendMessageAsync(new RepairCandidateTrackInput(input.CandidateTrack, trackValidationResult, input.GenerationJob, input.MatchedChords, input.MatchedScales, input.Attempts), cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw; // shutdown, not a job failure
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Job {Id} failed during candidate track validation", input.GenerationJob.Id);
+            await context.YieldOutputAsync(new GenerationFailed(ex.Message), cancellationToken);
+        }
     }
     
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) => 

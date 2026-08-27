@@ -83,7 +83,7 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
                {JsonSerializer.Serialize(previousAttempt,  new JsonSerializerOptions { TypeInfoResolver = CandidateTrackJsonContext.Default })}
                
                Here are the failure messages that require patching:
-               {string.Join('\n', JsonSerializer.Serialize(failures,  new JsonSerializerOptions { TypeInfoResolver = TrackRepairJsonContext.Default }))}
+               {JsonSerializer.Serialize(failures,  new JsonSerializerOptions { TypeInfoResolver = TrackRepairJsonContext.Default })}
                """;
     }
 
@@ -113,7 +113,7 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
                         {
                             BeatPosition = correction.NewBeatPosition ?? acc.BeatPosition,
                             DurationInBeats = correction.NewDurationInBeats ?? acc.DurationInBeats,
-                            MidiNote = correction.NewMidiNotes?.FirstOrDefault() ?? acc.MidiNote,
+                            MidiNote = correction.NewMidiNotes is null ? acc.MidiNote : (correction.NewMidiNotes.Length == 0 ? acc.MidiNote : correction.NewMidiNotes.First()),
                             Velocity = correction.NewVelocity ?? acc.Velocity
                         });
 
@@ -133,7 +133,7 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
                         {
                             BeatPosition = correction.NewBeatPosition ?? acc.BeatPosition,
                             DurationInBeats = correction.NewDurationInBeats ?? acc.DurationInBeats,
-                            MidiNote = correction.NewMidiNotes?.FirstOrDefault() ?? acc.MidiNote,
+                            MidiNote = correction.NewMidiNotes is null ? acc.MidiNote : (correction.NewMidiNotes.Length == 0 ? acc.MidiNote : correction.NewMidiNotes.First()),
                             Velocity = correction.NewVelocity ?? acc.Velocity
                         });
 
@@ -160,6 +160,8 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
                         chordVoicingEvents.Add(merged);
                         continue;
                     }
+                default:
+                    throw new ArgumentException($"Unknown original note type passed in a {nameof(NoteCorrection)}");
             }
         }
         

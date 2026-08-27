@@ -88,9 +88,11 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     break;
 
                 case null:
-                    // Workflow run completed without any executor yielding an outcome - shouldn't
-                    // happen given every terminal path yields one, but worth guarding/logging loudly
-                    // rather than silently leaving the job stuck InProgress.
+                    logger.LogError("Job {Id} failed unexpectedly without a given reason", jobId);
+                    activity?.SetStatus(ActivityStatusCode.Error);
+                    
+                    GenerationJob failedJobNoExp = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
+                    jobStore.AddOrUpdate(failedJobNoExp);
                     break;
             }
     }
