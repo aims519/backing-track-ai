@@ -21,7 +21,7 @@ public class TrackGenerationClient(
         using Activity? activity = TrackGenerationActivitySource.Instance.StartActivity($"{nameof(GenerateStep)}.{nameof(TrackGenerationClient)}.GenerateTrackAsync");
         activity?.SetTag("track_generation.provider", providerInfo.Provider);
         activity?.SetTag("track_generation.model", providerInfo.Model);
-        
+
         ChatClientAgentRunOptions runOptions = new(new ChatOptions
         {
             MaxOutputTokens = providerInfo.MaxOutputTokens
@@ -36,7 +36,7 @@ public class TrackGenerationClient(
                 options: runOptions,
                 cancellationToken: token);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             stopwatch.Stop();
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
@@ -44,10 +44,10 @@ public class TrackGenerationClient(
             throw;
         }
         stopwatch.Stop();
-        
+
         logger.LogInformation("Generated Candidate Track. Input tokens: {InputCount}. Output tokens: {OutputCount}",
             agentResponse.Usage?.InputTokenCount, agentResponse.Usage?.OutputTokenCount);
-                
+
         activity?.SetTag("track_generation.input_tokens", agentResponse.Usage?.InputTokenCount);
         activity?.SetTag("track_generation.output_tokens", agentResponse.Usage?.OutputTokenCount);
         metrics.RecordSuccess(providerInfo.Provider, providerInfo.Model, stopwatch.Elapsed, agentResponse.Usage?.InputTokenCount, agentResponse.Usage?.OutputTokenCount);

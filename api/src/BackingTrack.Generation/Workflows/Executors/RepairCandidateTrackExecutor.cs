@@ -32,13 +32,13 @@ internal sealed class RepairCandidateTrackExecutor(
             await context.YieldOutputAsync(new GenerationFailed(ex.Message, input.Attempts), cancellationToken);
             return;
         }
-        
+
         int attemptCount = input.Attempts + 1;
-        await context.SendMessageAsync(new ValidateCandidateTrackInput(repairedTrack, input.GenerationJob, 
+        await context.SendMessageAsync(new ValidateCandidateTrackInput(repairedTrack, input.GenerationJob,
             input.MatchedChords, input.MatchedScales, attemptCount), cancellationToken);
     }
-    
-    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) => 
+
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<RepairCandidateTrackInput>(HandleAsync))
             .SendsMessage<ValidateCandidateTrackInput>()

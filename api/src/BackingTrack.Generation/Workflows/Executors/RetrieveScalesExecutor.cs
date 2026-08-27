@@ -34,17 +34,17 @@ internal sealed class RetrieveScalesExecutor(
             await context.YieldOutputAsync(new GenerationFailed(ex.Message), cancellationToken);
             return;
         }
-            
-        if(!matchingScaleEntries.Any())
-            logger.LogInformation("Job {Id} has found no matching scales",  input.GenerationJob.Id);
+
+        if (!matchingScaleEntries.Any())
+            logger.LogInformation("Job {Id} has found no matching scales", input.GenerationJob.Id);
         else
-            logger.LogInformation("Job {Id} found matching scales: {ScalesString}", input.GenerationJob.Id, 
+            logger.LogInformation("Job {Id} found matching scales: {ScalesString}", input.GenerationJob.Id,
                 string.Join(',', matchingScaleEntries.Select(s => $"{s.Chord.Root}{s.ScaleEntry.Id}/{s.Chord.Root}{s.Chord.ChordEntry.Id}")));
 
         await context.SendMessageAsync(new GenerateCandidateTrackInput(input.GenerationJob, input.MatchedStyle, input.MatchedChords, matchingScaleEntries), cancellationToken);
     }
-    
-    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) => 
+
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<RetrieveScalesInput>(HandleAsync))
             .SendsMessage<GenerateCandidateTrackInput>()

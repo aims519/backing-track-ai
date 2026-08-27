@@ -28,11 +28,11 @@ internal sealed class RetrieveChordsExecutor(
             await context.YieldOutputAsync(new GenerationFailed(ex.Message), cancellationToken);
             return;
         }
-        
+
         await context.SendMessageAsync(new RetrieveScalesInput(matchingChords, input.MatchedStyle, job), cancellationToken);
     }
-    
-    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) => 
+
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<RetrieveChordsInput>(HandleAsync))
             .SendsMessage<RetrieveScalesInput>()

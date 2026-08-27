@@ -28,20 +28,20 @@ public class ChordSymbolParser
     public (bool bValid, string? root, string reason) ValidateRoot(string? root)
     {
         root = root?.Trim();
-        
-        if(string.IsNullOrWhiteSpace(root))
+
+        if (string.IsNullOrWhiteSpace(root))
             return (false, root, $"Note has not been provided");
-        
-        if(root.Length == 1 && _chordNotes.Contains(root.ToUpper()))
-            return (true,  root.ToUpper(), string.Empty);
-        
-        if(root.Length == 2 
-           && _chordNotes.Contains(root.Substring(0,1).ToUpper())
-           && _sharpOrFlat.Contains(root.Substring(1,1).ToLower()))
+
+        if (root.Length == 1 && _chordNotes.Contains(root.ToUpper()))
+            return (true, root.ToUpper(), string.Empty);
+
+        if (root.Length == 2
+           && _chordNotes.Contains(root.Substring(0, 1).ToUpper())
+           && _sharpOrFlat.Contains(root.Substring(1, 1).ToLower()))
         {
-            return (true,  root.Substring(0,1).ToUpper() + root.Substring(1,1).ToLower(), string.Empty);
+            return (true, root.Substring(0, 1).ToUpper() + root.Substring(1, 1).ToLower(), string.Empty);
         }
-        
+
         return (false, root, $"Note {root} is invalid");
     }
 
@@ -49,18 +49,18 @@ public class ChordSymbolParser
     {
         string root = string.Empty;
         string quality = string.Empty;
-        
-        if(string.IsNullOrWhiteSpace(chordString))
+
+        if (string.IsNullOrWhiteSpace(chordString))
             return (root, quality, false, "Chord not provided");
-        
+
         chordString = chordString.Trim();
 
         root = chordString[..1].ToUpper();
         chordString = chordString[1..];
-        if(!_chordNotes.Contains(root))
+        if (!_chordNotes.Contains(root))
             return (root, quality, false, $"Chord note {root} is invalid");
-        
-        if(chordString.Length == 0)
+
+        if (chordString.Length == 0)
             return (root, "maj", true, string.Empty);
 
         string sharpOrFlat = chordString[..1];
@@ -74,7 +74,7 @@ public class ChordSymbolParser
         quality = quality == "" ? "maj" : quality;
         if (!_chordTypes.Contains(quality))
             return (root, quality, false, $"Chord type {quality} is invalid");
-        
-        return (root, quality, true, string.Empty);;
+
+        return (root, quality, true, string.Empty); ;
     }
 }

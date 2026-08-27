@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Types;
 
@@ -27,7 +28,7 @@ public class JsonlReaderTests : IDisposable
         Assert.Equal("A major triad", result[0].Description);
         Assert.Equal("min", result[1].Id);
     }
-    
+
     [Fact]
     public void Parse_ValidJsonlScales_ReturnsDeserializedEntriesInOrder()
     {

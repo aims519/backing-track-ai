@@ -10,12 +10,12 @@ namespace BackingTrack.Generation.Steps.TrackGeneration;
 
 public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMatcher scaleMatcher) : IGenerateStep
 {
-    public async Task<CandidateTrack> GenerateCandidateTrackAsync(string keyRoot, 
-        int tempo,         
+    public async Task<CandidateTrack> GenerateCandidateTrackAsync(string keyRoot,
+        int tempo,
         int timeSignatureBeatCount,
         int timeSignatureBeatUnit,
-        MatchedStyle style, 
-        IReadOnlyList<MatchedChord> chords, 
+        MatchedStyle style,
+        IReadOnlyList<MatchedChord> chords,
         IReadOnlyList<MatchedScale> scales,
         CandidateTrack? previousAttempt = null,
         IReadOnlyList<ValidationFailure>? previousAttemptFailures = null,
@@ -23,10 +23,10 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
     {
         string chordProgressionString = GenerateChordProgressionStringForPrompt(chords, scales);
         string prompt = GenerateRequestPrompt(keyRoot, tempo, timeSignatureBeatCount, timeSignatureBeatUnit, style, chordProgressionString);
-        
-        if(previousAttempt != null && previousAttemptFailures != null)
+
+        if (previousAttempt != null && previousAttemptFailures != null)
             prompt += ("\n" + GeneratePreviousFailurePrompt(previousAttempt, previousAttemptFailures));
-        
+
         CandidateTrack track = await trackGenerationClient.GenerateTrackAsync(prompt, cancellationToken);
 
         return track;
@@ -43,10 +43,10 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
 
             IReadOnlyList<string> chordTones = scaleMatcher.GetChordToneNames(chord.Root, chord.ChordEntry.Intervals);
             string chordToneString = $"[{string.Join(',', chordTones)}]";
-                
+
             builder.AppendLine($"{chord.Root} {chord.ChordEntry.Id} {chordToneString}. Scales: {scaleString}");
         }
-        
+
         return builder.ToString();
     }
 
@@ -72,7 +72,7 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
     {
         return $"""
                Your previous attempt at generating a track failed. Here are the failure messages:
-               {string.Join('\n',  previousAttemptFailures.Select(f => f.Reason))}
+               {string.Join('\n', previousAttemptFailures.Select(f => f.Reason))}
                
                And the full output that was produced:
                {JsonSerializer.Serialize(previousAttempt, CandidateTrackJsonContext.Default.CandidateTrack)}

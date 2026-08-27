@@ -31,7 +31,7 @@ internal sealed class PersistCandidateTrackExecutor(
             Directory.CreateDirectory(trackStorageSettings.Value.BaseFolderPath);
             string trackJson = JsonSerializer.Serialize(input.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack);
             string trackFilePath = Path.Combine(trackStorageSettings.Value.BaseFolderPath, $"{trackId}.json");
-            
+
             activity?.SetTag("track.filePath", trackFilePath);
             await File.WriteAllTextAsync(trackFilePath, trackJson, cancellationToken);
         }
@@ -43,15 +43,15 @@ internal sealed class PersistCandidateTrackExecutor(
         catch (Exception ex)
         {
             logger.LogError(ex, "Job {Id} failed to persist the candidate track", input.GenerationJob.Id);
-            await context.YieldOutputAsync(new GenerationFailed(ex.Message, input.Attempts),  cancellationToken);
+            await context.YieldOutputAsync(new GenerationFailed(ex.Message, input.Attempts), cancellationToken);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             return;
         }
 
-        await context.YieldOutputAsync(new GenerationSucceeded(trackId, input.CandidateTrack, input.Attempts),  cancellationToken);
+        await context.YieldOutputAsync(new GenerationSucceeded(trackId, input.CandidateTrack, input.Attempts), cancellationToken);
     }
-    
-    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) => 
+
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<PersistCandidateTrackInput>(HandleAsync))
             .YieldsOutput<GenerationOutcome>();

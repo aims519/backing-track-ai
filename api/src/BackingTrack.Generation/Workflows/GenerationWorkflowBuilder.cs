@@ -13,11 +13,11 @@ public static class GenerationWorkflowBuilder
         RetrieveStyleExecutor style = scopedProvider.GetRequiredService<RetrieveStyleExecutor>();
         RetrieveChordsExecutor chords = scopedProvider.GetRequiredService<RetrieveChordsExecutor>();
         RetrieveScalesExecutor scales = scopedProvider.GetRequiredService<RetrieveScalesExecutor>();
-        GenerateCandidateTrackExecutor  generate = scopedProvider.GetRequiredService<GenerateCandidateTrackExecutor>();
+        GenerateCandidateTrackExecutor generate = scopedProvider.GetRequiredService<GenerateCandidateTrackExecutor>();
         ValidateCandidateTrackExecutor validate = scopedProvider.GetRequiredService<ValidateCandidateTrackExecutor>();
         RepairCandidateTrackExecutor repair = scopedProvider.GetRequiredService<RepairCandidateTrackExecutor>();
         PersistCandidateTrackExecutor persist = scopedProvider.GetRequiredService<PersistCandidateTrackExecutor>();
-        
+
         return new WorkflowBuilder(style)
             .AddEdge(style, chords)
             .AddEdge(chords, scales)

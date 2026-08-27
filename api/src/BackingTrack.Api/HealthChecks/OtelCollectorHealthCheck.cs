@@ -1,4 +1,5 @@
 using BackingTrack.Core.Config;
+
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 
@@ -13,7 +14,7 @@ internal class OtelCollectorHealthCheck(IOptions<OtelSettings> otelSettings, Htt
             return HealthCheckResult.Healthy("A healthy result.");
 
         HttpResponseMessage response = await httpClient.GetAsync("/healthz/status", cancellationToken);
-        if(!response.IsSuccessStatusCode)
+        if (!response.IsSuccessStatusCode)
             return HealthCheckResult.Unhealthy("OTEL collector check failed");
 
         string responseString = await response.Content.ReadAsStringAsync(cancellationToken);

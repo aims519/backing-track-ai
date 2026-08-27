@@ -18,7 +18,7 @@ public static class KnowledgeBaseValidation
                     duplicateIds.Add(embeddable.Id);
                     continue;
                 }
-                
+
                 fullDictionary.TryAdd(embeddable.Id, embeddable);
             }
         }
