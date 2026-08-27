@@ -35,7 +35,7 @@ internal static class TrackEndpoints
                 Tempo = requestDto.Tempo,
                 Chords = requestDto.Chords!,
                 KeyRoot = requestDto.KeyRoot!,
-                Style = requestDto.Style,
+                Style = requestDto.Style!,
                 TimeSignatureBeatCount = requestDto.TimeSignatureBeatCount,
                 TimeSignatureBeatUnit = requestDto.TimeSignatureBeatUnit,
             };

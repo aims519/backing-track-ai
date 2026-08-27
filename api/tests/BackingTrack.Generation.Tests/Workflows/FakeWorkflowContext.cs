@@ -28,10 +28,10 @@ internal sealed class FakeWorkflowContext : IWorkflowContext
 
     public ValueTask RequestHaltAsync() => default;
 
-    public ValueTask<T> ReadStateAsync<T>(string key, string? scopeName, CancellationToken cancellationToken = default) =>
+    public ValueTask<T?> ReadStateAsync<T>(string key, string? scopeName = null, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException("State store is not used by these tests");
 
-    public ValueTask<T> ReadStateAsync<T>(string key, CancellationToken cancellationToken = default) =>
+    public ValueTask<T?> ReadStateAsync<T>(string key, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException("State store is not used by these tests");
 
     public ValueTask<T> ReadOrInitStateAsync<T>(string key, Func<T> defaultFactory, string? scopeName, CancellationToken cancellationToken = default) =>
@@ -43,10 +43,10 @@ internal sealed class FakeWorkflowContext : IWorkflowContext
     public ValueTask<HashSet<string>> ReadStateKeysAsync(string? scopeName, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException("State store is not used by these tests");
 
-    public ValueTask QueueStateUpdateAsync<T>(string key, T value, string? scopeName, CancellationToken cancellationToken = default) =>
+    public ValueTask QueueStateUpdateAsync<T>(string key, T? value, string? scopeName = null, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException("State store is not used by these tests");
 
-    public ValueTask QueueStateUpdateAsync<T>(string key, T value, CancellationToken cancellationToken = default) =>
+    public ValueTask QueueStateUpdateAsync<T>(string key, T? value, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException("State store is not used by these tests");
 
     public ValueTask QueueClearScopeAsync(string? scopeName, CancellationToken cancellationToken = default) =>
