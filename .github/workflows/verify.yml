@@ -37,22 +37,19 @@ jobs:
 
       - name: Test
         run: >
-          dotnet test api/BackingTrack.sln -c Release --no-build --verbosity normal
-          --logger trx
-          --collect "XPlat Code Coverage"
-          --results-directory "$GITHUB_WORKSPACE/TestResults"
+          dotnet test --solution api/BackingTrack.sln -c Release --no-build
+            --report-trx --coverage --coverage-output-format cobertura
+            --results-directory "$GITHUB_WORKSPACE/TestResults"
 
       - name: Coverage report
         if: always()
-        # coverlet.collector emits one Cobertura file per test project under
-        # TestResults/<guid>/. ReportGenerator (the tool the .NET docs recommend for
-        # this) merges them, writes a per-assembly table to the run summary, and
-        # produces an HTML report that uploads with the other results.
+        # Collector emits one XML file per project, e.g. /TestResults/<guid>.cobertura.xml. 
+        # The report generator merges them and creates a summary
         run: |
           dotnet tool install --global dotnet-reportgenerator-globaltool
           export PATH="$PATH:$HOME/.dotnet/tools"
           reportgenerator \
-            -reports:"$GITHUB_WORKSPACE/TestResults/**/coverage.cobertura.xml" \
+            -reports:"$GITHUB_WORKSPACE/TestResults/*.cobertura.xml" \
             -targetdir:"$GITHUB_WORKSPACE/TestResults/CoverageReport" \
             -reporttypes:"MarkdownSummaryGithub;HtmlInline_AzurePipelines"
           cat "$GITHUB_WORKSPACE/TestResults/CoverageReport/SummaryGithub.md" >> "$GITHUB_STEP_SUMMARY"
@@ -63,8 +60,8 @@ jobs:
         with:
           name: test-results
           path: |
-            ${{ github.workspace }}/TestResults/**/*.trx
-            ${{ github.workspace }}/TestResults/**/coverage.cobertura.xml
+            ${{ github.workspace }}/TestResults/*.trx
+            ${{ github.workspace }}/TestResults/*.cobertura.xml
             ${{ github.workspace }}/TestResults/CoverageReport
           if-no-files-found: error
 
