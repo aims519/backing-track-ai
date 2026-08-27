@@ -51,7 +51,7 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
 
         logger.LogInformation("Generated Candidate Track Repair Patch. Input tokens: {InputCount}. Output tokens: {OutputCount}",
             agentResponse.Usage?.InputTokenCount, agentResponse.Usage?.OutputTokenCount);
-        logger.LogDebug("Repair patch: {Patch}", JsonSerializer.Serialize(agentResponse.Result, new JsonSerializerOptions { TypeInfoResolver = TrackRepairJsonContext.Default }));
+        logger.LogDebug("Repair patch: {Patch}", JsonSerializer.Serialize(agentResponse.Result, TrackRepairJsonContext.Default.TrackRepairPatch));
 
         activity?.SetTag("track_repair.input_tokens", agentResponse.Usage?.InputTokenCount);
         activity?.SetTag("track_repair.output_tokens", agentResponse.Usage?.OutputTokenCount);
@@ -80,10 +80,10 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
     {
         return $"""
                Here is the previous attempt at generating a candidate track:
-               {JsonSerializer.Serialize(previousAttempt,  new JsonSerializerOptions { TypeInfoResolver = CandidateTrackJsonContext.Default })}
-               
+               {JsonSerializer.Serialize(previousAttempt, CandidateTrackJsonContext.Default.CandidateTrack)}
+
                Here are the failure messages that require patching:
-               {JsonSerializer.Serialize(failures,  new JsonSerializerOptions { TypeInfoResolver = TrackRepairJsonContext.Default })}
+               {JsonSerializer.Serialize(failures, TrackRepairJsonContext.Default.IReadOnlyListValidationFailure)}
                """;
     }
 

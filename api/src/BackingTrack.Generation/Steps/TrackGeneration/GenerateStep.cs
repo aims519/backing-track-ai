@@ -75,7 +75,7 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
                {string.Join('\n',  previousAttemptFailures.Select(f => f.Reason))}
                
                And the full output that was produced:
-               {JsonSerializer.Serialize(previousAttempt,  new JsonSerializerOptions { WriteIndented = true, TypeInfoResolver = CandidateTrackJsonContext.Default })}
+               {JsonSerializer.Serialize(previousAttempt, CandidateTrackJsonContext.Default.CandidateTrack)}
                """;
     }
 }

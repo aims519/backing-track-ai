@@ -32,7 +32,7 @@ internal sealed class ValidateCandidateTrackExecutor(
             }
 
             logger.LogDebug("Job {Id} attempt {Attempt} candidate track: {Track}", input.GenerationJob.Id, input.Attempts,
-                JsonSerializer.Serialize(input.CandidateTrack, new JsonSerializerOptions { TypeInfoResolver = CandidateTrackJsonContext.Default }));
+                JsonSerializer.Serialize(input.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
             logger.LogWarning("Job {Id} attempt {Attempt} failed validation: {Errors}", input.GenerationJob.Id, input.Attempts, string.Join('\n', trackValidationResult.Failures.Select(f => f.Reason)));
             
             // Failed with max attempts reached

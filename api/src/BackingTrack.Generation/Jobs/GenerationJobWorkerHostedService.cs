@@ -68,7 +68,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     };
                     jobStore.AddOrUpdate(completedJob);
                     
-                    logger.LogDebug("Job {Id} completed track saved: {Track}", generationJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, new JsonSerializerOptions { TypeInfoResolver = CandidateTrackJsonContext.Default }));
+                    logger.LogDebug("Job {Id} completed track saved: {Track}", generationJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
                     logger.LogInformation("Job {Id} completed", jobId);
                     
                     generationJobMetrics.RecordAttempts(succeeded.Attempts, "success");
