@@ -69,8 +69,10 @@ jobs:
           if-no-files-found: error
 
       - name: Format check
-        # Catches whitespace / using-ordering that the in-build style check doesn't.
-        run: dotnet format api/BackingTrack.sln --verify-no-changes --no-restore
+        # Whitespace only — style and analyzer rules are already build errors here
+        # (EnforceCodeStyleInBuild + TreatWarningsAsErrors), and AOT is covered by
+        # the publish check below. `dotnet build` never inspects whitespace.
+        run: dotnet format whitespace api/BackingTrack.sln --verify-no-changes --no-restore
 
       - name: Native AOT publish check
         run: scripts/check-aot.sh linux-x64
