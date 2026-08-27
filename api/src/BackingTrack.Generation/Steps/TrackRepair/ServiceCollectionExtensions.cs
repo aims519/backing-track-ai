@@ -28,7 +28,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(sp =>
         {
             OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
-            return new TrackRepairProviderInfo(llmProvider, settings.RepairModel, settings.MaxOutputTokens);
+            return new TrackRepairProviderInfo(llmProvider, settings.RepairModel, settings.RepairMaxOutputTokens);
         });
 
         services.AddSingleton<TrackRepairMetrics>();

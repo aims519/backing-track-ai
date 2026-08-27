@@ -1,6 +1,7 @@
 using System.ClientModel;
 
 using BackingTrack.Core.Config;
+using BackingTrack.Generation.Workflows.Executors;
 
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
@@ -46,6 +47,19 @@ public static class ServiceCollectionExtensions
             throw new InvalidOperationException($"Llm:Provider value, '{llmProvider}', is not supported");
         }
 
+        return services;
+    }
+
+    public static IServiceCollection AddTrackGenerationWorkflow(this IServiceCollection services)
+    {
+        services.AddScoped<RetrieveStyleExecutor>();
+        services.AddScoped<RetrieveChordsExecutor>();
+        services.AddScoped<RetrieveScalesExecutor>();
+        services.AddScoped<GenerateCandidateTrackExecutor>();
+        services.AddScoped<ValidateCandidateTrackExecutor>();
+        services.AddScoped<RepairCandidateTrackExecutor>();
+        services.AddScoped<PersistCandidateTrackExecutor>();
+        
         return services;
     }
 }

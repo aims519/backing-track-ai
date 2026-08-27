@@ -27,7 +27,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(sp =>
         {
             OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
-            return new TrackGenerationProviderInfo(llmProvider, settings.GenerationModel, settings.MaxOutputTokens);
+            return new TrackGenerationProviderInfo(llmProvider, settings.GenerationModel, settings.GenerationMaxOutputTokens);
         });
 
         services.AddSingleton<TrackGenerationMetrics>();
