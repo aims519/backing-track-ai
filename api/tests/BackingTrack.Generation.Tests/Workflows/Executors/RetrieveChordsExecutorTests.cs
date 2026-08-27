@@ -7,14 +7,15 @@ using BackingTrack.Generation.Workflows.Outputs;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using Moq;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class RetrieveChordsExecutorTests
 {
-    private static RetrieveChordsExecutor CreateExecutor(Mock<IRetrieveStep> retrieveStepMock) =>
-        new(retrieveStepMock.Object, NullLogger<RetrieveChordsExecutor>.Instance);
+    private static RetrieveChordsExecutor CreateExecutor(IRetrieveStep retrieveStepMock) =>
+        new(retrieveStepMock, NullLogger<RetrieveChordsExecutor>.Instance);
 
     [Fact]
     public async Task HandleAsync_ChordsMatched_SendsRetrieveScalesInputPreservingJobAndStyle()
@@ -22,8 +23,8 @@ public class RetrieveChordsExecutorTests
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         MatchedStyle matchedStyle = WorkflowTestFixtures.CreateMatchedStyle();
         MatchedChord[] matchedChords = [WorkflowTestFixtures.CreateMatchedChord()];
-        Mock<IRetrieveStep> retrieveStepMock = new();
-        retrieveStepMock.Setup(s => s.RetrieveMatchingChords(job.Chords)).Returns(matchedChords);
+        IRetrieveStep retrieveStepMock = Substitute.For<IRetrieveStep>();
+        retrieveStepMock.RetrieveMatchingChords(job.Chords).Returns(matchedChords);
         FakeWorkflowContext context = new();
 
         await CreateExecutor(retrieveStepMock).HandleAsync(new RetrieveChordsInput(job, matchedStyle), context, CancellationToken.None);
@@ -39,8 +40,8 @@ public class RetrieveChordsExecutorTests
     public async Task HandleAsync_RetrieveStepThrows_YieldsGenerationFailedAndSendsNothing()
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
-        Mock<IRetrieveStep> retrieveStepMock = new();
-        retrieveStepMock.Setup(s => s.RetrieveMatchingChords(job.Chords))
+        IRetrieveStep retrieveStepMock = Substitute.For<IRetrieveStep>();
+        retrieveStepMock.RetrieveMatchingChords(job.Chords)
             .Throws(new InvalidOperationException("chord lookup failed"));
         FakeWorkflowContext context = new();
 

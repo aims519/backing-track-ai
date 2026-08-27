@@ -3,7 +3,7 @@ using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
 
-using Moq;
+using NSubstitute;
 
 namespace BackingTrack.Generation.Tests.Steps.TrackValidation;
 
@@ -25,25 +25,25 @@ public class ValidateStepTests
 
     private static CandidateTrack CreateCandidateTrack() => new(16, [], [], []);
 
-    private static Mock<ITrackValidator> CreateTrackValidatorMockWithNoFailures()
+    private static ITrackValidator CreateTrackValidatorMockWithNoFailures()
     {
-        Mock<ITrackValidator> mock = new();
-        mock.Setup(v => v.ValidateLengthInBeats(It.IsAny<CandidateTrack>(), It.IsAny<GenerationJob>()))
-            .Returns([]);
-        mock.Setup(v => v.ValidateDrumNoteChoices(It.IsAny<IReadOnlyList<DrumNoteEvent>>()))
-            .Returns([]);
-        mock.Setup(v => v.ValidateBassNoteChoices(It.IsAny<IReadOnlyList<BassNoteEvent>>(), It.IsAny<IReadOnlyList<MatchedChord>>(),
-                It.IsAny<IReadOnlyList<MatchedScale>>(), It.IsAny<GenerationJob>()))
-            .Returns([]);
-        mock.Setup(v => v.ValidateChordVoicingNoteChoices(It.IsAny<IReadOnlyList<ChordVoicingEvent>>(), It.IsAny<IReadOnlyList<MatchedChord>>(),
-                It.IsAny<IReadOnlyList<MatchedScale>>(), It.IsAny<GenerationJob>()))
-            .Returns([]);
-        mock.Setup(v => v.ValidateMidiVelocities(It.IsAny<CandidateTrack>()))
-            .Returns([]);
-        mock.Setup(v => v.ValidateNoPartEmpty(It.IsAny<CandidateTrack>()))
-            .Returns([]);
-        mock.Setup(v => v.ValidateBeatPositionsAndDurations(It.IsAny<CandidateTrack>(), It.IsAny<GenerationJob>()))
-            .Returns([]);
+        ITrackValidator mock = Substitute.For<ITrackValidator>();
+
+        mock.ValidateLengthInBeats(Arg.Any<CandidateTrack>(), Arg.Any<GenerationJob>()).Returns([]);
+
+        mock.ValidateDrumNoteChoices(Arg.Any<IReadOnlyList<DrumNoteEvent>>()).Returns([]);
+
+        mock.ValidateBassNoteChoices(Arg.Any<IReadOnlyList<BassNoteEvent>>(), Arg.Any<IReadOnlyList<MatchedChord>>(),
+                Arg.Any<IReadOnlyList<MatchedScale>>(), Arg.Any<GenerationJob>()).Returns([]);
+
+        mock.ValidateChordVoicingNoteChoices(Arg.Any<IReadOnlyList<ChordVoicingEvent>>(), Arg.Any<IReadOnlyList<MatchedChord>>(),
+            Arg.Any<IReadOnlyList<MatchedScale>>(), Arg.Any<GenerationJob>()).Returns([]);
+
+        mock.ValidateMidiVelocities(Arg.Any<CandidateTrack>()).Returns([]);
+
+        mock.ValidateNoPartEmpty(Arg.Any<CandidateTrack>()).Returns([]);
+
+        mock.ValidateBeatPositionsAndDurations(Arg.Any<CandidateTrack>(), Arg.Any<GenerationJob>()).Returns([]);
 
         return mock;
     }
@@ -51,8 +51,8 @@ public class ValidateStepTests
     [Fact]
     public void ValidateCandidateTrack_AllChecksReturnNoFailures_ReturnsValidResultWithNoFailures()
     {
-        Mock<ITrackValidator> trackValidatorMock = CreateTrackValidatorMockWithNoFailures();
-        ValidateStep validateStep = new(trackValidatorMock.Object);
+        ITrackValidator trackValidatorMock = CreateTrackValidatorMockWithNoFailures();
+        ValidateStep validateStep = new(trackValidatorMock);
 
         TrackValidationResult result = validateStep.ValidateCandidateTrack(CreateCandidateTrack(), CreateGenerationJob(), [], []);
 
@@ -63,12 +63,11 @@ public class ValidateStepTests
     [Fact]
     public void ValidateCandidateTrack_LengthCheckReturnsFailure_ReturnsInvalidResultContainingThatFailure()
     {
-        Mock<ITrackValidator> trackValidatorMock = CreateTrackValidatorMockWithNoFailures();
+        ITrackValidator trackValidatorMock = CreateTrackValidatorMockWithNoFailures();
         ValidationFailure lengthFailure = new(ValidationFailureType.InvalidTrackLengthInBeats, null, "Length failure");
-        trackValidatorMock.Setup(v => v.ValidateLengthInBeats(It.IsAny<CandidateTrack>(), It.IsAny<GenerationJob>()))
-            .Returns([lengthFailure]);
+        trackValidatorMock.ValidateLengthInBeats(Arg.Any<CandidateTrack>(), Arg.Any<GenerationJob>()).Returns([lengthFailure]);
 
-        ValidateStep validateStep = new(trackValidatorMock.Object);
+        ValidateStep validateStep = new(trackValidatorMock);
 
         TrackValidationResult result = validateStep.ValidateCandidateTrack(CreateCandidateTrack(), CreateGenerationJob(), [], []);
 
@@ -79,15 +78,13 @@ public class ValidateStepTests
     [Fact]
     public void ValidateCandidateTrack_MultipleChecksReturnFailures_ReturnsInvalidResultContainingAllFailures()
     {
-        Mock<ITrackValidator> trackValidatorMock = CreateTrackValidatorMockWithNoFailures();
+        ITrackValidator trackValidatorMock = CreateTrackValidatorMockWithNoFailures();
         ValidationFailure drumFailure = new(ValidationFailureType.InvalidDrumNoteChoice, null, "Drum failure");
         ValidationFailure velocityFailure = new(ValidationFailureType.InvalidMidiVelocity, null, "Velocity failure");
-        trackValidatorMock.Setup(v => v.ValidateDrumNoteChoices(It.IsAny<IReadOnlyList<DrumNoteEvent>>()))
-            .Returns([drumFailure]);
-        trackValidatorMock.Setup(v => v.ValidateMidiVelocities(It.IsAny<CandidateTrack>()))
-            .Returns([velocityFailure]);
+        trackValidatorMock.ValidateDrumNoteChoices(Arg.Any<IReadOnlyList<DrumNoteEvent>>()).Returns([drumFailure]);
+        trackValidatorMock.ValidateMidiVelocities(Arg.Any<CandidateTrack>()).Returns([velocityFailure]);
 
-        ValidateStep validateStep = new(trackValidatorMock.Object);
+        ValidateStep validateStep = new(trackValidatorMock);
 
         TrackValidationResult result = validateStep.ValidateCandidateTrack(CreateCandidateTrack(), CreateGenerationJob(), [], []);
 
@@ -100,8 +97,8 @@ public class ValidateStepTests
     [Fact]
     public void ValidateCandidateTrack_PassesCandidateTrackAndGenerationJobThroughToEachCheck()
     {
-        Mock<ITrackValidator> trackValidatorMock = CreateTrackValidatorMockWithNoFailures();
-        ValidateStep validateStep = new(trackValidatorMock.Object);
+        ITrackValidator trackValidatorMock = CreateTrackValidatorMockWithNoFailures();
+        ValidateStep validateStep = new(trackValidatorMock);
 
         CandidateTrack candidateTrack = CreateCandidateTrack();
         GenerationJob generationJob = CreateGenerationJob();
@@ -110,12 +107,14 @@ public class ValidateStepTests
 
         validateStep.ValidateCandidateTrack(candidateTrack, generationJob, matchedChords, matchedScales);
 
-        trackValidatorMock.Verify(v => v.ValidateLengthInBeats(candidateTrack, generationJob), Times.Once);
-        trackValidatorMock.Verify(v => v.ValidateDrumNoteChoices(candidateTrack.Drums), Times.Once);
-        trackValidatorMock.Verify(v => v.ValidateBassNoteChoices(candidateTrack.Bass, matchedChords, matchedScales, generationJob), Times.Once);
-        trackValidatorMock.Verify(v => v.ValidateChordVoicingNoteChoices(candidateTrack.ChordVoicings, matchedChords, matchedScales, generationJob), Times.Once);
-        trackValidatorMock.Verify(v => v.ValidateMidiVelocities(candidateTrack), Times.Once);
-        trackValidatorMock.Verify(v => v.ValidateNoPartEmpty(candidateTrack), Times.Once);
-        trackValidatorMock.Verify(v => v.ValidateBeatPositionsAndDurations(candidateTrack, generationJob), Times.Once);
+        trackValidatorMock.Received(1).ValidateLengthInBeats(candidateTrack, generationJob);
+        trackValidatorMock.Received(1).ValidateDrumNoteChoices(candidateTrack.Drums);
+        trackValidatorMock.Received(1)
+            .ValidateBassNoteChoices(candidateTrack.Bass, matchedChords, matchedScales, generationJob);
+        trackValidatorMock.Received(1).ValidateChordVoicingNoteChoices(candidateTrack.ChordVoicings, matchedChords,
+            matchedScales, generationJob);
+        trackValidatorMock.Received(1).ValidateMidiVelocities(candidateTrack);
+        trackValidatorMock.Received(1).ValidateNoPartEmpty(candidateTrack);
+        trackValidatorMock.Received(1).ValidateBeatPositionsAndDurations(candidateTrack, generationJob);
     }
 }

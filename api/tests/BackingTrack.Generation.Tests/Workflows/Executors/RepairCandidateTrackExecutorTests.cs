@@ -8,14 +8,15 @@ using BackingTrack.Generation.Workflows.Outputs;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using Moq;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class RepairCandidateTrackExecutorTests
 {
-    private static RepairCandidateTrackExecutor CreateExecutor(Mock<IRepairStep> repairStepMock) =>
-        new(repairStepMock.Object, NullLogger<RepairCandidateTrackExecutor>.Instance);
+    private static RepairCandidateTrackExecutor CreateExecutor(IRepairStep repairStepMock) =>
+        new(repairStepMock, NullLogger<RepairCandidateTrackExecutor>.Instance);
 
     private static RepairCandidateTrackInput CreateInput(CandidateTrack track, GenerationJob job, IReadOnlyList<ValidationFailure> failures, int attempts) =>
         new(track, new TrackValidationResult(false, failures), job, [], [], attempts);
@@ -27,9 +28,8 @@ public class RepairCandidateTrackExecutorTests
         CandidateTrack originalTrack = new(16, [], [], []);
         CandidateTrack repairedTrack = new(16, [new(0, 1, 40, 100)], [], []);
         ValidationFailure failure = new(ValidationFailureType.PartEmpty, null, "no drum notes");
-        Mock<IRepairStep> repairStepMock = new();
-        repairStepMock.Setup(r => r.RepairCandidateTrackAsync(originalTrack, It.Is<IReadOnlyList<ValidationFailure>>(f => f.Contains(failure)), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(repairedTrack);
+        IRepairStep repairStepMock = Substitute.For<IRepairStep>();
+        repairStepMock.RepairCandidateTrackAsync(originalTrack, Arg.Is<IReadOnlyList<ValidationFailure>>(f => f.Contains(failure)), Arg.Any<CancellationToken>()).Returns(repairedTrack);
         FakeWorkflowContext context = new();
 
         await CreateExecutor(repairStepMock).HandleAsync(CreateInput(originalTrack, job, [failure], attempts: 2), context, CancellationToken.None);
@@ -47,9 +47,8 @@ public class RepairCandidateTrackExecutorTests
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         CandidateTrack track = new(16, [], [], []);
         ValidationFailure failure = new(ValidationFailureType.PartEmpty, null, "no drum notes");
-        Mock<IRepairStep> repairStepMock = new();
-        repairStepMock.Setup(r => r.RepairCandidateTrackAsync(track, It.IsAny<IReadOnlyList<ValidationFailure>>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("repair failed"));
+        IRepairStep repairStepMock = Substitute.For<IRepairStep>();
+        repairStepMock.RepairCandidateTrackAsync(track, Arg.Any<IReadOnlyList<ValidationFailure>>(), Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("repair failed"));
         FakeWorkflowContext context = new();
 
         await CreateExecutor(repairStepMock).HandleAsync(CreateInput(track, job, [failure], attempts: 2), context, CancellationToken.None);
