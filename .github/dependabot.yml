@@ -1,0 +1,32 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/api"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      opentelemetry:
+        patterns:
+          - "OpenTelemetry*"
+      microsoft-extensions:
+        patterns:
+          - "Microsoft.Extensions.*"
+      agent-framework:
+        patterns:
+          - "Microsoft.Agents.AI*"
+      xunit:
+        patterns:
+          - "xunit*"
+      test-tooling:
+        patterns:
+          - "Microsoft.NET.Test.Sdk"
+          - "coverlet.*"
+          - "Moq"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
