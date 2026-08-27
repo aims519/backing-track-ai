@@ -38,13 +38,13 @@ jobs:
       - name: Test
         run: >
           dotnet test --solution api/BackingTrack.sln -c Release --no-build
-            --report-trx --coverage --coverage-output-format cobertura
-            --results-directory "$GITHUB_WORKSPACE/TestResults"
+          --report-trx --coverage --coverage-output-format cobertura
+          --results-directory "$GITHUB_WORKSPACE/TestResults"
 
       - name: Coverage report
         if: always()
         # Collector emits one XML file per project, e.g. /TestResults/<guid>.cobertura.xml. 
-        # The report generator merges them and creates a summary
+        # The report generator merges them and creates a summaryPush 
         run: |
           dotnet tool install --global dotnet-reportgenerator-globaltool
           export PATH="$PATH:$HOME/.dotnet/tools"
