@@ -18,7 +18,7 @@ internal sealed class GenerateCandidateTrackExecutor(
     {
         GenerationJob generationJob = input.GenerationJob;
         Guid jobId = input.GenerationJob.Id;
-        
+
         logger.LogInformation("Job {Id} generating a candidate track...", jobId);
         CandidateTrack candidateTrack;
         try
@@ -27,7 +27,7 @@ internal sealed class GenerateCandidateTrackExecutor(
                 generationJob.Tempo,
                 generationJob.TimeSignatureBeatCount,
                 generationJob.TimeSignatureBeatUnit,
-                input.MatchedStyle, input.MatchedChords,  input.MatchedScales, 
+                input.MatchedStyle, input.MatchedChords, input.MatchedScales,
                 previousAttempt: null,
                 previousAttemptFailures: null,
                 cancellationToken);
@@ -42,13 +42,13 @@ internal sealed class GenerateCandidateTrackExecutor(
             await context.YieldOutputAsync(new GenerationFailed(ex.Message), cancellationToken);
             return;
         }
-            
+
         logger.LogInformation("Job {Id} generated a candidate track\nLengthInBeats: {BeatCount}\nDrumEventCount: {DrumEventCount}\nBassEventCount: {BassEventCount}\nChordVoicingEventCount: {ChordVoicingEventCount}",
             jobId, candidateTrack.LengthInBeats, candidateTrack.Drums.Count, candidateTrack.Bass.Count, candidateTrack.ChordVoicings.Count);
         await context.SendMessageAsync(new ValidateCandidateTrackInput(candidateTrack, generationJob, input.MatchedChords, input.MatchedScales, 1), cancellationToken);
     }
-    
-    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) => 
+
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<GenerateCandidateTrackInput>(HandleAsync))
             .SendsMessage<ValidateCandidateTrackInput>()

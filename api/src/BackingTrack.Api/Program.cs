@@ -81,7 +81,7 @@ else
 OtelSettings otelSettings = builder.Configuration.GetSection("Otel").Get<OtelSettings>() ?? new OtelSettings();
 if (otelSettings.bEnabled)
 {
-    if(string.IsNullOrEmpty(otelSettings.CollectorEndpoint))
+    if (string.IsNullOrEmpty(otelSettings.CollectorEndpoint))
         throw new InvalidOperationException("Otel:CollectorEndpoint must be set when Otel:bEnabled is true.");
 
     builder.Services.AddOpenTelemetry()
@@ -128,15 +128,15 @@ if (otelSettings.bEnabled)
             otlpExporterOptions.Endpoint = new Uri(otelSettings.CollectorEndpoint);
         });
     });
-    
+
     // Register OTEL collector health check
-    if(string.IsNullOrEmpty(otelSettings.CollectorHealthCheckEndpoint))
+    if (string.IsNullOrEmpty(otelSettings.CollectorHealthCheckEndpoint))
         throw new InvalidOperationException("Otel:CollectorHealthCheckEndpoint must be set when Otel:bEnabled is true.");
 
     builder.Services.AddHttpClient<OtelCollectorHealthCheck>(options =>
     {
         options.BaseAddress = new Uri(otelSettings.CollectorHealthCheckEndpoint);
-        options.Timeout =  TimeSpan.FromSeconds(3);
+        options.Timeout = TimeSpan.FromSeconds(3);
     });
     builder.Services.AddHealthChecks()
         .AddCheck<OtelCollectorHealthCheck>("otelCollector", tags: ["ready"]);
@@ -150,8 +150,8 @@ RateLimitSettings rateLimitSettings = builder.Configuration.GetSection("RateLimi
 
 static string GetPartitionKey(HttpContext context)
 {
-    string? apiKey = context.Request.Headers["X-API-Key"]; 
-    return string.IsNullOrEmpty(apiKey) ? "anonymous" : HashApiKey(apiKey);     
+    string? apiKey = context.Request.Headers["X-API-Key"];
+    return string.IsNullOrEmpty(apiKey) ? "anonymous" : HashApiKey(apiKey);
 }
 static string HashApiKey(string apiKey)
 {
@@ -172,7 +172,7 @@ builder.Services.AddRateLimiter(rateLimitOptions =>
             QueueLimit = 0,
         });
     });
-    
+
     rateLimitOptions.OnRejected = async (context, cancellationToken) =>
     {
         // Custom rejection handling logic

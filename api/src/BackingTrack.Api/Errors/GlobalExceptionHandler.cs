@@ -40,12 +40,12 @@ internal class GlobalExceptionHandler(IProblemDetailsService problemDetailsServi
             Status = StatusCodes.Status500InternalServerError,
             Title = "An unexpected error occurred"
         };
-        
-        if(environment.IsDevelopment())
+
+        if (environment.IsDevelopment())
             serverErrorDetails.Detail = exception.ToString();
-            
+
         logger.LogError(exception, "An unexpected error occurred");
-        
+
         return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
         {
             HttpContext = httpContext,

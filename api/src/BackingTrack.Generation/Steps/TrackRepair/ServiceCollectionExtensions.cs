@@ -19,7 +19,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddTrackRepair(this IServiceCollection services, IConfiguration configuration)
     {
         string? llmProvider = configuration.GetValue<string>("Llm:Provider");
-        if(string.IsNullOrEmpty(llmProvider))
+        if (string.IsNullOrEmpty(llmProvider))
             throw new InvalidOperationException("llmProvider must be set.");
 
         services.AddKeyedSingleton<AIAgent>("repair", (sp, _) =>

@@ -21,11 +21,11 @@ internal sealed class ApiKeyFilter(IOptions<Core.Config.AuthSettings> authSettin
         string expectedApiKey = authSettings.Value.ApiKey;
         if (string.IsNullOrEmpty(expectedApiKey))
             return Results.Unauthorized();
-        
+
         bool bEqual = CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(apiKeyHeader), Encoding.UTF8.GetBytes(expectedApiKey));
         if (!bEqual)
             return Results.Unauthorized();
-            
+
         return await next(context);
     }
 }

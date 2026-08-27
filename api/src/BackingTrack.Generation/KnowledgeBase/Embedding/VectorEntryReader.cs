@@ -18,7 +18,7 @@ public static class VectorEntryReader
             VectorEntry? entry;
             try
             {
-                entry = JsonSerializer.Deserialize<VectorEntry>(line,  VectorStoreJsonContext.Default.VectorEntry);
+                entry = JsonSerializer.Deserialize<VectorEntry>(line, VectorStoreJsonContext.Default.VectorEntry);
             }
             catch (JsonException e)
             {

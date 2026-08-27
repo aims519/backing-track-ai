@@ -3,7 +3,7 @@ using BackingTrack.Generation.Steps.Types;
 
 namespace BackingTrack.Generation.Steps.TrackRepair;
 
-public record TrackRepairPatch(IReadOnlyList<NoteCorrection> NoteCorrections, 
+public record TrackRepairPatch(IReadOnlyList<NoteCorrection> NoteCorrections,
     IReadOnlyList<DrumNoteEvent>? NewDrumPart,
     IReadOnlyList<BassNoteEvent>? NewBassPart,
     IReadOnlyList<ChordVoicingEvent>? NewChordVoicingPart,

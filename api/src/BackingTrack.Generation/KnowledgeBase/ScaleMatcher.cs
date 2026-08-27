@@ -28,13 +28,13 @@ public class ScaleMatcher
         ["Cb"] = 11,
         ["B#"] = 0,
     };
-    
+
     private static readonly string[] SharpPitchClassNames =
         ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    
+
     private static readonly string[] FlatPitchClassNames =
         ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
-    
+
     private static readonly int[] MajorScaleIntervals = [0, 2, 4, 5, 7, 9, 11];
 
     public int RootToPitchClass(string root) => PitchClasses.GetValueOrDefault(root, -1);
@@ -66,7 +66,7 @@ public class ScaleMatcher
 
         return matchedScalesSet.ToList();
     }
-    
+
     public int[] TransposeIntervalsByPitchClass(int pitchClass, int[] intervals)
     {
         return intervals.Select(i => (i + pitchClass) % 12).ToArray();
@@ -76,7 +76,7 @@ public class ScaleMatcher
     {
         return chordTones.All(tone => scaleTones.Contains(tone));
     }
-    
+
     public IReadOnlyList<string> GetChordToneNames(string root, int[] intervals)
     {
         int pitchClass = RootToPitchClass(root);
@@ -84,12 +84,12 @@ public class ScaleMatcher
             throw new ArgumentException($"Root pitch class not found for '{root}'", nameof(root));
 
         string[] pitchClassNames = root.Contains('b') ? FlatPitchClassNames : SharpPitchClassNames;
-        
+
         return TransposeIntervalsByPitchClass(pitchClass, intervals)
             .Select(pc => pitchClassNames[((pc % 12) + 12) % 12])
             .ToList();
     }
-    
+
     private sealed class MatchedScaleComparer : IEqualityComparer<MatchedScale>
     {
         public bool Equals(MatchedScale? x, MatchedScale? y) =>

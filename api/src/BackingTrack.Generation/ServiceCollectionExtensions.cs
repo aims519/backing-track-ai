@@ -18,7 +18,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddLlmChatClient(this IServiceCollection services, IConfiguration configuration)
     {
         string? llmProvider = configuration.GetValue<string>("Llm:Provider");
-        if(string.IsNullOrEmpty(llmProvider))
+        if (string.IsNullOrEmpty(llmProvider))
             throw new InvalidOperationException("llmProvider must be set.");
         if (llmProvider == "OpenAi")
         {
@@ -59,7 +59,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ValidateCandidateTrackExecutor>();
         services.AddScoped<RepairCandidateTrackExecutor>();
         services.AddScoped<PersistCandidateTrackExecutor>();
-        
+
         return services;
     }
 }

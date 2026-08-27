@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
+
 using BackingTrack.Core.Config;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 

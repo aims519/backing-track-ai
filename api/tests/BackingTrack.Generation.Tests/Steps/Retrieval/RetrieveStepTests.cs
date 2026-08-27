@@ -61,7 +61,7 @@ public class RetrieveStepTests
         Assert.Throws<ArgumentException>(() =>
             retrieveStep.RetrieveMatchingScales("C", [new MatchedChord(MajChordEntry, "H")]));
     }
-    
+
     [Fact]
     public void RetrieveMatchingChords_QualityValidatedByParserButMissingFromVectorStore_ThrowsInvalidOperationException()
     {
@@ -71,7 +71,7 @@ public class RetrieveStepTests
         ];
         InMemoryVectorStore parserStore = new(parserItems);
 
-        (IEmbeddable Entry, float[] Vector)[] retrieveStoreItems = [ (MajChordEntry, new float[] { 1f, 0f }) ];
+        (IEmbeddable Entry, float[] Vector)[] retrieveStoreItems = [(MajChordEntry, new float[] { 1f, 0f })];
         InMemoryVectorStore retrieveStore = new(retrieveStoreItems);
 
         RetrieveStep retrieveStep = new(retrieveStore, new NotUsedQueryEmbeddingService(), new ScaleMatcher(), new ChordSymbolParser(parserStore));

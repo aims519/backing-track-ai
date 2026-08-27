@@ -16,14 +16,14 @@ public interface ITrackValidator
     IReadOnlyList<ValidationFailure> ValidateBassNoteChoices(IReadOnlyList<BassNoteEvent> bassNoteEvents,
         IReadOnlyList<MatchedChord> matchedChords, IReadOnlyList<MatchedScale> matchedScales,
         GenerationJob generationJob);
-    
+
     IReadOnlyList<ValidationFailure> ValidateChordVoicingNoteChoices(IReadOnlyList<ChordVoicingEvent> chordVoicingEvents,
         IReadOnlyList<MatchedChord> matchedChords, IReadOnlyList<MatchedScale> matchedScales,
         GenerationJob generationJob);
-    
+
     IReadOnlyList<ValidationFailure> ValidateMidiVelocities(CandidateTrack candidateTrack);
-    
+
     IReadOnlyList<ValidationFailure> ValidateNoPartEmpty(CandidateTrack candidateTrack);
-    
+
     IReadOnlyList<ValidationFailure> ValidateBeatPositionsAndDurations(CandidateTrack candidateTrack, GenerationJob generationJob);
 }

@@ -6,7 +6,7 @@ namespace BackingTrack.Generation.Steps.TrackValidation;
 
 public class ValidateStep(ITrackValidator trackValidator) : IValidateStep
 {
-    public TrackValidationResult ValidateCandidateTrack(CandidateTrack candidateTrack, GenerationJob generationJob, 
+    public TrackValidationResult ValidateCandidateTrack(CandidateTrack candidateTrack, GenerationJob generationJob,
         IReadOnlyList<MatchedChord> matchedChords, IReadOnlyList<MatchedScale> matchedScales)
     {
         List<ValidationFailure> failures =

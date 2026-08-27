@@ -23,7 +23,7 @@ public class RetrieveStep(InMemoryVectorStore vectorStore, IQueryEmbeddingServic
             .ToList();
 
         IReadOnlyList<MatchedScale> matchingScaleEntries = scaleMatcher.FindMatchingScalesForChords(keyRoot, chords, allScaleEntries);
-        
+
         return matchingScaleEntries;
     }
 
@@ -37,7 +37,7 @@ public class RetrieveStep(InMemoryVectorStore vectorStore, IQueryEmbeddingServic
 
         if (validChords.Any(c => allChordEntries.FirstOrDefault(e => e.Id == c.quality) is null))
             throw new InvalidOperationException("One or more chord entries requested not found in the vector store");
-            
+
         return validChords
             .Select(v => new MatchedChord(allChordEntries.First(c => c.Id == v.quality), v.root)).ToList();
     }

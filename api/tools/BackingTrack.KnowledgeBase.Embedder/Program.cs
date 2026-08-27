@@ -1,9 +1,11 @@
 using System.Text.Json;
+
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.KnowledgeBase.Embedder;
 using BackingTrack.KnowledgeBase.Embedder.VoyageAI;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
