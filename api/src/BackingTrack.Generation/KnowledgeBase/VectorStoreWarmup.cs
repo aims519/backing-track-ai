@@ -1,6 +1,7 @@
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace BackingTrack.Generation.KnowledgeBase;
 
@@ -8,13 +9,15 @@ namespace BackingTrack.Generation.KnowledgeBase;
 /// Forces the <see cref="InMemoryVectorStore"/> singleton to be built during host
 /// startup rather than on the first request: the KB content is read, validated for
 /// duplicate ids, and embedded up front, and startup fails fast if content is missing.
-/// Resolving the store in the constructor is what triggers its factory.
+/// Resolving the store here is what triggers its factory.
 /// </summary>
-internal sealed class VectorStoreWarmup(InMemoryVectorStore vectorStore) : IHostedService
+internal sealed class VectorStoreWarmup(InMemoryVectorStore vectorStore, ILogger<VectorStoreWarmup> logger) : IHostedService
 {
-    private readonly InMemoryVectorStore _ = vectorStore;
-
-    public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Vector store warmed with {ItemCount} entries", vectorStore.Items.Count);
+        return Task.CompletedTask;
+    }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

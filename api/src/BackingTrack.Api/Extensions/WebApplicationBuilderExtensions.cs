@@ -9,7 +9,7 @@ internal static class WebApplicationBuilderExtensions
         OtelSettings otelSettings = builder.Configuration.GetSection("Otel").Get<OtelSettings>() ?? new OtelSettings();
 
         builder.Services.AddOtel(otelSettings, builder.Environment);
-        builder.Services.AddHealthChecking(otelSettings);
+        builder.Services.AddApplicationHealthChecks(otelSettings);
         builder.Logging.AddApplicationLogging(builder.Environment);
         builder.Logging.AddOtelLogging(otelSettings);
 

@@ -66,7 +66,7 @@ internal static class ServiceCollectionExtensions
         return services;
     }
 
-    internal static IServiceCollection AddHealthChecking(this IServiceCollection services, OtelSettings otelSettings)
+    internal static IServiceCollection AddApplicationHealthChecks(this IServiceCollection services, OtelSettings otelSettings)
     {
         // Default live health check
         IHealthChecksBuilder healthChecks = services.AddHealthChecks()
@@ -129,9 +129,8 @@ internal static class ServiceCollectionExtensions
         return services;
     }
 
-    internal static IServiceCollection AddConfigTypes(this IServiceCollection services, IConfiguration configuration)
+    internal static IServiceCollection AddAppOptions(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddOptions();
         services.Configure<AuthSettings>(configuration.GetSection("Auth"));
         services.Configure<OtelSettings>(configuration.GetSection("Otel"));
         services.Configure<RateLimitSettings>(configuration.GetSection("RateLimit"));

@@ -15,7 +15,7 @@ public class GenerationRequestDto
     public int TimeSignatureBeatUnit { get; init; }
 }
 
-public static class GenerationRequestDtoExtensions
+internal static class GenerationRequestDtoExtensions
 {
     private static readonly IReadOnlySet<int> ValidBeatUnits = new HashSet<int>() { 2, 4, 8, 16, 32 };
     private const int ValidBeatCountMin = 2;
@@ -26,7 +26,7 @@ public static class GenerationRequestDtoExtensions
         ValidationProblemDetails validationProblemDetails = new();
 
         if (!Enum.TryParse<GenerationMode>(request.Mode, out _))
-            validationProblemDetails.Errors.Add(nameof(request.Mode), [$"Invalid generation mode: {request.Mode}. Accepted values are {string.Join(',', Enum.GetNames(typeof(GenerationMode)))}"]);
+            validationProblemDetails.Errors.Add(nameof(request.Mode), [$"Invalid generation mode: {request.Mode}. Accepted values are {string.Join(',', Enum.GetNames<GenerationMode>())}"]);
 
         if (request.Tempo is < 40 or > 240)
             validationProblemDetails.Errors.Add(nameof(request.Tempo), [$"Tempo must be between 40 and 240 BPM, but was {request.Tempo}"
@@ -59,6 +59,6 @@ public static class GenerationRequestDtoExtensions
         if (string.IsNullOrWhiteSpace(request.Style))
             validationProblemDetails.Errors.Add(nameof(request.Style), ["Style guidance must be provided"]);
 
-        return validationProblemDetails.Errors.Any() ? validationProblemDetails : null;
+        return validationProblemDetails.Errors.Count > 0 ? validationProblemDetails : null;
     }
 }

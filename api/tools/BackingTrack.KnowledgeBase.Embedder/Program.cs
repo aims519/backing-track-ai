@@ -17,11 +17,11 @@ HostApplicationBuilder builder = new();
 builder.Configuration.AddUserSecrets<Program>();
 
 builder.Services.AddOptions();
-builder.Services.Configure<VoyageAiSettings>(builder.Configuration.GetSection("VoyageAI"));
+builder.Services.Configure<VoyageAiSettings>(builder.Configuration.GetSection("VoyageAi"));
 builder.Services.AddHttpClient<IEmbeddingService, VoyageAiEmbeddingService>(client =>
 {
-    client.BaseAddress = new(builder.Configuration.GetValue<string>("VoyageAI:RestApiBaseUrl")!);
-    client.DefaultRequestHeaders.Authorization = new("Bearer", builder.Configuration.GetValue<string>("VoyageAI:ApiKey"));
+    client.BaseAddress = new(builder.Configuration.GetValue<string>("VoyageAi:RestApiBaseUrl")!);
+    client.DefaultRequestHeaders.Authorization = new("Bearer", builder.Configuration.GetValue<string>("VoyageAi:ApiKey"));
 });
 
 builder.Services.AddSingleton<EmbeddingOrchestrator>();

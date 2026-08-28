@@ -4,7 +4,7 @@ using BackingTrack.Api.Dtos;
 
 using Microsoft.AspNetCore.Mvc;
 
-namespace BackingTrack.Api;
+namespace BackingTrack.Api.Serialization;
 
 [JsonSerializable(typeof(ProblemDetails))]
 [JsonSerializable(typeof(ValidationProblemDetails))]

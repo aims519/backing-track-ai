@@ -22,8 +22,8 @@ internal sealed class ApiKeyFilter(IOptions<AuthSettings> authSettings) : IEndpo
         if (string.IsNullOrEmpty(expectedApiKey))
             return Results.Unauthorized();
 
-        bool bEqual = CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(apiKeyHeader), Encoding.UTF8.GetBytes(expectedApiKey));
-        if (!bEqual)
+        bool keysMatch = CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(apiKeyHeader), Encoding.UTF8.GetBytes(expectedApiKey));
+        if (!keysMatch)
             return Results.Unauthorized();
 
         return await next(context);

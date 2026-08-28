@@ -1,8 +1,8 @@
-using BackingTrack.Api;
 using BackingTrack.Api.Auth;
 using BackingTrack.Api.Endpoints;
 using BackingTrack.Api.Errors;
 using BackingTrack.Api.Extensions;
+using BackingTrack.Api.Serialization;
 using BackingTrack.Generation;
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.Steps.Retrieval;
@@ -21,8 +21,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Configuration.AddUserSecrets<Program>();
 
-builder.Services.AddConfigTypes(builder.Configuration);
-builder.Services.AddLogging();
+builder.Services.AddAppOptions(builder.Configuration);
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
