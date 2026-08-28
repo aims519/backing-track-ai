@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-namespace BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAI;
+namespace BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAi;
 
-public class VoyageAIQueryEmbeddingRequestDto
+public class VoyageAiQueryEmbeddingRequestDto
 {
     [JsonPropertyName("input")]
     public required string[] Input { get; init; }

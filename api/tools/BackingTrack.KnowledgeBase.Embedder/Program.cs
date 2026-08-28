@@ -4,7 +4,7 @@ using BackingTrack.Core.Config;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.KnowledgeBase.Embedder;
-using BackingTrack.KnowledgeBase.Embedder.VoyageAI;
+using BackingTrack.KnowledgeBase.Embedder.VoyageAi;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,7 +17,7 @@ HostApplicationBuilder builder = new();
 builder.Configuration.AddUserSecrets<Program>();
 
 builder.Services.AddOptions();
-builder.Services.Configure<VoyageAISettings>(builder.Configuration.GetSection("VoyageAI"));
+builder.Services.Configure<VoyageAiSettings>(builder.Configuration.GetSection("VoyageAI"));
 builder.Services.AddHttpClient<IEmbeddingService, VoyageAiEmbeddingService>(client =>
 {
     client.BaseAddress = new(builder.Configuration.GetValue<string>("VoyageAI:RestApiBaseUrl")!);

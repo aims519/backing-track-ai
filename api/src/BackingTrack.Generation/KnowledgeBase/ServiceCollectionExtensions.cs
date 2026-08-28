@@ -1,13 +1,38 @@
+using BackingTrack.Core.Config;
+using BackingTrack.Generation.KnowledgeBase.Embedding;
+using BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAi;
 using BackingTrack.Generation.KnowledgeBase.Types;
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
-namespace BackingTrack.Generation.KnowledgeBase.Embedding;
+namespace BackingTrack.Generation.KnowledgeBase;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddKnowledgeBaseVectorStore(this IServiceCollection services)
+    public static IServiceCollection AddKnowledgeBase(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<VoyageAiSettings>(configuration.GetSection("VoyageAi"));
+
+        services.AddKnowledgeBaseVectorStore();
+        services.AddHostedService<VectorStoreWarmup>();
+
+        services.AddSingleton<ChordSymbolParser>();
+        services.AddSingleton<ScaleMatcher>();
+
+        services.AddHttpClient<IQueryEmbeddingService, VoyageAiQueryEmbeddingService>((sp, client) =>
+        {
+            VoyageAiSettings settings = sp.GetRequiredService<IOptions<VoyageAiSettings>>().Value;
+            client.BaseAddress = new(settings.RestApiBaseUrl);
+            client.DefaultRequestHeaders.Authorization = new("Bearer", settings.ApiKey);
+        });
+
+        return services;
+    }
+
+    private static IServiceCollection AddKnowledgeBaseVectorStore(this IServiceCollection services)
     {
         services.AddSingleton(sp =>
         {

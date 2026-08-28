@@ -21,6 +21,7 @@ public static class ServiceCollectionExtensions
         if (string.IsNullOrEmpty(llmProvider))
             throw new InvalidOperationException("llmProvider must be set.");
 
+        services.Configure<TrackGenerationWorkflowSettings>(configuration.GetSection("TrackGenerationWorkflow"));
         services.AddKeyedSingleton<AIAgent>("generate", (sp, _) =>
             sp.GetRequiredKeyedService<IChatClient>("generate").AsAIAgent(instructions: GenerateStepPrompts.SystemInstructions));
 
@@ -32,6 +33,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<TrackGenerationMetrics>();
         services.AddSingleton<ITrackGenerationClient, TrackGenerationClient>();
+        services.AddTransient<IGenerateStep, GenerateStep>();
 
         return services;
     }

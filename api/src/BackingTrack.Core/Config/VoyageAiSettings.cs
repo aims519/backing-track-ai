@@ -1,6 +1,6 @@
 namespace BackingTrack.Core.Config;
 
-public class VoyageAISettings
+public class VoyageAiSettings
 {
     public required string ApiKey { get; set; }
     public required string RestApiBaseUrl { get; set; }

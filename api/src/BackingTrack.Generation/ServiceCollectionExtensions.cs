@@ -1,6 +1,8 @@
 using System.ClientModel;
+using System.Threading.Channels;
 
 using BackingTrack.Core.Config;
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.Workflows.Executors;
 
 using Microsoft.Extensions.AI;
@@ -20,8 +22,10 @@ public static class ServiceCollectionExtensions
         string? llmProvider = configuration.GetValue<string>("Llm:Provider");
         if (string.IsNullOrEmpty(llmProvider))
             throw new InvalidOperationException("llmProvider must be set.");
+
         if (llmProvider == "OpenAi")
         {
+            services.Configure<OpenAiSettings>(configuration.GetSection("OpenAi"));
             services.AddKeyedSingleton<IChatClient>("generate", (sp, _) =>
             {
                 OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
@@ -59,6 +63,18 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ValidateCandidateTrackExecutor>();
         services.AddScoped<RepairCandidateTrackExecutor>();
         services.AddScoped<PersistCandidateTrackExecutor>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddJobProcessing(this IServiceCollection services)
+    {
+        services.AddSingleton<JobStore>();
+
+        Channel<Guid> jobChannel = Channel.CreateUnbounded<Guid>();
+        services.AddSingleton(new GenerationJobQueue(jobChannel));
+        services.AddSingleton<GenerationJobMetrics>();
+        services.AddHostedService<GenerationJobWorkerHostedService>();
 
         return services;
     }

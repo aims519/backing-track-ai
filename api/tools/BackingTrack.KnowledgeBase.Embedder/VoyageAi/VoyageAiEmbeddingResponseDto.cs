@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-namespace BackingTrack.KnowledgeBase.Embedder.VoyageAI;
+namespace BackingTrack.KnowledgeBase.Embedder.VoyageAi;
 
-public class VoyageAIEmbeddingResponseDto
+public class VoyageAiEmbeddingResponseDto
 {
     [JsonPropertyName("data")]
     public EmbeddingDataItemDto[] Data { get; init; } = Array.Empty<EmbeddingDataItemDto>();

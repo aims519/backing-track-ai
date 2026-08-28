@@ -32,6 +32,7 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddSingleton<TrackRepairMetrics>();
+        services.AddTransient<IRepairStep, RepairStep>();
 
         return services;
     }
