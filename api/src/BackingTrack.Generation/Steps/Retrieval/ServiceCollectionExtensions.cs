@@ -7,6 +7,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddKnowledgeRetrieval(this IServiceCollection services)
     {
+        services.AddTransient<IRetrieveStep, RetrieveStep>();
         return services;
     }
 }

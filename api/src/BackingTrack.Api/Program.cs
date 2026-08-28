@@ -19,8 +19,10 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, BackingTrack.Api.AppJsonSerializerContext.Default);
 });
 
+
 builder.Configuration.AddUserSecrets<Program>();
 
+builder.Services.AddConfigTypes(builder.Configuration);
 builder.Services.AddLogging();
 
 builder.Services.AddProblemDetails();
