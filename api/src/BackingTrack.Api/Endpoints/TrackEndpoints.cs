@@ -14,11 +14,11 @@ internal static class TrackEndpoints
     {
         group.MapPost("/generate", Generate);
         group.MapGet("/status/{jobId:guid}", GetStatus).DisableRateLimiting();
-        group.MapGet("/download/{trackId:guid}", DownloadTrackAsync).DisableRateLimiting();
+        group.MapGet("/download/{trackId:guid}", DownloadTrack).DisableRateLimiting();
         return group;
     }
 
-    private static async Task<IResult> Generate(GenerationRequestDto requestDto, JobStore jobStore, GenerationJobQueue jobQueue, ChordSymbolParser chordSymbolParser, ILoggerFactory loggerFactory)
+    private static IResult Generate(GenerationRequestDto requestDto, JobStore jobStore, GenerationJobQueue jobQueue, ChordSymbolParser chordSymbolParser, ILoggerFactory loggerFactory)
     {
         ILogger logger = loggerFactory.CreateLogger(nameof(TrackEndpoints));
 
@@ -49,7 +49,7 @@ internal static class TrackEndpoints
         return Results.Ok(jobDto);
     }
 
-    private static async Task<IResult> GetStatus(Guid jobId, JobStore jobStore)
+    private static IResult GetStatus(Guid jobId, JobStore jobStore)
     {
         GenerationJob? job = jobStore.TryGet(jobId);
         if (job == null)
@@ -59,7 +59,7 @@ internal static class TrackEndpoints
         return Results.Ok(jobDto);
     }
 
-    private static async Task<IResult> DownloadTrackAsync(Guid trackId, IOptions<TrackStorageSettings> trackStorageSettings)
+    private static IResult DownloadTrack(Guid trackId, IOptions<TrackStorageSettings> trackStorageSettings)
     {
         TrackStorageSettings storageSettings = trackStorageSettings.Value;
 
@@ -82,7 +82,6 @@ internal static class TrackEndpoints
             _ => "application/octet-stream"
         };
 
-        Stream stream = file.OpenRead();
-        return Results.Stream(stream, contentType, enableRangeProcessing: true);
+        return Results.File(file.FullName, contentType, enableRangeProcessing: true);
     }
 }

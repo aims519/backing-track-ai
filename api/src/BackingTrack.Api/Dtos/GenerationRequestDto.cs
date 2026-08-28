@@ -4,7 +4,7 @@ using BackingTrack.Generation.KnowledgeBase;
 using Microsoft.AspNetCore.Mvc;
 namespace BackingTrack.Api.Dtos;
 
-public class GenerationRequestDto
+public sealed record GenerationRequestDto
 {
     public string? Mode { get; init; }
     public int Tempo { get; init; }
@@ -38,7 +38,7 @@ internal static class GenerationRequestDtoExtensions
         if (request.Chords != null)
         {
             List<string> chordErrors = chordSymbolParser.ValidateChords(request.Chords)
-                .Where(r => !r.bValid)
+                .Where(r => !r.isValid)
                 .Select(r => r.reason)
                 .ToList();
             if (chordErrors.Count > 0)
@@ -47,7 +47,7 @@ internal static class GenerationRequestDtoExtensions
 
         if (string.IsNullOrWhiteSpace(request.KeyRoot))
             validationProblemDetails.Errors.Add(nameof(request.KeyRoot), ["KeyRoot must be provided"]);
-        else if (!chordSymbolParser.ValidateRoot(request.KeyRoot).bValid)
+        else if (!chordSymbolParser.ValidateRoot(request.KeyRoot).isValid)
             validationProblemDetails.Errors.Add(nameof(request.KeyRoot), [$"KeyRoot '{request.KeyRoot}' is not a valid root note"]);
 
         if (request.TimeSignatureBeatCount < ValidBeatCountMin || request.TimeSignatureBeatCount > ValidBeatCountMax)

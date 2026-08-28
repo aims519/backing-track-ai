@@ -17,7 +17,7 @@ public class ChordSymbolParser
             .ToList();
     }
 
-    public IEnumerable<(string root, string quality, bool bValid, string reason)> ValidateChords(IReadOnlyList<string> chords)
+    public IEnumerable<(string root, string quality, bool isValid, string reason)> ValidateChords(IReadOnlyList<string> chords)
     {
         foreach (string chord in chords)
         {
@@ -25,7 +25,7 @@ public class ChordSymbolParser
         }
     }
 
-    public (bool bValid, string? root, string reason) ValidateRoot(string? root)
+    public (bool isValid, string? root, string reason) ValidateRoot(string? root)
     {
         root = root?.Trim();
 
@@ -45,7 +45,7 @@ public class ChordSymbolParser
         return (false, root, $"Note {root} is invalid");
     }
 
-    private (string root, string quality, bool bValid, string reason) ValidateChord(string chordString)
+    private (string root, string quality, bool isValid, string reason) ValidateChord(string chordString)
     {
         string root = string.Empty;
         string quality = string.Empty;

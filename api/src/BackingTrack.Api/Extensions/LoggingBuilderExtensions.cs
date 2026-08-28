@@ -11,16 +11,13 @@ internal static class LoggingBuilderExtensions
         if (!otelSettings.IsEnabled)
             return loggingBuilder;
 
-        if (string.IsNullOrEmpty(otelSettings.CollectorEndpoint))
-            throw new InvalidOperationException("Otel:CollectorEndpoint must be set when Otel:IsEnabled is true");
-
         loggingBuilder.AddOpenTelemetry(options =>
         {
             options.IncludeScopes = true;
             options.IncludeFormattedMessage = true;
             options.AddOtlpExporter(otlpExporterOptions =>
             {
-                otlpExporterOptions.Endpoint = new Uri(otelSettings.CollectorEndpoint);
+                otlpExporterOptions.Endpoint = new Uri(otelSettings.CollectorEndpoint!);
             });
         });
 

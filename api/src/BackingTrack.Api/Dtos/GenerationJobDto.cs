@@ -2,7 +2,7 @@ using BackingTrack.Generation.Jobs;
 
 namespace BackingTrack.Api.Dtos;
 
-public class GenerationJobDto
+public sealed record GenerationJobDto
 {
     public required Guid Id { get; init; }
     public required string Status { get; init; }

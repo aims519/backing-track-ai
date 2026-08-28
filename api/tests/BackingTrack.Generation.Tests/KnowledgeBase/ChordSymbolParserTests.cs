@@ -35,9 +35,9 @@ public class ChordSymbolParserTests
 
         // ValidateChords declares its elements non-nullable, but this test deliberately exercises
         // a null chord to prove it's treated as invalid rather than throwing - null! documents that.
-        (string _, string _, bool bValid, string _) = parser.ValidateChords([chord!]).Single();
+        (string _, string _, bool isValid, string _) = parser.ValidateChords([chord!]).Single();
 
-        Assert.False(bValid);
+        Assert.False(isValid);
     }
 
     [Theory]
@@ -52,9 +52,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (string root, string quality, bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string root, string quality, bool isValid, string reason) = parser.ValidateChords([chord]).Single();
 
-        Assert.True(bValid);
+        Assert.True(isValid);
         Assert.Equal(string.Empty, reason);
         Assert.Equal(chord, root);
         Assert.Equal("maj", quality);
@@ -73,9 +73,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (string root, string quality, bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string root, string quality, bool isValid, string reason) = parser.ValidateChords([chord]).Single();
 
-        Assert.True(bValid);
+        Assert.True(isValid);
         Assert.Equal(string.Empty, reason);
         Assert.Equal(expectedRoot, root);
         Assert.Equal(expectedQuality, quality);
@@ -94,9 +94,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (string _, string quality, bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string _, string quality, bool isValid, string reason) = parser.ValidateChords([chord]).Single();
 
-        Assert.True(bValid);
+        Assert.True(isValid);
         Assert.Equal(string.Empty, reason);
         Assert.Equal(quality, quality.ToLower());
     }
@@ -112,9 +112,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (string _, string _, bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string _, string _, bool isValid, string reason) = parser.ValidateChords([chord]).Single();
 
-        Assert.True(bValid);
+        Assert.True(isValid);
         Assert.Equal(string.Empty, reason);
     }
 
@@ -126,9 +126,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (string _, string _, bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string _, string _, bool isValid, string reason) = parser.ValidateChords([chord]).Single();
 
-        Assert.False(bValid);
+        Assert.False(isValid);
         Assert.Contains("invalid", reason);
     }
 
@@ -140,9 +140,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (string _, string _, bool bValid, string reason) = parser.ValidateChords([chord]).Single();
+        (string _, string _, bool isValid, string reason) = parser.ValidateChords([chord]).Single();
 
-        Assert.False(bValid);
+        Assert.False(isValid);
         Assert.Contains("invalid", reason);
     }
 
@@ -153,9 +153,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (string _, string _, bool bValid, string _) = parser.ValidateChords([chord]).Single();
+        (string _, string _, bool isValid, string _) = parser.ValidateChords([chord]).Single();
 
-        Assert.False(bValid);
+        Assert.False(isValid);
     }
 
     [Fact]
@@ -163,13 +163,13 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        List<(string root, string quality, bool bValid, string reason)> results =
+        List<(string root, string quality, bool isValid, string reason)> results =
             parser.ValidateChords(["C", "Dmin7", "H7"]).ToList();
 
         Assert.Equal(3, results.Count);
-        Assert.True(results[0].bValid);
-        Assert.True(results[1].bValid);
-        Assert.False(results[2].bValid);
+        Assert.True(results[0].isValid);
+        Assert.True(results[1].isValid);
+        Assert.False(results[2].isValid);
     }
 
     [Fact]
@@ -177,9 +177,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (string root, string quality, bool bValid, string _) = parser.ValidateChords(["c7"]).Single();
+        (string root, string quality, bool isValid, string _) = parser.ValidateChords(["c7"]).Single();
 
-        Assert.True(bValid);
+        Assert.True(isValid);
         Assert.Equal("C", root);
         Assert.Equal("7", quality);
     }
@@ -192,9 +192,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (string root, string quality, bool bValid, string _) = parser.ValidateChords([chord]).Single();
+        (string root, string quality, bool isValid, string _) = parser.ValidateChords([chord]).Single();
 
-        Assert.True(bValid);
+        Assert.True(isValid);
         Assert.Equal(expectedRoot, root);
         Assert.Equal(expectedQuality, quality);
     }
@@ -207,9 +207,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (string root, string quality, bool bValid, string _) = parser.ValidateChords([chord]).Single();
+        (string root, string quality, bool isValid, string _) = parser.ValidateChords([chord]).Single();
 
-        Assert.True(bValid);
+        Assert.True(isValid);
         Assert.Equal(expectedRoot, root);
         Assert.Equal(expectedQuality, quality);
     }
@@ -226,9 +226,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string? _, string reason) = parser.ValidateRoot(root);
+        (bool isValid, string? _, string reason) = parser.ValidateRoot(root);
 
-        Assert.True(bValid);
+        Assert.True(isValid);
         Assert.Equal(string.Empty, reason);
     }
 
@@ -239,9 +239,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string? normalisedRoot, string _) = parser.ValidateRoot(root);
+        (bool isValid, string? normalisedRoot, string _) = parser.ValidateRoot(root);
 
-        Assert.True(bValid);
+        Assert.True(isValid);
         Assert.Equal(expectedRoot, normalisedRoot);
     }
 
@@ -254,9 +254,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string? _, string _) = parser.ValidateRoot(root);
+        (bool isValid, string? _, string _) = parser.ValidateRoot(root);
 
-        Assert.True(bValid);
+        Assert.True(isValid);
     }
 
     [Theory]
@@ -268,9 +268,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string? _, string _) = parser.ValidateRoot(root);
+        (bool isValid, string? _, string _) = parser.ValidateRoot(root);
 
-        Assert.True(bValid);
+        Assert.True(isValid);
     }
 
     [Theory]
@@ -281,9 +281,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string? _, string _) = parser.ValidateRoot(root);
+        (bool isValid, string? _, string _) = parser.ValidateRoot(root);
 
-        Assert.True(bValid);
+        Assert.True(isValid);
     }
 
     [Theory]
@@ -294,9 +294,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string? _, string reason) = parser.ValidateRoot(root);
+        (bool isValid, string? _, string reason) = parser.ValidateRoot(root);
 
-        Assert.False(bValid);
+        Assert.False(isValid);
     }
 
     [Theory]
@@ -306,9 +306,9 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string? _, string _) = parser.ValidateRoot(root);
+        (bool isValid, string? _, string _) = parser.ValidateRoot(root);
 
-        Assert.False(bValid);
+        Assert.False(isValid);
     }
 
     // A key must be JUST a root, not a full chord symbol - "Cmaj7" as a Key should not
@@ -322,8 +322,8 @@ public class ChordSymbolParserTests
     {
         ChordSymbolParser parser = CreateParser();
 
-        (bool bValid, string? _, string _) = parser.ValidateRoot(root);
+        (bool isValid, string? _, string _) = parser.ValidateRoot(root);
 
-        Assert.False(bValid);
+        Assert.False(isValid);
     }
 }
