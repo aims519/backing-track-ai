@@ -131,10 +131,13 @@ internal static class ServiceCollectionExtensions
 
     internal static IServiceCollection AddAppOptions(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<AuthSettings>(configuration.GetSection("Auth"));
         services.Configure<OtelSettings>(configuration.GetSection("Otel"));
         services.Configure<RateLimitSettings>(configuration.GetSection("RateLimit"));
 
+        services.AddOptions<AuthSettings>()
+            .Bind(configuration.GetSection("Auth"))
+            .Validate(s => !string.IsNullOrWhiteSpace(s.ApiKey), "Auth:ApiKey must be configured")
+            .ValidateOnStart();
         return services;
     }
 

@@ -14,7 +14,12 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddKnowledgeBase(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<VoyageAiSettings>(configuration.GetSection("VoyageAi"));
+        services.AddOptions<VoyageAiSettings>()
+            .Bind(configuration.GetSection("VoyageAi"))
+            .Validate(s => !string.IsNullOrWhiteSpace(s.ApiKey), "VoyageAi:ApiKey must be configured")
+            .Validate(s => !string.IsNullOrWhiteSpace(s.RestApiBaseUrl), "VoyageAi:RestApiBaseUrl must be configured")
+            .Validate(s => !string.IsNullOrWhiteSpace(s.EmbeddingModel), "VoyageAi:EmbeddingModel must be configured")
+            .ValidateOnStart();
 
         services.AddKnowledgeBaseVectorStore();
         services.AddHostedService<VectorStoreWarmup>();

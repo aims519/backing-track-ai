@@ -30,9 +30,9 @@ public class RetrieveStep(InMemoryVectorStore vectorStore, IQueryEmbeddingServic
     public IReadOnlyList<MatchedChord> RetrieveMatchingChords(IReadOnlyList<string> chordStrings)
     {
         IReadOnlyList<ChordEntry> allChordEntries = vectorStore.Items.Where(i => i.Entry is ChordEntry).Select(i => (ChordEntry)i.Entry).ToList();
-        IEnumerable<(string root, string quality, bool bValid, string reason)> validatedChords = chordSymbolParser.ValidateChords(chordStrings);
+        IEnumerable<(string root, string quality, bool isValid, string reason)> validatedChords = chordSymbolParser.ValidateChords(chordStrings);
 
-        IList<(string root, string quality)> validChords = validatedChords.Where(c => c.bValid)
+        IList<(string root, string quality)> validChords = validatedChords.Where(c => c.isValid)
             .Select(c => (c.root, c.quality)).ToList();
 
         if (validChords.Any(c => allChordEntries.FirstOrDefault(e => e.Id == c.quality) is null))
