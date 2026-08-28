@@ -22,8 +22,10 @@ public static class ServiceCollectionExtensions
         string? llmProvider = configuration.GetValue<string>("Llm:Provider");
         if (string.IsNullOrEmpty(llmProvider))
             throw new InvalidOperationException("llmProvider must be set.");
+
         if (llmProvider == "OpenAi")
         {
+            services.Configure<OpenAiSettings>(configuration.GetSection("OpenAi"));
             services.AddKeyedSingleton<IChatClient>("generate", (sp, _) =>
             {
                 OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;

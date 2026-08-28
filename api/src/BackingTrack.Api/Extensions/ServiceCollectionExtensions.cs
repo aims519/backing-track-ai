@@ -18,9 +18,9 @@ using OpenTelemetry.Trace;
 
 namespace BackingTrack.Api.Extensions;
 
-public static class ServiceCollectionExtensions
+internal static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddOtel(this IServiceCollection services, OtelSettings otelSettings, IWebHostEnvironment environment)
+    internal static IServiceCollection AddOtel(this IServiceCollection services, OtelSettings otelSettings, IWebHostEnvironment environment)
     {
         if (otelSettings.IsEnabled)
         {
@@ -66,7 +66,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddHealthChecking(this IServiceCollection services, OtelSettings otelSettings)
+    internal static IServiceCollection AddHealthChecking(this IServiceCollection services, OtelSettings otelSettings)
     {
         // Default live health check
         IHealthChecksBuilder healthChecks = services.AddHealthChecks()
@@ -89,7 +89,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddRateLimits(this IServiceCollection services, IConfiguration configuration)
+    internal static IServiceCollection AddRateLimits(this IServiceCollection services, IConfiguration configuration)
     {
         RateLimitSettings rateLimitSettings = configuration.GetSection("RateLimit").Get<RateLimitSettings>()!;
 
@@ -129,16 +129,12 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddConfigTypes(this IServiceCollection services, IConfiguration configuration)
+    internal static IServiceCollection AddConfigTypes(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions();
         services.Configure<AuthSettings>(configuration.GetSection("Auth"));
         services.Configure<OtelSettings>(configuration.GetSection("Otel"));
         services.Configure<RateLimitSettings>(configuration.GetSection("RateLimit"));
-        services.Configure<TrackStorageSettings>(configuration.GetSection("TrackStorage"));
-        services.Configure<VoyageAiSettings>(configuration.GetSection("VoyageAi"));
-        services.Configure<OpenAiSettings>(configuration.GetSection("OpenAi"));
-        services.Configure<TrackGenerationWorkflowSettings>(configuration.GetSection("TrackGenerationWorkflow"));
 
         return services;
     }

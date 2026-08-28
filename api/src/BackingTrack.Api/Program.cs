@@ -6,6 +6,7 @@ using BackingTrack.Generation;
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.Steps.Retrieval;
 using BackingTrack.Generation.Steps.TrackGeneration;
+using BackingTrack.Generation.Steps.TrackPersistence;
 using BackingTrack.Generation.Steps.TrackRepair;
 using BackingTrack.Generation.Steps.TrackValidation;
 
@@ -16,7 +17,6 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, BackingTrack.Api.AppJsonSerializerContext.Default);
 });
-
 
 builder.Configuration.AddUserSecrets<Program>();
 
@@ -49,6 +49,7 @@ builder.Services.AddKnowledgeRetrieval();
 builder.Services.AddTrackGeneration(builder.Configuration);
 builder.Services.AddTrackValidation();
 builder.Services.AddTrackRepair(builder.Configuration);
+builder.Services.AddTrackPersistence(builder.Configuration);
 builder.Services.AddTrackGenerationWorkflow();
 
 WebApplication app = builder.Build();

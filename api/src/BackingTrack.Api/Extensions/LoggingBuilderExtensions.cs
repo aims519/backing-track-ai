@@ -4,9 +4,9 @@ using OpenTelemetry.Logs;
 
 namespace BackingTrack.Api.Extensions;
 
-public static class LoggingBuilderExtensions
+internal static class LoggingBuilderExtensions
 {
-    public static ILoggingBuilder AddOtelLogging(this ILoggingBuilder loggingBuilder, OtelSettings otelSettings)
+    internal static ILoggingBuilder AddOtelLogging(this ILoggingBuilder loggingBuilder, OtelSettings otelSettings)
     {
         if (!otelSettings.IsEnabled)
             return loggingBuilder;
@@ -27,7 +27,7 @@ public static class LoggingBuilderExtensions
         return loggingBuilder;
     }
 
-    public static ILoggingBuilder AddApplicationLogging(
+    internal static ILoggingBuilder AddApplicationLogging(
         this ILoggingBuilder builder, IWebHostEnvironment environment)
     {
         if (environment.IsDevelopment())

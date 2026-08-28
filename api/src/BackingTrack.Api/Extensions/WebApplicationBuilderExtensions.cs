@@ -2,9 +2,9 @@ using BackingTrack.Core.Config;
 
 namespace BackingTrack.Api.Extensions;
 
-public static class WebApplicationBuilderExtensions
+internal static class WebApplicationBuilderExtensions
 {
-    public static WebApplicationBuilder AddObservability(this WebApplicationBuilder builder)
+    internal static WebApplicationBuilder AddObservability(this WebApplicationBuilder builder)
     {
         OtelSettings otelSettings = builder.Configuration.GetSection("Otel").Get<OtelSettings>() ?? new OtelSettings();
 

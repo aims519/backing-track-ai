@@ -1,8 +1,8 @@
 namespace BackingTrack.Api.Extensions;
 
-public static class EndpointRouteBuilderExtensions
+internal static class EndpointRouteBuilderExtensions
 {
-    public static IEndpointRouteBuilder MapApplicationHealthChecks(this IEndpointRouteBuilder endpoints)
+    internal static IEndpointRouteBuilder MapApplicationHealthChecks(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapHealthChecks("/healthz/ready", new()
         {

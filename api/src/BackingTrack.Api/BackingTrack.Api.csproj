@@ -19,4 +19,10 @@
     <ProjectReference Include="..\BackingTrack.Generation\BackingTrack.Generation.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Extensions\Config\" />
+    <Folder Include="Extensions\Otel\" />
+    <Folder Include="Extensions\RateLimiting\" />
+  </ItemGroup>
+
 </Project>

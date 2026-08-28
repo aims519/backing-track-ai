@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 using BackingTrack.Api.Dtos;
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
