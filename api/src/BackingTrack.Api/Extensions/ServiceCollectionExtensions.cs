@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -26,7 +25,7 @@ public static class ServiceCollectionExtensions
         if (otelSettings.IsEnabled)
         {
             if (string.IsNullOrEmpty(otelSettings.CollectorEndpoint))
-                throw new InvalidOperationException("Otel:CollectorEndpoint must be set when Otel:bEnabled is true");
+                throw new InvalidOperationException("Otel:CollectorEndpoint must be set when Otel:IsEnabled is true");
 
             services.AddOpenTelemetry()
             .ConfigureResource(resourceBuilder =>
@@ -65,7 +64,7 @@ public static class ServiceCollectionExtensions
 
             // Register OTEL collector health check
             if (string.IsNullOrEmpty(otelSettings.CollectorHealthCheckEndpoint))
-                throw new InvalidOperationException("Otel:CollectorHealthCheckEndpoint must be set when Otel:bEnabled is true.");
+                throw new InvalidOperationException("Otel:CollectorHealthCheckEndpoint must be set when Otel:IsEnabled is true.");
 
             services.AddHttpClient<OtelCollectorHealthCheck>(options =>
             {
@@ -88,8 +87,10 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddRateLimits(this IServiceCollection services, RateLimitSettings rateLimitSettings)
+    public static IServiceCollection AddRateLimits(this IServiceCollection services, IConfiguration configuration)
     {
+        RateLimitSettings rateLimitSettings = configuration.GetSection("RateLimit").Get<RateLimitSettings>()!;
+
         services.AddRateLimiter(rateLimitOptions =>
         {
             rateLimitOptions.AddPolicy("fixed", context =>
@@ -125,7 +126,7 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
-    
+
     public static IServiceCollection AddConfigTypes(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions();

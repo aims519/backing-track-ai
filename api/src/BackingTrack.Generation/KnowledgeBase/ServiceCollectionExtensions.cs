@@ -13,6 +13,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddKnowledgeBase(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddKnowledgeBaseVectorStore();
+        services.AddHostedService<VectorStoreWarmup>();
 
         services.AddSingleton<ChordSymbolParser>();
         services.AddSingleton<ScaleMatcher>();

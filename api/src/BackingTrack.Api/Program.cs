@@ -2,10 +2,8 @@ using BackingTrack.Api.Auth;
 using BackingTrack.Api.Endpoints;
 using BackingTrack.Api.Errors;
 using BackingTrack.Api.Extensions;
-using BackingTrack.Core.Config;
 using BackingTrack.Generation;
 using BackingTrack.Generation.KnowledgeBase;
-using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.Steps.Retrieval;
 using BackingTrack.Generation.Steps.TrackGeneration;
 using BackingTrack.Generation.Steps.TrackRepair;
@@ -34,15 +32,10 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
 
 // Observability
-OtelSettings otelSettings = builder.Configuration.GetSection("Otel").Get<OtelSettings>() ?? new OtelSettings();
-builder.Services.AddOtel(otelSettings, builder.Environment);
-builder.Services.AddHealthChecking(otelSettings);
-builder.Logging.AddApplicationLogging(builder.Environment);
-builder.Logging.AddOtelLogging(otelSettings);
+builder.AddObservability();
 
 // Rate limiting
-RateLimitSettings rateLimitSettings = builder.Configuration.GetSection("RateLimit").Get<RateLimitSettings>()!;
-builder.Services.AddRateLimits(rateLimitSettings);
+builder.Services.AddRateLimits(builder.Configuration);
 
 // Job Processing
 builder.Services.AddJobProcessing();
@@ -59,10 +52,8 @@ builder.Services.AddTrackRepair(builder.Configuration);
 builder.Services.AddTrackGenerationWorkflow();
 
 WebApplication app = builder.Build();
-app.Services.GetRequiredService<InMemoryVectorStore>(); // forces eager load + logging
 
 app.UseExceptionHandler();
-
 app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
@@ -70,15 +61,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapHealthChecks("/healthz/ready", new()
-{
-    Predicate = healthCheck => healthCheck.Tags.Contains("ready")
-});
-
-app.MapHealthChecks("/healthz/live", new()
-{
-    Predicate = healthCheck => healthCheck.Tags.Contains("live")
-});
+app.MapApplicationHealthChecks();
 
 RouteGroupBuilder trackEndpoints = app.MapGroup("/tracks")
     .AddEndpointFilter<ApiKeyFilter>()

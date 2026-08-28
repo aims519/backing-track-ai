@@ -8,8 +8,11 @@ public static class LoggingBuilderExtensions
 {
     public static ILoggingBuilder AddOtelLogging(this ILoggingBuilder loggingBuilder, OtelSettings otelSettings)
     {
+        if (!otelSettings.IsEnabled)
+            return loggingBuilder;
+
         if (string.IsNullOrEmpty(otelSettings.CollectorEndpoint))
-            throw new InvalidOperationException("Otel:CollectorEndpoint must be set when Otel:bEnabled is true");
+            throw new InvalidOperationException("Otel:CollectorEndpoint must be set when Otel:IsEnabled is true");
 
         loggingBuilder.AddOpenTelemetry(options =>
         {

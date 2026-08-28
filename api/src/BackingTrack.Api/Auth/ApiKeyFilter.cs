@@ -21,7 +21,7 @@ internal sealed class ApiKeyFilter(IOptions<Core.Config.AuthSettings> authSettin
             return Results.Unauthorized();
 
         bool bEqual = CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(apiKeyHeader), Encoding.UTF8.GetBytes(expectedApiKey));
-        if (!bEqual) 
+        if (!bEqual)
             return Results.Unauthorized();
 
         return await next(context);
