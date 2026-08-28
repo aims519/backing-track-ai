@@ -1,3 +1,4 @@
+using BackingTrack.Api;
 using BackingTrack.Api.Auth;
 using BackingTrack.Api.Endpoints;
 using BackingTrack.Api.Errors;
@@ -15,7 +16,7 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.SerializerOptions.TypeInfoResolverChain.Insert(0, BackingTrack.Api.AppJsonSerializerContext.Default);
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default);
 });
 
 builder.Configuration.AddUserSecrets<Program>();
@@ -64,7 +65,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapApplicationHealthChecks();
 
-RouteGroupBuilder trackEndpoints = app.MapGroup("/tracks")
+_ = app.MapGroup("/tracks")
     .AddEndpointFilter<ApiKeyFilter>()
     .RequireRateLimiting("fixed")
     .MapTrackEndpoints();

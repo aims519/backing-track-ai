@@ -91,7 +91,7 @@ internal static class ServiceCollectionExtensions
 
     internal static IServiceCollection AddRateLimits(this IServiceCollection services, IConfiguration configuration)
     {
-        RateLimitSettings rateLimitSettings = configuration.GetSection("RateLimit").Get<RateLimitSettings>()!;
+        RateLimitSettings rateLimitSettings = configuration.GetSection("RateLimit").Get<RateLimitSettings>() ?? throw new InvalidOperationException("Rate limit settings not provided");
 
         services.AddRateLimiter(rateLimitOptions =>
         {
