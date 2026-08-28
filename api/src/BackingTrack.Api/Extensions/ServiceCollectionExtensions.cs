@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -22,11 +23,11 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddOtel(this IServiceCollection services, OtelSettings otelSettings, IWebHostEnvironment environment)
     {
-        if (otelSettings.bEnabled)
+        if (otelSettings.IsEnabled)
         {
             if (string.IsNullOrEmpty(otelSettings.CollectorEndpoint))
                 throw new InvalidOperationException("Otel:CollectorEndpoint must be set when Otel:bEnabled is true");
-            
+
             services.AddOpenTelemetry()
             .ConfigureResource(resourceBuilder =>
             {
@@ -72,9 +73,9 @@ public static class ServiceCollectionExtensions
                 options.Timeout = TimeSpan.FromSeconds(3);
             });
             services.AddHealthChecks()
-                .AddCheck<OtelCollectorHealthCheck>("otelCollector", tags: ["ready"]);  
+                .AddCheck<OtelCollectorHealthCheck>("otelCollector", tags: ["ready"]);
         }
-        
+
         return services;
     }
 
@@ -83,7 +84,7 @@ public static class ServiceCollectionExtensions
         // Default live health check
         services.AddHealthChecks()
             .AddCheck("live", () => HealthCheckResult.Healthy(), tags: ["live"]);
-        
+
         return services;
     }
 
@@ -121,10 +122,10 @@ public static class ServiceCollectionExtensions
                 await context.HttpContext.Response.WriteAsync("Rate limit exceeded. Please try again later.", cancellationToken);
             };
         });
-        
+
         return services;
     }
-
+    
     public static IServiceCollection AddConfigTypes(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions();
@@ -132,13 +133,13 @@ public static class ServiceCollectionExtensions
         services.Configure<OtelSettings>(configuration.GetSection("Otel"));
         services.Configure<RateLimitSettings>(configuration.GetSection("RateLimit"));
         services.Configure<TrackStorageSettings>(configuration.GetSection("TrackStorage"));
-        services.Configure<VoyageAISettings>(configuration.GetSection("VoyageAI"));
+        services.Configure<VoyageAiSettings>(configuration.GetSection("VoyageAi"));
         services.Configure<OpenAiSettings>(configuration.GetSection("OpenAi"));
         services.Configure<TrackGenerationWorkflowSettings>(configuration.GetSection("TrackGenerationWorkflow"));
-        
+
         return services;
     }
-    
+
     private static string GetPartitionKey(HttpContext context)
     {
         string? apiKey = context.Request.Headers["X-API-Key"];

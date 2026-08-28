@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace BackingTrack.KnowledgeBase.Embedder.VoyageAI;
 
-public class VoyageAIEmbeddingResponseDto
+public class VoyageAiEmbeddingResponseDto
 {
     [JsonPropertyName("data")]
     public EmbeddingDataItemDto[] Data { get; init; } = Array.Empty<EmbeddingDataItemDto>();

@@ -6,15 +6,15 @@ using BackingTrack.Core.Config;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAI;
+namespace BackingTrack.Generation.KnowledgeBase.Embedding.VoyageAi;
 
 public class VoyageAiQueryEmbeddingService(
     ILogger<VoyageAiQueryEmbeddingService> logger,
-    IOptions<VoyageAISettings> voyageAiSettings,
+    IOptions<VoyageAiSettings> voyageAiSettings,
     HttpClient httpClient)
     : IQueryEmbeddingService
 {
-    private readonly VoyageAISettings _voyageAiSettings = voyageAiSettings.Value;
+    private readonly VoyageAiSettings _voyageAiSettings = voyageAiSettings.Value;
 
     public async Task<float[]> EmbedQueryAsync(string queryText, CancellationToken cancellationToken = default)
     {
@@ -24,7 +24,7 @@ public class VoyageAiQueryEmbeddingService(
         using Activity? activity = QueryEmbeddingActivitySource.Instance.StartActivity($"{nameof(VoyageAiQueryEmbeddingService)}.EmbedQueryAsync");
         activity?.SetTag("query_embedding.model", _voyageAiSettings.EmbeddingModel);
 
-        VoyageAIQueryEmbeddingRequestDto requestDto = new()
+        VoyageAiQueryEmbeddingRequestDto requestDto = new()
         {
             Input = [queryText],
             Model = _voyageAiSettings.EmbeddingModel,
@@ -36,7 +36,7 @@ public class VoyageAiQueryEmbeddingService(
             HttpResponseMessage responseMessage = await httpClient.PostAsJsonAsync(
                 "embeddings",
                 requestDto,
-                VoyageAIQueryJsonContext.Default.VoyageAIQueryEmbeddingRequestDto,
+                VoyageAiQueryJsonContext.Default.VoyageAiQueryEmbeddingRequestDto,
                 cancellationToken);
 
             if (!responseMessage.IsSuccessStatusCode)
@@ -45,11 +45,11 @@ public class VoyageAiQueryEmbeddingService(
                     $"Voyage AI query embedding request failed. Response code {responseMessage.StatusCode}. Reason: {responseMessage.ReasonPhrase}");
             }
 
-            VoyageAIQueryEmbeddingResponseDto? responseDto;
+            VoyageAiQueryEmbeddingResponseDto? responseDto;
             try
             {
                 responseDto = await responseMessage.Content.ReadFromJsonAsync(
-                    VoyageAIQueryJsonContext.Default.VoyageAIQueryEmbeddingResponseDto,
+                    VoyageAiQueryJsonContext.Default.VoyageAiQueryEmbeddingResponseDto,
                     cancellationToken);
             }
             catch (Exception e)

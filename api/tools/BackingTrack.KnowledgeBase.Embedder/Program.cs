@@ -17,7 +17,7 @@ HostApplicationBuilder builder = new();
 builder.Configuration.AddUserSecrets<Program>();
 
 builder.Services.AddOptions();
-builder.Services.Configure<VoyageAISettings>(builder.Configuration.GetSection("VoyageAI"));
+builder.Services.Configure<VoyageAiSettings>(builder.Configuration.GetSection("VoyageAI"));
 builder.Services.AddHttpClient<IEmbeddingService, VoyageAiEmbeddingService>(client =>
 {
     client.BaseAddress = new(builder.Configuration.GetValue<string>("VoyageAI:RestApiBaseUrl")!);

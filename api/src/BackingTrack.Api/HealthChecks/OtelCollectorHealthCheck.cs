@@ -10,7 +10,7 @@ internal class OtelCollectorHealthCheck(IOptions<OtelSettings> otelSettings, Htt
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        if (!otelSettings.Value.bEnabled)
+        if (!otelSettings.Value.IsEnabled)
             return HealthCheckResult.Healthy("A healthy result.");
 
         HttpResponseMessage response = await httpClient.GetAsync("/healthz/status", cancellationToken);

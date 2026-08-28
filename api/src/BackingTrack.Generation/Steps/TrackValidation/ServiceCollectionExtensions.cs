@@ -8,7 +8,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddTransient<ITrackValidator, TrackValidator>();
         services.AddTransient<IValidateStep, ValidateStep>();
-        
+
         return services;
     }
 }

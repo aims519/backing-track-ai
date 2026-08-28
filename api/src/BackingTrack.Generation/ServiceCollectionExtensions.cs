@@ -69,11 +69,11 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<JobStore>();
 
-        Channel<Guid> jobChannel = Channel.CreateUnbounded<Guid>(); 
+        Channel<Guid> jobChannel = Channel.CreateUnbounded<Guid>();
         services.AddSingleton(new GenerationJobQueue(jobChannel));
         services.AddSingleton<GenerationJobMetrics>();
         services.AddHostedService<GenerationJobWorkerHostedService>();
-        
+
         return services;
     }
 }

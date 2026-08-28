@@ -15,11 +15,11 @@ namespace BackingTrack.KnowledgeBase.Embedder.VoyageAI;
 
 public class VoyageAiEmbeddingService(
     ILogger<VoyageAiEmbeddingService> logger,
-    IOptions<VoyageAISettings> voyageAiSettings,
+    IOptions<VoyageAiSettings> voyageAiSettings,
     HttpClient httpClient)
     : IEmbeddingService
 {
-    private readonly VoyageAISettings _voyageAISettings = voyageAiSettings.Value;
+    private readonly VoyageAiSettings _voyageAiSettings = voyageAiSettings.Value;
     private const string ScalesFileName = "scales.jsonl";
     private const string StylesFileName = "styles.jsonl";
     private const string ChordsFileName = "chords.jsonl";
@@ -52,7 +52,7 @@ public class VoyageAiEmbeddingService(
         object requestBody = new
         {
             input = embeddables.Select(x => x.SearchText).ToArray(),
-            model = _voyageAISettings.EmbeddingModel,
+            model = _voyageAiSettings.EmbeddingModel,
             input_type = "document"
         };
 
@@ -66,11 +66,11 @@ public class VoyageAiEmbeddingService(
                 $"Voyage AI embeddings request failed. Response code {responseMessage.StatusCode}. Reason: {responseMessage.ReasonPhrase}");
         }
 
-        VoyageAIEmbeddingResponseDto voyageAiResponse;
+        VoyageAiEmbeddingResponseDto voyageAiResponse;
         try
         {
             string responseJson = await responseMessage.Content.ReadAsStringAsync();
-            voyageAiResponse = JsonSerializer.Deserialize<VoyageAIEmbeddingResponseDto>(responseJson)
+            voyageAiResponse = JsonSerializer.Deserialize<VoyageAiEmbeddingResponseDto>(responseJson)
                 ?? throw new JsonException("Voyage AI response deserialised to null");
         }
         catch (Exception e)

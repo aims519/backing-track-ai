@@ -45,7 +45,7 @@ public static class LoggingBuilderExtensions
                 options.UseUtcTimestamp = true;
             });
         }
-        
+
         return builder;
     }
 }
