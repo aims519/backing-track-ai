@@ -24,9 +24,6 @@ internal static class ServiceCollectionExtensions
     {
         if (otelSettings.IsEnabled)
         {
-            if (string.IsNullOrEmpty(otelSettings.CollectorEndpoint))
-                throw new InvalidOperationException("Otel:CollectorEndpoint must be set when Otel:IsEnabled is true");
-
             services.AddOpenTelemetry()
             .ConfigureResource(resourceBuilder =>
             {
@@ -45,7 +42,7 @@ internal static class ServiceCollectionExtensions
                     .AddSource(TrackPersistenceActivitySource.SourceName)
                     .AddOtlpExporter(options =>
                     {
-                        options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
+                        options.Endpoint = new Uri(otelSettings.CollectorEndpoint!);
                     });
             })
             .WithMetrics(metricProviderBuilder =>
@@ -58,7 +55,7 @@ internal static class ServiceCollectionExtensions
                     .AddMeter(GenerationJobMetrics.MeterName)
                     .AddOtlpExporter(options =>
                     {
-                        options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
+                        options.Endpoint = new Uri(otelSettings.CollectorEndpoint!);
                     });
             });
         }
@@ -74,13 +71,9 @@ internal static class ServiceCollectionExtensions
 
         if (otelSettings.IsEnabled)
         {
-            if (string.IsNullOrEmpty(otelSettings.CollectorHealthCheckEndpoint))
-                throw new InvalidOperationException(
-                    "Otel:CollectorHealthCheckEndpoint must be set when Otel:IsEnabled is true");
-
             services.AddHttpClient<OtelCollectorHealthCheck>(client =>
             {
-                client.BaseAddress = new Uri(otelSettings.CollectorHealthCheckEndpoint);
+                client.BaseAddress = new Uri(otelSettings.CollectorHealthCheckEndpoint!);
                 client.Timeout = TimeSpan.FromSeconds(3);
             });
             healthChecks.AddCheck<OtelCollectorHealthCheck>("otelCollector", tags: ["ready"]);
@@ -131,7 +124,6 @@ internal static class ServiceCollectionExtensions
 
     internal static IServiceCollection AddAppOptions(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<OtelSettings>(configuration.GetSection("Otel"));
         services.Configure<RateLimitSettings>(configuration.GetSection("RateLimit"));
 
         services.AddOptions<AuthSettings>()
