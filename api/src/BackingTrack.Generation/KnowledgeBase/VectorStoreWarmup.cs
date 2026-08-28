@@ -12,7 +12,7 @@ namespace BackingTrack.Generation.KnowledgeBase;
 /// </summary>
 internal sealed class VectorStoreWarmup(InMemoryVectorStore vectorStore) : IHostedService
 {
-    private readonly InMemoryVectorStore _vectorStore = vectorStore;
+    private readonly InMemoryVectorStore _ = vectorStore;
 
     public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 

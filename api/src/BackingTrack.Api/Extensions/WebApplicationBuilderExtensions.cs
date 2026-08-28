@@ -4,7 +4,7 @@ namespace BackingTrack.Api.Extensions;
 
 public static class WebApplicationBuilderExtensions
 {
-    public static void AddObservability(this WebApplicationBuilder builder)
+    public static WebApplicationBuilder AddObservability(this WebApplicationBuilder builder)
     {
         OtelSettings otelSettings = builder.Configuration.GetSection("Otel").Get<OtelSettings>() ?? new OtelSettings();
 
@@ -12,5 +12,7 @@ public static class WebApplicationBuilderExtensions
         builder.Services.AddHealthChecking(otelSettings);
         builder.Logging.AddApplicationLogging(builder.Environment);
         builder.Logging.AddOtelLogging(otelSettings);
+
+        return builder;
     }
 }

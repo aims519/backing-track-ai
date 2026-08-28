@@ -61,18 +61,6 @@ public static class ServiceCollectionExtensions
                         options.Endpoint = new Uri(otelSettings.CollectorEndpoint);
                     });
             });
-
-            // Register OTEL collector health check
-            if (string.IsNullOrEmpty(otelSettings.CollectorHealthCheckEndpoint))
-                throw new InvalidOperationException("Otel:CollectorHealthCheckEndpoint must be set when Otel:IsEnabled is true.");
-
-            services.AddHttpClient<OtelCollectorHealthCheck>(options =>
-            {
-                options.BaseAddress = new Uri(otelSettings.CollectorHealthCheckEndpoint);
-                options.Timeout = TimeSpan.FromSeconds(3);
-            });
-            services.AddHealthChecks()
-                .AddCheck<OtelCollectorHealthCheck>("otelCollector", tags: ["ready"]);
         }
 
         return services;
@@ -81,8 +69,22 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddHealthChecking(this IServiceCollection services, OtelSettings otelSettings)
     {
         // Default live health check
-        services.AddHealthChecks()
+        IHealthChecksBuilder healthChecks = services.AddHealthChecks()
             .AddCheck("live", () => HealthCheckResult.Healthy(), tags: ["live"]);
+
+        if (otelSettings.IsEnabled)
+        {
+            if (string.IsNullOrEmpty(otelSettings.CollectorHealthCheckEndpoint))
+                throw new InvalidOperationException(
+                    "Otel:CollectorHealthCheckEndpoint must be set when Otel:IsEnabled is true");
+
+            services.AddHttpClient<OtelCollectorHealthCheck>(client =>
+            {
+                client.BaseAddress = new Uri(otelSettings.CollectorHealthCheckEndpoint);
+                client.Timeout = TimeSpan.FromSeconds(3);
+            });
+            healthChecks.AddCheck<OtelCollectorHealthCheck>("otelCollector", tags: ["ready"]);
+        }
 
         return services;
     }

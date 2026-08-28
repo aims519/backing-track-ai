@@ -4,7 +4,7 @@ using BackingTrack.Core.Config;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.KnowledgeBase.Embedder;
-using BackingTrack.KnowledgeBase.Embedder.VoyageAI;
+using BackingTrack.KnowledgeBase.Embedder.VoyageAi;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 
 using KnowledgeBaseJsonContext = BackingTrack.Generation.KnowledgeBase.Embedding.KnowledgeBaseJsonContext;
 
-namespace BackingTrack.KnowledgeBase.Embedder.VoyageAI;
+namespace BackingTrack.KnowledgeBase.Embedder.VoyageAi;
 
 public class VoyageAiEmbeddingService(
     ILogger<VoyageAiEmbeddingService> logger,

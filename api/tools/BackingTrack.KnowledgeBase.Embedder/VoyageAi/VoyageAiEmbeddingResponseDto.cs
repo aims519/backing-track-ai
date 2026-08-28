@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace BackingTrack.KnowledgeBase.Embedder.VoyageAI;
+namespace BackingTrack.KnowledgeBase.Embedder.VoyageAi;
 
 public class VoyageAiEmbeddingResponseDto
 {
