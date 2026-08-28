@@ -1,6 +1,8 @@
 using System.ClientModel;
+using System.Threading.Channels;
 
 using BackingTrack.Core.Config;
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.Workflows.Executors;
 
 using Microsoft.Extensions.AI;
@@ -60,6 +62,18 @@ public static class ServiceCollectionExtensions
         services.AddScoped<RepairCandidateTrackExecutor>();
         services.AddScoped<PersistCandidateTrackExecutor>();
 
+        return services;
+    }
+
+    public static IServiceCollection AddJobProcessing(this IServiceCollection services)
+    {
+        services.AddSingleton<JobStore>();
+
+        Channel<Guid> jobChannel = Channel.CreateUnbounded<Guid>(); 
+        services.AddSingleton(new GenerationJobQueue(jobChannel));
+        services.AddSingleton<GenerationJobMetrics>();
+        services.AddHostedService<GenerationJobWorkerHostedService>();
+        
         return services;
     }
 }

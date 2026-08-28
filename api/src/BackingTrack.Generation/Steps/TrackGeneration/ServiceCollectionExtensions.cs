@@ -32,6 +32,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<TrackGenerationMetrics>();
         services.AddSingleton<ITrackGenerationClient, TrackGenerationClient>();
+        services.AddTransient<IGenerateStep, GenerateStep>();
 
         return services;
     }
