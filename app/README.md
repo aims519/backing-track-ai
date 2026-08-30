@@ -1,0 +1,59 @@
+# BackingTrack (iOS)
+
+Native SwiftUI app. See [`/docs/backing-track-generator-scope.md`](../docs/backing-track-generator-scope.md)
+for the full project scope, and [`/docs/adr/`](../docs/adr/) for the reasoning behind non-obvious
+structural decisions.
+
+## Structure
+
+```text
+app/
+  project.yml                 XcodeGen project spec — the .xcodeproj is generated from this, not committed
+  BackingTrack/
+    App/                      App entry point (BackingTrackApp.swift)
+    Features/                 SwiftUI screens, one subfolder per feature (Home/ for now)
+    Models/                   Shared domain models, mirroring api/src/BackingTrack.Core
+    Networking/               API client talking to the Pi-hosted backend
+    Resources/                Assets.xcassets (app icon, accent color)
+  BackingTrackTests/          Unit tests (Swift Testing framework)
+```
+
+Currently a bare scaffold — `HomeView` is a placeholder; no networking or generation UI yet.
+
+## Setup
+
+Requires Xcode 26+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
+
+```bash
+brew install xcodegen
+```
+
+Generate the Xcode project, then open it:
+
+```bash
+cd app
+xcodegen generate
+open BackingTrack.xcodeproj
+```
+
+Re-run `xcodegen generate` whenever `project.yml` changes, or after adding/removing/moving
+source files (Xcode's file list is derived from what's on disk, not tracked incrementally in
+`project.yml`).
+
+The generated `.xcodeproj` is gitignored — see [ADR 0019](../docs/adr/0019-xcodegen-over-committed-xcodeproj.md)
+for why.
+
+## Building & testing from the command line
+
+```bash
+xcodebuild -project BackingTrack.xcodeproj -target BackingTrack -sdk iphonesimulator \
+  CODE_SIGNING_ALLOWED=NO build
+
+xcodebuild -project BackingTrack.xcodeproj -scheme BackingTrack \
+  -destination 'platform=iOS Simulator,name=iPhone 16' test
+```
+
+The `test` destination needs a matching iOS Simulator runtime installed for your Xcode version
+(Xcode > Settings > Components) — `xcrun simctl list devices available` shows what's installed,
+and `xcrun simctl list runtimes` shows what's downloaded. Swap `iPhone 16` for a device installed
+locally.

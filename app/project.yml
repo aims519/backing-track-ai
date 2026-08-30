@@ -1,0 +1,80 @@
+# XcodeGen project spec — the .xcodeproj itself is generated from this file (and gitignored),
+# rather than committed and hand-edited. Regenerate after changing this file, or after
+# adding/removing/moving source files, with:
+#
+#   xcodegen generate
+#
+# See README.md for setup instructions.
+
+name: BackingTrack
+options:
+  bundleIdPrefix: com.andrewsavory
+  # iOS 18 is the previous major release relative to the current iOS 26 (Apple's 2025
+  # platform-wide renumbering jumped straight from 18 to 26 to align version numbers across
+  # iOS/macOS/watchOS/etc. by year — there's no 19-25). As of 2026-08-30, Apple's published
+  # adoption figures (developer.apple.com/support/app-store/) put 79% of devices on iOS 26 and
+  # 14% on iOS 18, so an 18 floor covers ~93% of devices — the usual "N-1" production floor.
+  # Not actually a distribution constraint for this app (single device, no App Store — see
+  # docs/backing-track-generator-scope.md), just a sensible default that costs nothing here.
+  deploymentTarget:
+    iOS: "18.0"
+  # Nests file groups in Xcode's navigator to mirror the folder structure on disk, instead of
+  # flattening everything under the target group.
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    # Swift's full concurrency checking, on by default for new targets in recent Xcode —
+    # catches data races (e.g. touching UI state off the main actor) at compile time.
+    SWIFT_STRICT_CONCURRENCY: complete
+
+targets:
+  BackingTrack:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: BackingTrack
+        excludes:
+          - "**/.gitkeep"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.andrewsavory.backingtrack
+        PRODUCT_NAME: BackingTrack
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1" # iPhone only for MVP — see docs/backing-track-generator-scope.md
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        # Modern Xcode generates Info.plist from build settings instead of a committed file —
+        # one less file to keep in sync by hand. INFOPLIST_KEY_* below become plist entries.
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: BackingTrack
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+
+  BackingTrackTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: BackingTrackTests
+    dependencies:
+      - target: BackingTrack
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  BackingTrack:
+    build:
+      targets:
+        BackingTrack: all
+        BackingTrackTests: [test]
+    test:
+      targets:
+        - BackingTrackTests
+    run:
+      config: Debug
