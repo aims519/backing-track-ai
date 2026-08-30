@@ -5,14 +5,16 @@ on:
     branches: [main]
     paths:
       - "api/**"
-      - ".github/workflows/**"
+      - ".github/workflows/api-ci.yml"
+      - ".github/workflows/verify.yml"
       - "global.json"
       - "scripts/**"
   push:
     branches: [main]
     paths:
       - "api/**"
-      - ".github/workflows/**"
+      - ".github/workflows/api-ci.yml"
+      - ".github/workflows/verify.yml"
       - "global.json"
       - "scripts/**"
 
