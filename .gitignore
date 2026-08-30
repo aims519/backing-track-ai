@@ -23,5 +23,8 @@ app/**/*.xcworkspace/xcuserdata/
 *.env
 *.private.env.json
 
+# Claude Code — local, uncommitted working agreements
+CLAUDE.local.md
+
 # OS
 .DS_Store
