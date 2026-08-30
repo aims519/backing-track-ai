@@ -36,6 +36,14 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      - name: Create local signing config
+        # project.yml's configFiles points at Config/Local.xcconfig for DEVELOPMENT_TEAM —
+        # gitignored since a team ID is tied to a personal Apple account, not the project (see
+        # app/README.md). xcodegen generate fails outright without this file existing, but the
+        # placeholder team ID from the committed .example is fine here: the Build/Test steps
+        # below override signing entirely with CODE_SIGN_IDENTITY="-", which never reads it.
+        run: cp app/Config/Local.xcconfig.example app/Config/Local.xcconfig
+
       - name: Generate Xcode project
         run: cd app && xcodegen generate
 

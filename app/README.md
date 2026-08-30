@@ -28,6 +28,15 @@ Requires Xcode 26+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 brew install xcodegen
 ```
 
+Signing needs one local, machine-specific file first (gitignored — a team ID is tied to your
+Apple ID, not the project):
+
+```bash
+cp Config/Local.xcconfig.example Config/Local.xcconfig
+# then edit Config/Local.xcconfig and fill in DEVELOPMENT_TEAM — see the comments in
+# Config/Local.xcconfig.example for how to find it
+```
+
 Generate the Xcode project, then open it:
 
 ```bash
@@ -42,6 +51,16 @@ source files (Xcode's file list is derived from what's on disk, not tracked incr
 
 The generated `.xcodeproj` is gitignored — see [ADR 0019](../docs/adr/0019-xcodegen-over-committed-xcodeproj.md)
 for why.
+
+### Signing
+
+Both targets use automatic signing (`CODE_SIGN_STYLE: Automatic` in `project.yml`) with the team
+from `Config/Local.xcconfig` — Xcode picks and renews a certificate itself rather than us managing
+a provisioning profile by hand. This works with a free "personal team" (no paid Apple Developer
+Program membership needed), which is all this project uses since there's no App Store
+distribution — see `docs/backing-track-generator-scope.md`. The tradeoff: a personal-team signature
+is only valid for 7 days, so a build installed on-device needs reinstalling from Xcode
+periodically rather than running indefinitely.
 
 ## Building & testing from the command line
 
