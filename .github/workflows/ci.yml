@@ -3,8 +3,18 @@ name: CI
 on:
   pull_request:
     branches: [main]
+    paths:
+      - "api/**"
+      - ".github/workflows/**"
+      - "global.json"
+      - "scripts/**"
   push:
     branches: [main]
+    paths:
+      - "api/**"
+      - ".github/workflows/**"
+      - "global.json"
+      - "scripts/**"
 
 # One in-flight run per ref; a newer push to a PR cancels the older run.
 concurrency:
