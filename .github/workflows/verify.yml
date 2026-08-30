@@ -1,6 +1,6 @@
 name: Verify
 
-# Reusable build/test/format/AOT gate. Called by ci.yml (on PRs and pushes to main)
+# Reusable build/test/format/AOT gate. Called by api-ci.yml (on PRs and pushes to main)
 # and by deploy.yml (as a prerequisite of the deploy job, so the exact SHA that ships
 # to the Pi has been verified).
 

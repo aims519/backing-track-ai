@@ -1,8 +1,8 @@
 name: iOS CI
 
-# Build/test gate for app/. Kept as a separate workflow from ci.yml (the api/ pipeline):
+# Build/test gate for app/. Kept as a separate workflow from api-ci.yml (the api/ pipeline):
 # this needs a macOS runner, which GitHub bills at a 10x minute multiplier on private
-# repos (vs. the ubuntu-24.04 runner ci.yml uses) — worth keeping isolated and
+# repos (vs. the ubuntu-24.04 runner api-ci.yml uses) — worth keeping isolated and
 # path-filtered so it only runs when app/ actually changes.
 
 on:
