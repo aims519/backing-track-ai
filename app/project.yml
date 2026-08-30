@@ -22,6 +22,15 @@ options:
   # flattening everything under the target group.
   createIntermediateGroups: true
 
+# Applies Config/Local.xcconfig's project-level build settings (currently just DEVELOPMENT_TEAM)
+# to both configs. That file is gitignored and machine-specific — see Config/Local.xcconfig.example
+# and README.md — because a team ID is tied to an Apple ID, not the project. XcodeGen errors out
+# if the referenced file doesn't exist, which is the point: it forces the one-time local setup
+# step rather than silently building unsigned.
+configFiles:
+  Debug: Config/Local.xcconfig
+  Release: Config/Local.xcconfig
+
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -60,6 +69,12 @@ targets:
         MARKETING_VERSION: "0.1"
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1" # iPhone only for MVP — see docs/backing-track-generator-scope.md
+        # Automatic signing: Xcode picks/renews a certificate itself from the DEVELOPMENT_TEAM
+        # above, rather than us pointing at a specific provisioning profile (manual signing).
+        # The only real option without a paid Apple Developer Program membership — a free
+        # "personal team" can still deploy to your own device, just with a 7-day-lived signature
+        # that needs reinstalling from Xcode periodically, and no App Store distribution.
+        CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         # Modern Xcode generates Info.plist from build settings instead of a committed file —
@@ -81,6 +96,9 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+        # Test bundles get signed too when run on a device (they're loaded into the host app's
+        # process) — same automatic-signing rationale as the BackingTrack target above.
+        CODE_SIGN_STYLE: Automatic
 
 schemes:
   BackingTrack:

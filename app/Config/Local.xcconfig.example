@@ -1,0 +1,9 @@
+// Local, machine-specific signing config — copy this file to Local.xcconfig (gitignored) and
+// fill in your own team ID. Not committed because a Development Team ID is tied to your Apple
+// ID, not the project.
+//
+// Find your team ID: Xcode > Settings > Accounts, select your Apple ID, select the team under
+// it (a personal/free account shows as "<Your Name> (Personal Team)"), then "Manage Certificates"
+// or hover/click the team row — the ID is the 10-character alphanumeric string shown there.
+// It also appears in Signing & Capabilities after you pick a team there once.
+DEVELOPMENT_TEAM = YOUR_TEAM_ID
