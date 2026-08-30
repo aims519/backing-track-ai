@@ -28,6 +28,21 @@ settings:
     # Swift's full concurrency checking, on by default for new targets in recent Xcode —
     # catches data races (e.g. touching UI state off the main actor) at compile time.
     SWIFT_STRICT_CONCURRENCY: complete
+    # These three picked up from Xcode's "Update to recommended settings" prompt — set here
+    # rather than through Xcode's UI, since XcodeGen regenerates the .xcodeproj and would
+    # silently discard a change made directly to it.
+    #
+    # Restricts Run Script build phases to their declared inputs/outputs for reproducible
+    # builds. We have no Run Script phases yet; harmless either way.
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    # Generates type-safe Swift accessors for strings in a String Catalog (.xcstrings) file.
+    # Inert until we add one — no localization work has started yet.
+    STRING_CATALOG_GENERATE_SYMBOLS: YES
+    # Beyond the ImageResource/ColorResource symbols Xcode always generates for asset catalog
+    # entries, this also generates extensions directly on SwiftUI's Image/Color (and
+    # UIKit/AppKit's UIImage/UIColor etc.) — e.g. `Image(.guitars)` instead of needing to know
+    # the underlying resource type name.
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
 
 targets:
   BackingTrack:
