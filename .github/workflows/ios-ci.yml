@@ -45,13 +45,18 @@ jobs:
         run: xcrun simctl list devices available
 
       - name: Build
+        # CODE_SIGN_IDENTITY="-" is the ad-hoc "Sign to Run Locally" identity — works on any
+        # Mac with no Apple Developer account or certificate needed, unlike a real signing
+        # identity. Deliberately *not* CODE_SIGNING_ALLOWED=NO: an unsigned binary has no
+        # app-identifier entitlement, and Keychain access (see APIKeyStoreTests) needs one even
+        # in the Simulator — that gap only surfaces at test-run time, not at build time.
         run: >
           xcodebuild -project app/BackingTrack.xcodeproj -scheme BackingTrack
           -destination 'platform=iOS Simulator,name=iPhone 16'
-          CODE_SIGNING_ALLOWED=NO build
+          CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO build
 
       - name: Test
         run: >
           xcodebuild -project app/BackingTrack.xcodeproj -scheme BackingTrack
           -destination 'platform=iOS Simulator,name=iPhone 16'
-          CODE_SIGNING_ALLOWED=NO test
+          CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO test

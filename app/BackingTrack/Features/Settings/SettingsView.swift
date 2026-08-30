@@ -13,7 +13,10 @@ struct SettingsView: View {
     private let store: APIKeyStoring
 
     @State private var apiKey = ""
-    @State private var statusMessage: String?
+    // Only used for the failure path — a successful save is communicated by the sheet closing
+    // (below), not a message, matching the usual pattern for a small settings form like this one
+    // (e.g. editing a Contacts field: Save just closes the screen).
+    @State private var saveErrorMessage: String?
 
     init(store: APIKeyStoring = KeychainAPIKeyStore()) {
         self.store = store
@@ -31,11 +34,6 @@ struct SettingsView: View {
                 } footer: {
                     Text("Stored in the Keychain, on this device only.")
                 }
-
-                if let statusMessage {
-                    Text(statusMessage)
-                        .foregroundStyle(.secondary)
-                }
             }
             .navigationTitle("API Key")
             .toolbar {
@@ -52,6 +50,22 @@ struct SettingsView: View {
                 // read back from the Keychain, never sent anywhere.
                 apiKey = store.apiKey() ?? ""
             }
+            // A save failure is rare (a Keychain error is a device/OS-level problem, not a user
+            // mistake) and means the typed key wasn't actually stored — an alert demands
+            // acknowledgment and keeps the user on this screen to retry, rather than dismissing
+            // as if nothing went wrong.
+            .alert(
+                "Couldn't Save",
+                isPresented: Binding(
+                    get: { saveErrorMessage != nil },
+                    set: { isPresented in if !isPresented { saveErrorMessage = nil } }
+                ),
+                presenting: saveErrorMessage
+            ) { _ in
+                Button("OK", role: .cancel) {}
+            } message: { message in
+                Text(message)
+            }
         }
     }
 
@@ -61,9 +75,9 @@ struct SettingsView: View {
         let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
             try store.save(trimmedKey)
-            statusMessage = "Saved."
+            dismiss()
         } catch {
-            statusMessage = "Couldn't save: \(error.localizedDescription)"
+            saveErrorMessage = error.localizedDescription
         }
     }
 }
