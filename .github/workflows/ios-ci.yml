@@ -1,0 +1,57 @@
+name: iOS CI
+
+# Build/test gate for app/. Kept as a separate workflow from ci.yml (the api/ pipeline):
+# this needs a macOS runner, which GitHub bills at a 10x minute multiplier on private
+# repos (vs. the ubuntu-24.04 runner ci.yml uses) — worth keeping isolated and
+# path-filtered so it only runs when app/ actually changes.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/ios-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/ios-ci.yml"
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    # Pinned rather than macos-latest: GitHub's hosted macOS images bundle specific
+    # Xcode + simulator runtime versions, and an unpinned runner can silently change
+    # which iOS simulator versions are available out from under this workflow.
+    # Revisit this pin's Xcode version against project.yml's deploymentTarget (18.0)
+    # periodically — see https://github.com/actions/runner-images for what's bundled.
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: cd app && xcodegen generate
+
+      - name: List available simulators
+        # Useful for debugging a destination-not-found failure without re-running the
+        # whole job — shows exactly what this runner image has installed.
+        run: xcrun simctl list devices available
+
+      - name: Build
+        run: >
+          xcodebuild -project app/BackingTrack.xcodeproj -scheme BackingTrack
+          -destination 'platform=iOS Simulator,name=iPhone 16'
+          CODE_SIGNING_ALLOWED=NO build
+
+      - name: Test
+        run: >
+          xcodebuild -project app/BackingTrack.xcodeproj -scheme BackingTrack
+          -destination 'platform=iOS Simulator,name=iPhone 16'
+          CODE_SIGNING_ALLOWED=NO test
