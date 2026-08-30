@@ -53,6 +53,12 @@ xcodebuild -project BackingTrack.xcodeproj -scheme BackingTrack \
   -destination 'platform=iOS Simulator,name=iPhone 16' test
 ```
 
+Note `test` deliberately doesn't carry `CODE_SIGNING_ALLOWED=NO` — an unsigned binary has no
+app-identifier entitlement, which breaks Keychain access (`APIKeyStoreTests`) at run time even
+though it builds fine. Relies on Xcode's normal automatic local signing instead; `ios-ci.yml`
+uses the ad-hoc `CODE_SIGN_IDENTITY="-"` identity for the same reason, since CI has no signing
+account to automatically sign with.
+
 The `test` destination needs a matching iOS Simulator runtime installed for your Xcode version
 (Xcode > Settings > Components) — `xcrun simctl list devices available` shows what's installed,
 and `xcrun simctl list runtimes` shows what's downloaded. Swap `iPhone 16` for a device installed
