@@ -57,3 +57,10 @@ The `test` destination needs a matching iOS Simulator runtime installed for your
 (Xcode > Settings > Components) — `xcrun simctl list devices available` shows what's installed,
 and `xcrun simctl list runtimes` shows what's downloaded. Swap `iPhone 16` for a device installed
 locally.
+
+## CI
+
+[`.github/workflows/ios-ci.yml`](../.github/workflows/ios-ci.yml) runs the same build + test on a
+macOS runner for PRs/pushes touching `app/`. Kept as its own workflow, separate from
+[`ci.yml`](../.github/workflows/ci.yml) (the `api/` pipeline), since macOS runners bill at a 10x
+minute multiplier on this (private) repo — no reason to pay that on `api/`-only changes.
