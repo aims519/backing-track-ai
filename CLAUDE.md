@@ -24,11 +24,15 @@ design discussions held in Claude Code sessions, then reviewed by the owner.
 
 Tick exactly one PR type checkbox.
 
-When drafting a PR body, evaluate honestly against the ADR checkbox:
-did this involve a genuine alternative, a costly-to-reverse choice, or
-something a new engineer would ask "why this way" about? If yes, flag
-it and draft an ADR stub before finalizing the PR — don't default to
-"No" for convenience.
+For the Architectural Decision section, evaluate honestly: did this
+involve a genuine alternative, a costly-to-reverse choice, or something
+a new engineer would ask "why this way" about? If so, set it to the
+ADR reference and draft an ADR stub before finalizing the PR — don't
+default to "N/A" or "No" for convenience. Use "No" when a decision was
+made but needs no ADR, "N/A" when nothing architectural was involved.
+
+Set the Testing section to "N/A" only for docs/chore-only changes with
+nothing to verify.
 
 Do not add an authorship/attribution footer (e.g. "Generated with
 Claude Code") to PR bodies or commit messages. Authorship is

@@ -20,15 +20,17 @@ An itemised list of the key changes.
 
 ## Architectural Decision
 
-<!-- Genuine alternative considered? Costly to reverse? Would a new engineer ask "why this way"? -->
-- [ ] No
-- [ ] Yes → ADR-XXX (link or filename)
+<!-- Genuine alternative considered? Costly to reverse? Would a new engineer ask "why this way"?
+     Replace the line below with one of: N/A (nothing architectural) · No (decided, no ADR needed) · ADR-XXXX (link or filename) -->
+N/A
 
 ## Screenshots (if UI change)
 
 ## Testing
 
-A list of checks that have been carried out, or still to be carried out before the PR is merged.
+<!-- Docs/chore-only change with nothing to verify? Leave the N/A line and delete the checklist.
+     Otherwise delete the N/A line and use the checklist, noting any manual checks done or still to do before merge. -->
+N/A
 
 - [ ] Unit tests added/updated
 - [ ] Manually verified locally
