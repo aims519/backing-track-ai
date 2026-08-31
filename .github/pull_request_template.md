@@ -1,13 +1,7 @@
 # Summary
 
-<!-- Tick exactly one -->
-- [ ] ✨ Feature
-- [ ] 🐛 Bug fix
-- [ ] ♻️ Refactor
-- [ ] 📚 Documentation
-- [ ] 🧹 Chore
-- [ ] 👷 CI
-- [ ] ⬆️ Dependencies
+<!-- Set to exactly one of: ✨ Feature · 🐛 Bug fix · ♻️ Refactor · 📚 Documentation · 🧹 Chore · 👷 CI · ⬆️ Dependencies -->
+**Type:**
 
 Provide a concise summary of what the pull request is for and the motivation for creating it.
 
