@@ -22,6 +22,8 @@ design discussions held in Claude Code sessions, then reviewed by the owner.
 
 ## PR and ADR conventions
 
+Tick exactly one PR type checkbox.
+
 When drafting a PR body, evaluate honestly against the ADR checkbox:
 did this involve a genuine alternative, a costly-to-reverse choice, or
 something a new engineer would ask "why this way" about? If yes, flag

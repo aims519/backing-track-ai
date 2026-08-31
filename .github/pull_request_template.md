@@ -1,8 +1,9 @@
 # Summary
 
-- [ ] Feature
-- [ ] Bug fix
-- [ ] Documentation
+<!-- Tick exactly one -->
+- [ ] ✨ Feature
+- [ ] 🐛 Bug fix
+- [ ] 📚 Documentation
 
 Provide a concise summary of what the pull request is for and the motivation for creating it.
 
