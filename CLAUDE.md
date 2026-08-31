@@ -1,17 +1,15 @@
 # Working with Claude Code on this repo
 
-<!-- Wordsmith to taste. Kept deliberately short: everything here is public. -->
-
 ## Authorship
 
-The ASP.NET Core backend is written mostly by the repository owner; Claude Code
+The ASP.NET Core backend code is mainly written by the repository owner; Claude Code
 is used for review, design discussion, and the more mechanical work — unit
 tests and refactorings.
 
 The SwiftUI iOS app leans on Claude Code more heavily for code generation, as
 the owner is less experienced with the platform; the owner directs and reviews.
 
-`README.md` prose is author-written.
+`README.md` is author-written.
 
 The Architecture Decision Records in `docs/adr/` are drafted by Claude Code from
 design discussions held in Claude Code sessions, then reviewed by the owner.
@@ -22,12 +20,22 @@ design discussions held in Claude Code sessions, then reviewed by the owner.
 - **Build, test, and deployment:** [`README.md`](README.md), [`api/README.md`](api/README.md)
 - **Project scope:** [`docs/backing-track-generator-scope.md`](docs/backing-track-generator-scope.md)
 
-## Notes for Claude
+## PR and ADR conventions
 
-- iOS job states map 1:1 from the backend `JobStates` enum; they are not
-  designed independently.
-- Prefer deterministic validation of generated music; an LLM critic is a
-  later, additive layer, not a first resort.
+When drafting a PR body, evaluate honestly against the ADR checkbox:
+did this involve a genuine alternative, a costly-to-reverse choice, or
+something a new engineer would ask "why this way" about? If yes, flag
+it and draft an ADR stub before finalizing the PR — don't default to
+"No" for convenience.
 
-Local, machine-specific working agreements (not committed) live in
-`CLAUDE.local.md`.
+Do not add an authorship/attribution footer (e.g. "Generated with
+Claude Code") to PR bodies or commit messages. Authorship is
+documented once, deliberately, in this file.
+
+If applicable, link the PR to its Notion task. Match based on task name as order numbers can shift.
+
+## Swift conventions
+
+Explain non-trivial Swift idioms with brief inline comments — the owner
+directs and reviews this code but is less experienced with the platform,
+and needs to be able to read and understand it without external lookup.
