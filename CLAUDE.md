@@ -22,7 +22,7 @@ design discussions held in Claude Code sessions, then reviewed by the owner.
 
 ## PR and ADR conventions
 
-Tick exactly one PR type checkbox.
+Set the **Type:** line to exactly one of the listed PR types.
 
 For the Architectural Decision section, evaluate honestly: did this
 involve a genuine alternative, a costly-to-reverse choice, or something
