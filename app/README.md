@@ -11,14 +11,19 @@ app/
   project.yml                 XcodeGen project spec — the .xcodeproj is generated from this, not committed
   BackingTrack/
     App/                      App entry point (BackingTrackApp.swift)
-    Features/                 SwiftUI screens, one subfolder per feature (Home/ for now)
-    Models/                   Shared domain models, mirroring api/src/BackingTrack.Core
+    Features/                 SwiftUI screens, one subfolder per feature (Generate/, Settings/)
+    Models/                   Domain models — the request/parameter types, mirroring api/src/BackingTrack.Core
     Networking/               API client talking to the Pi-hosted backend
     Resources/                Assets.xcassets (app icon, accent color)
   BackingTrackTests/          Unit tests (Swift Testing framework)
 ```
 
-Currently a bare scaffold — `HomeView` is a placeholder; no networking or generation UI yet.
+`GenerateTrackView` is the root screen: the chord/key/tempo/style/time-signature input form for
+Precise mode. It builds a `GenerationRequest` but doesn't send it yet — the API client and the
+generating → ready/failed flow are still to come, so `Generate` currently just previews the
+request it would POST. Vibe mode is shown in the selector but disabled (its backend doesn't
+exist yet). See [ADR 0020](../docs/adr/0020-structured-chord-picker-over-free-text.md) for why
+chord entry is a constrained picker rather than a text field.
 
 ## Setup
 
