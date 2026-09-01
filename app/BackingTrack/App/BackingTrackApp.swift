@@ -10,7 +10,7 @@ struct BackingTrackApp: App {
         // closure builds the root view for each new window the system creates (iPadOS/macOS
         // can open several; iOS effectively has one).
         WindowGroup {
-            HomeView()
+            GenerateTrackView()
         }
     }
 }
