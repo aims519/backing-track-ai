@@ -115,3 +115,27 @@ struct Chord: Identifiable, Hashable, Sendable {
     /// Symbol sent in the API request's `Chords` array, e.g. `Amin7`, `Csus4`, `F#`.
     var apiSymbol: String { root.rawValue + quality.apiSuffix }
 }
+
+extension [Chord] {
+    /// Returns a copy with the chord identified by `id` moved so it lands at `targetIndex` in
+    /// reading order. `targetIndex` is measured against the array *including* the dragged chord
+    /// (that's what the chip flow's drop handler computes from the drop location), so this
+    /// adjusts for the chord's own removal. Out-of-range indices are clamped; an unknown `id`
+    /// leaves the array unchanged.
+    ///
+    /// A free function on `[Chord]` rather than a `GenerateTrackModel` method: SwiftUI's drop
+    /// callback isn't guaranteed to run through the model's `@MainActor`, so the reorder math
+    /// deliberately has no actor isolation to cross — it's pure array manipulation.
+    func movingChord(withID id: UUID, toIndex targetIndex: Int) -> [Chord] {
+        guard let fromIndex = firstIndex(where: { $0.id == id }) else { return self }
+
+        var result = self
+        let chord = result.remove(at: fromIndex)
+        let adjusted = targetIndex > fromIndex ? targetIndex - 1 : targetIndex
+        // `Swift.` qualified — bare `min`/`max` in an `Array` extension resolve to the
+        // element-wise `Sequence.min()` / `.max()`, not the two-argument clamp functions.
+        let clamped = Swift.min(Swift.max(adjusted, 0), result.count)
+        result.insert(chord, at: clamped)
+        return result
+    }
+}

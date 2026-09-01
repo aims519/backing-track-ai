@@ -69,25 +69,15 @@ struct GenerateTrackModelTests {
         #expect(model.composedStyle == "funk")
     }
 
-    @Test func chordsReorderViaOnMoveOffsets() {
+    @Test func removeChordDeletesByIdentityNotPosition() {
         let model = GenerateTrackModel()
         model.addChord(root: .c, quality: .major)
         model.addChord(root: .f, quality: .major)
-        model.addChord(root: .g, quality: .major)
+        model.addChord(root: .c, quality: .major) // a repeat — must not also remove this one
 
-        model.moveChords(fromOffsets: IndexSet(integer: 2), toOffset: 0)
+        model.removeChord(model.chords[0])
 
-        #expect(model.chords.map(\.apiSymbol) == ["G", "C", "F"])
-    }
-
-    @Test func chordsDeleteViaOnDeleteOffsets() {
-        let model = GenerateTrackModel()
-        model.addChord(root: .c, quality: .major)
-        model.addChord(root: .f, quality: .major)
-
-        model.removeChords(atOffsets: IndexSet(integer: 0))
-
-        #expect(model.chords.map(\.apiSymbol) == ["F"])
+        #expect(model.chords.map(\.apiSymbol) == ["F", "C"])
     }
 
     @Test func styleAloneIsSentWhenNoNotesAreAdded() {

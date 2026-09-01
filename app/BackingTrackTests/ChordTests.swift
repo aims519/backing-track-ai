@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import BackingTrack
 
@@ -48,5 +49,61 @@ struct ChordTests {
         let first = Chord(root: .c, quality: .major)
         let second = Chord(root: .c, quality: .major)
         #expect(first.id != second.id)
+    }
+}
+
+/// `[Chord].movingChord(withID:toIndex:)` is the reorder math behind the chord chip flow's
+/// drag-and-drop — a plain array operation (see `Chord.swift`) so it's testable with no view or
+/// actor involved. `toIndex` is a reading-order position measured against the array *including*
+/// the dragged chord, matching what the drop handler computes from the drop location.
+struct ChordArrayReorderingTests {
+
+    private let c = Chord(root: .c, quality: .major)
+    private let f = Chord(root: .f, quality: .major)
+    private let g = Chord(root: .g, quality: .major)
+    private let a = Chord(root: .a, quality: .minor)
+
+    @Test func movesAChordForward() {
+        // [C, F, G], drop C at position 3 (after G) → [F, G, C]
+        #expect([c, f, g].movingChord(withID: c.id, toIndex: 3).map(\.apiSymbol) == ["F", "G", "C"])
+    }
+
+    @Test func movesAChordBackward() {
+        // [C, F, G], drop G at position 0 → [G, C, F]
+        #expect([c, f, g].movingChord(withID: g.id, toIndex: 0).map(\.apiSymbol) == ["G", "C", "F"])
+    }
+
+    @Test func movesAMiddleChordForward() {
+        // [C, F, G, Am], drop F at position 3 (between G and Am) → [C, G, F, Am]
+        #expect([c, f, g, a].movingChord(withID: f.id, toIndex: 3).map(\.apiSymbol) == ["C", "G", "F", "Amin"])
+    }
+
+    @Test func movesAMiddleChordBackward() {
+        // [C, F, G, Am], drop G at position 1 → [C, G, F, Am]
+        #expect([c, f, g, a].movingChord(withID: g.id, toIndex: 1).map(\.apiSymbol) == ["C", "G", "F", "Amin"])
+    }
+
+    @Test func droppingAtAChordsOwnPositionIsANoOp() {
+        #expect([c, f, g].movingChord(withID: f.id, toIndex: 1).map(\.apiSymbol) == ["C", "F", "G"])
+        #expect([c, f, g].movingChord(withID: f.id, toIndex: 2).map(\.apiSymbol) == ["C", "F", "G"])
+    }
+
+    @Test func indicesAreClampedToTheArrayBounds() {
+        #expect([c, f, g].movingChord(withID: c.id, toIndex: 99).map(\.apiSymbol) == ["F", "G", "C"])
+        #expect([c, f, g].movingChord(withID: g.id, toIndex: -5).map(\.apiSymbol) == ["G", "C", "F"])
+    }
+
+    @Test func aChordIsIdentifiedByIdNotValueWhenReordering() {
+        // Two chords with the same root/quality — must move the exact instance by id.
+        let firstC = Chord(root: .c, quality: .major)
+        let secondC = Chord(root: .c, quality: .major)
+
+        let reordered = [firstC, f, secondC].movingChord(withID: secondC.id, toIndex: 0)
+
+        #expect(reordered.map(\.id) == [secondC.id, firstC.id, f.id])
+    }
+
+    @Test func anUnknownIdLeavesTheArrayUnchanged() {
+        #expect([c, f].movingChord(withID: UUID(), toIndex: 0) == [c, f])
     }
 }

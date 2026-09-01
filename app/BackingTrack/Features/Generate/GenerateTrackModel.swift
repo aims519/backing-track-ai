@@ -57,14 +57,11 @@ final class GenerateTrackModel {
         chords.append(Chord(root: root, quality: quality))
     }
 
-    /// Wired to the chord list's `.onMove` — drag-to-reorder.
-    func moveChords(fromOffsets: IndexSet, toOffset: Int) {
-        chords.move(fromOffsets: fromOffsets, toOffset: toOffset)
-    }
-
-    /// Wired to the chord list's `.onDelete` — swipe-to-delete.
-    func removeChords(atOffsets offsets: IndexSet) {
-        chords.remove(atOffsets: offsets)
+    /// Removes one chip by identity — the chip flow has no stable index-based deletion the way a
+    /// `List`'s `.onDelete` offsets would (chips reorder freely), so this is called with the
+    /// specific `Chord` tapped rather than an `IndexSet`.
+    func removeChord(_ chord: Chord) {
+        chords.removeAll { $0.id == chord.id }
     }
 
     // MARK: - Submission
