@@ -25,3 +25,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0018](0018-xunit-v3-and-nsubstitute.md) | xUnit v3 on Microsoft.Testing.Platform, and NSubstitute over Moq |
 | [0019](0019-xcodegen-over-committed-xcodeproj.md) | XcodeGen-generated project over a committed .xcodeproj |
 | [0020](0020-structured-chord-picker-over-free-text.md) | Structured chord picker over free-text entry on the generation input screen |
+| [0021](0021-code-drawn-visual-assets.md) | Code-drawn visual assets (app icon, launch screen), no image-model output |

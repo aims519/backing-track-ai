@@ -62,6 +62,9 @@ targets:
       - path: BackingTrack
         excludes:
           - "**/.gitkeep"
+          # Referenced by INFOPLIST_FILE below, not a bundled resource — keep it out of the
+          # Copy Bundle Resources phase.
+          - "Info.plist"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.andrewsavory.backingtrack
@@ -79,9 +82,11 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         # Modern Xcode generates Info.plist from build settings instead of a committed file —
         # one less file to keep in sync by hand. INFOPLIST_KEY_* below become plist entries.
+        # The partial BackingTrack/Info.plist is merged on top of the generated one (it carries
+        # only UILaunchScreen — a nested dict with no INFOPLIST_KEY_* equivalent).
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: BackingTrack/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: BackingTrack
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
 

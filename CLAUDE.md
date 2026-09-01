@@ -11,6 +11,12 @@ the owner is less experienced with the platform; the owner directs and reviews.
 
 `README.md` is author-written.
 
+Visual assets (app icon, launch-screen logo) are produced by a committed script —
+`app/Tools/generate_icon.py` — drafted by Claude Code under the owner's art
+direction, so the assets stay reproducible and reviewable in a diff. This repo
+does not use image-generation-model output for any shipped asset. See
+[ADR 0021](docs/adr/0021-code-drawn-visual-assets.md).
+
 The Architecture Decision Records in `docs/adr/` are drafted by Claude Code from
 design discussions held in Claude Code sessions, then reviewed by the owner.
 
