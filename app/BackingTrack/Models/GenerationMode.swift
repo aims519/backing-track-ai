@@ -37,8 +37,9 @@ enum GenerationMode: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Value sent in the API request body's `Mode` field. The API parses this into its own
-    /// `GenerationMode` enum (`Precise` / `Vibe`) case-insensitively.
+    /// Value sent in the API request body's `Mode` field. The API parses it with the
+    /// case-sensitive `Enum.TryParse<GenerationMode>` overload (`GenerationRequestDto.Validate`),
+    /// so the exact casing here — `Precise` / `Vibe` — matters.
     var apiValue: String {
         switch self {
         case .precise: "Precise"

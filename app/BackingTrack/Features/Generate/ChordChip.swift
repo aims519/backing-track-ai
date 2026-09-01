@@ -1,50 +1,58 @@
 import SwiftUI
 
-/// One chord in the progression, shown as a pickable/draggable chip inside `ChipFlowLayout`.
+/// One chord in the progression, shown as a bold, card-like box inside `ChipFlowLayout`.
 ///
 /// Deliberately not a `List` row (see the drag-and-drop notes in `GenerateTrackView`) — choosing
-/// and ordering chords is the most hands-on part of building a track, so it's styled like
-/// something you pick up and place, not a form field. The drag itself is `.draggable` on the
-/// chip; the drop handling lives on the flow container.
+/// and ordering chords is the most hands-on part of building a track, so each chord is a chunky
+/// tile you pick up and place. The drag is `.draggable` on the tile; the drop handling lives on
+/// the flow container.
 struct ChordChip: View {
     let chord: Chord
     let onDelete: () -> Void
 
-    var body: some View {
-        HStack(spacing: 6) {
-            Text(chord.displaySymbol)
-                .font(.headline)
-                .fontDesign(.rounded)
+    private let cornerRadius: CGFloat = 16
 
-            Button(action: onDelete) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            // `.plain` stops the button from taking over the chip's whole tap area — without it
-            // the default row-style button styling makes the entire chip highlight as one button.
-            .buttonStyle(.plain)
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(chord.displaySymbol)
+                .font(.system(.title2, design: .rounded, weight: .bold))
+            Text(chord.quality.shortLabel)
+                .font(.caption2)
+                .textCase(.lowercase)
+                .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .frame(minWidth: 84)
         .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.accentColor.opacity(0.12))
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color.accentColor.opacity(0.16))
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.accentColor.opacity(0.3))
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(Color.accentColor.opacity(0.4), lineWidth: 1)
+        }
+        .overlay(alignment: .topTrailing) {
+            Button(action: onDelete) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary, Color(.systemBackground))
+                    .padding(5)
+            }
+            // `.plain` stops the button from claiming the whole tile's tap/drag area.
+            .buttonStyle(.plain)
         }
     }
 }
 
 #Preview {
-    ChipFlowLayout(spacing: 8) {
+    ChipFlowLayout(spacing: 10) {
         ChordChip(chord: Chord(root: .c, quality: .major)) {}
         ChordChip(chord: Chord(root: .a, quality: .minor)) {}
         ChordChip(chord: Chord(root: .f, quality: .major)) {}
         ChordChip(chord: Chord(root: .g, quality: .dominant7)) {}
         ChordChip(chord: Chord(root: .d, quality: .minor7)) {}
+        ChordChip(chord: Chord(root: .e, quality: .sus4)) {}
     }
     .padding()
 }

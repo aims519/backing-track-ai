@@ -42,6 +42,23 @@ enum ChordQuality: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
+    /// Short quality label for the chord chip — a compact form (vs. `pickerName`) so the chips
+    /// stay a consistent, tidy size.
+    var shortLabel: String {
+        switch self {
+        case .major: "major"
+        case .minor: "minor"
+        case .dominant7: "7th"
+        case .major7: "maj 7"
+        case .minor7: "min 7"
+        case .sus2: "sus 2"
+        case .sus4: "sus 4"
+        case .diminished: "dim"
+        case .sixth: "6th"
+        case .ninth: "9th"
+        }
+    }
+
     /// Full name shown in the "add chord" picker.
     var pickerName: String {
         switch self {
@@ -123,9 +140,8 @@ extension [Chord] {
     /// adjusts for the chord's own removal. Out-of-range indices are clamped; an unknown `id`
     /// leaves the array unchanged.
     ///
-    /// A free function on `[Chord]` rather than a `GenerateTrackModel` method: SwiftUI's drop
-    /// callback isn't guaranteed to run through the model's `@MainActor`, so the reorder math
-    /// deliberately has no actor isolation to cross — it's pure array manipulation.
+    /// A free function on `[Chord]` rather than a `GenerateTrackModel` method so the reorder math
+    /// is a pure value transformation that can be unit-tested with no view or model involved.
     func movingChord(withID id: UUID, toIndex targetIndex: Int) -> [Chord] {
         guard let fromIndex = firstIndex(where: { $0.id == id }) else { return self }
 

@@ -36,11 +36,11 @@ final class GenerateTrackModel {
     }
 
     /// The `Style` string that will be sent: the picked style alone, or the style followed by the
-    /// notes when the user has typed any. Empty when no style is picked — `canGenerate` blocks
-    /// submission in that case, so this is only ever sent with a style present.
+    /// notes when the user has typed any. Empty until a style is picked — notes on their own
+    /// aren't a meaningful style, and `canGenerate` blocks submission until a style is chosen.
     var composedStyle: String {
+        guard let style = selectedStyle else { return "" }
         let notes = trimmedStyleNotes
-        guard let style = selectedStyle else { return notes }
         return notes.isEmpty ? style.apiValue : "\(style.apiValue). \(notes)"
     }
 
@@ -62,6 +62,13 @@ final class GenerateTrackModel {
     /// specific `Chord` tapped rather than an `IndexSet`.
     func removeChord(_ chord: Chord) {
         chords.removeAll { $0.id == chord.id }
+    }
+
+    /// Moves a chord to `targetIndex` in reading order. Keeps reordering symmetrical with
+    /// `addChord`/`removeChord` (the view drives all three through the model); the index maths
+    /// lives in the pure `[Chord].movingChord(withID:toIndex:)` helper.
+    func moveChord(withID id: UUID, toIndex targetIndex: Int) {
+        chords = chords.movingChord(withID: id, toIndex: targetIndex)
     }
 
     // MARK: - Submission

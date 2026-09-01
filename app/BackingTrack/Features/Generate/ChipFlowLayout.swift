@@ -67,3 +67,35 @@ struct ChipFlowLayout: Layout {
         return rows
     }
 }
+
+/// Geometry helpers for the chord chip flow, kept as free functions so the drop-position math is
+/// testable without a running view.
+enum ChipFlowGeometry {
+    /// The reading-order position a drop at `location` falls at: the number of chips that sit
+    /// before it. "Before" means on an earlier row, or on the same row and past the chip's
+    /// horizontal midpoint. A chip whose frame isn't known yet still counts as passed — not
+    /// knowing where it is isn't a reason to stop short of it.
+    ///
+    /// - Parameters:
+    ///   - orderedChipIDs: the chip ids in display order.
+    ///   - frames: each chip's frame in the same coordinate space as `location`.
+    static func insertionIndex(
+        for location: CGPoint,
+        orderedChipIDs: [UUID],
+        frames: [UUID: CGRect]
+    ) -> Int {
+        var index = 0
+        for id in orderedChipIDs {
+            guard let frame = frames[id] else {
+                index += 1
+                continue
+            }
+            let isBefore =
+                if location.y > frame.maxY { true }
+                else if location.y < frame.minY { false }
+                else { location.x > frame.midX }
+            if isBefore { index += 1 } else { break }
+        }
+        return index
+    }
+}

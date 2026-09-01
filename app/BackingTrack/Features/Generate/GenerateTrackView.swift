@@ -1,5 +1,10 @@
 import SwiftUI
 
+/// Name of the coordinate space the chord flow reports chip frames in. File-scope rather than a
+/// `static` on `GenerateTrackView` so it can be read from `.onGeometryChange`'s `@Sendable`
+/// transform closure — a `static` on a `@MainActor` `View` is main-actor-isolated and can't be.
+private let chordFlowCoordinateSpace = "chordFlow"
+
 /// The app's main screen: choose the parameters of a backing track and request generation.
 ///
 /// Laid out as a `ScrollView` of hand-built `SectionCard`s rather than a `Form`. The chord chip
@@ -20,6 +25,9 @@ struct GenerateTrackView: View {
         // `State(initialValue:)` is the supported way to seed `@State` from an initializer; it's
         // used only on the view's first construction, not on later re-inits.
         _model = State(initialValue: model)
+        // Start in custom mode when the model arrives with a signature the quick-pick menu can't
+        // represent — otherwise that menu would render with no selection.
+        _isCustomTimeSignature = State(initialValue: !model.timeSignature.isCommon)
     }
 
     @State private var isShowingSettings = false
@@ -28,12 +36,10 @@ struct GenerateTrackView: View {
     @State private var isShowingVibeComingSoon = false
     // Toggling this reveals the custom beat-count / beat-unit pickers instead of the quick-pick
     // list. Kept in the view (not the model) — it's a display choice, not part of the request.
-    @State private var isCustomTimeSignature = false
+    @State private var isCustomTimeSignature: Bool
     // Each chord chip's frame in the flow's coordinate space, so a drop can be turned into an
     // insertion position. Rebuilt as the flow lays out; pruned when chords change.
     @State private var chipFrames: [UUID: CGRect] = [:]
-
-    private static let chordFlowSpace = "chordFlow"
 
     // `body` is deliberately thin — the card stack, toolbar, bottom bar and modals are split into
     // their own properties below. Kept together they form one expression big enough that the
@@ -165,7 +171,7 @@ struct GenerateTrackView: View {
             // loosely toward the end (past the last chip, or down over "Add Chord") still lands
             // at the end rather than needing to overlap the final chip.
             .contentShape(.rect)
-            .coordinateSpace(.named(Self.chordFlowSpace))
+            .coordinateSpace(.named(chordFlowCoordinateSpace))
             .dropDestination(for: String.self) { droppedIDs, location in
                 handleChordDrop(droppedIDs, at: location)
             }
@@ -178,14 +184,14 @@ struct GenerateTrackView: View {
     }
 
     private var chordChipFlow: some View {
-        ChipFlowLayout(spacing: 8) {
+        ChipFlowLayout(spacing: 10) {
             ForEach(model.chords) { chord in
                 ChordChip(chord: chord) {
                     withAnimation { model.removeChord(chord) }
                 }
                 .draggable(chord.id.uuidString)
                 .onGeometryChange(for: CGRect.self) { proxy in
-                    proxy.frame(in: .named(Self.chordFlowSpace))
+                    proxy.frame(in: .named(chordFlowCoordinateSpace))
                 } action: { frame in
                     chipFrames[chord.id] = frame
                 }
@@ -317,26 +323,15 @@ struct GenerateTrackView: View {
               model.chords.contains(where: { $0.id == draggedID })
         else { return false }
 
-        let targetIndex = insertionIndex(for: location)
+        let targetIndex = ChipFlowGeometry.insertionIndex(
+            for: location,
+            orderedChipIDs: model.chords.map(\.id),
+            frames: chipFrames
+        )
         withAnimation(.snappy) {
-            model.chords = model.chords.movingChord(withID: draggedID, toIndex: targetIndex)
+            model.moveChord(withID: draggedID, toIndex: targetIndex)
         }
         return true
-    }
-
-    /// The reading-order position `location` falls at: the number of chips that sit before it,
-    /// where "before" means on an earlier row, or on the same row and past the chip's midpoint.
-    private func insertionIndex(for location: CGPoint) -> Int {
-        var index = 0
-        for chord in model.chords {
-            guard let frame = chipFrames[chord.id] else { continue }
-            let isBefore =
-                if location.y > frame.maxY { true }
-                else if location.y < frame.minY { false }
-                else { location.x > frame.midX }
-            if isBefore { index += 1 } else { break }
-        }
-        return index
     }
 
     private func generate() {

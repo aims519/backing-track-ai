@@ -3,9 +3,9 @@ import SwiftUI
 /// One grouped block on `GenerateTrackView` — an uppercase caption, a rounded content card, and
 /// an optional footnote below — styled to read like an inset-grouped `Form` section.
 ///
-/// The screen can't actually use `Form`: the chord chip flow needs `onDrag`/`onDrop`, which do
-/// nothing inside a `List`/`Form` on iOS. So every section is hand-built to match, and this is
-/// the shared shell they all use.
+/// The screen can't actually use `Form`: the chord chip flow needs drag-and-drop, which is
+/// unreliable inside a `List`/`Form` on iOS (the list's scroll gesture competes for the touch).
+/// So every section is hand-built to match, and this is the shared shell they all use.
 struct SectionCard<Content: View>: View {
     private let header: String?
     private let footer: Text?

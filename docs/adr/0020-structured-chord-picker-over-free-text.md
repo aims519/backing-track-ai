@@ -20,8 +20,9 @@ goal, so a full visual fretboard builder was out of scope for this screen regard
 
 Chords are entered through a constrained picker, never as free text. An "Add chord" sheet has two
 wheel pickers — root note (12 chromatic values, sharp spelling) and quality (the exact set the
-API accepts, as the `ChordQuality` enum) — and appends to a list that supports drag-to-reorder
-and swipe-to-delete.
+API accepts, as the `ChordQuality` enum) — and appends to the progression. The progression is
+shown as a flow of draggable chips (not a `List` — see Consequences); reordering is drag-and-drop
+and each chip carries its own delete control.
 
 Because every chord is assembled from a valid root and a valid quality, the app never constructs
 an invalid symbol, so there is **no client-side port of `ChordSymbolParser`** — the picker's type
@@ -71,3 +72,9 @@ the full picker without changing the model.
   means the enum and `chords.jsonl` have to grow together.
 - If a fretboard builder is added later (the stretch goal), it becomes an alternative *input
   method* feeding the same `[Chord]` model — this decision doesn't block it.
+- The progression is rendered as a custom chip flow rather than a `List`. `List`'s reordering
+  (`.onMove`) needs an explicit edit mode on iOS, and its drag-and-drop modifiers don't work for
+  a subview of a `List`/`Form` — so the whole input screen is a `ScrollView` of hand-built
+  section cards, and the chips use `.draggable` plus a single container `.dropDestination` that
+  turns the drop point into an insertion index. More UI code than a `List` row would have been,
+  in exchange for the interaction the screen wanted.

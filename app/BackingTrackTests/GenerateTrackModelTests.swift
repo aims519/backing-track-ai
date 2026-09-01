@@ -69,6 +69,12 @@ struct GenerateTrackModelTests {
         #expect(model.composedStyle == "funk")
     }
 
+    @Test func notesWithNoStylePickedAreNotSentAsAStyle() {
+        let model = GenerateTrackModel()
+        model.styleNotes = "slow shuffle"
+        #expect(model.composedStyle.isEmpty)
+    }
+
     @Test func removeChordDeletesByIdentityNotPosition() {
         let model = GenerateTrackModel()
         model.addChord(root: .c, quality: .major)
@@ -78,6 +84,17 @@ struct GenerateTrackModelTests {
         model.removeChord(model.chords[0])
 
         #expect(model.chords.map(\.apiSymbol) == ["F", "C"])
+    }
+
+    @Test func moveChordReordersTheProgression() {
+        let model = GenerateTrackModel()
+        model.addChord(root: .c, quality: .major)
+        model.addChord(root: .f, quality: .major)
+        model.addChord(root: .g, quality: .major)
+
+        model.moveChord(withID: model.chords[0].id, toIndex: 3) // C to the end
+
+        #expect(model.chords.map(\.apiSymbol) == ["F", "G", "C"])
     }
 
     @Test func styleAloneIsSentWhenNoNotesAreAdded() {
