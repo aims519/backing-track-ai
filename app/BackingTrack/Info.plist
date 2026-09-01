@@ -2,10 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
   Partial Info.plist. Xcode still generates the bulk of the plist from build settings
-  (GENERATE_INFOPLIST_FILE = YES in project.yml); the keys here are merged on top. It exists
-  only to hold UILaunchScreen, which is a nested dictionary and so has no INFOPLIST_KEY_* build
-  setting to express it. Keep flat keys in project.yml as INFOPLIST_KEY_* — put only genuinely
-  nested plist structure here.
+  (GENERATE_INFOPLIST_FILE = YES in project.yml); the keys here are merged on top. Mostly for
+  nested plist structure that has no INFOPLIST_KEY_* build setting — keep flat keys in
+  project.yml as INFOPLIST_KEY_* where possible.
 -->
 <plist version="1.0">
 <dict>
@@ -16,6 +15,30 @@
 		<key>UIImageName</key>
 		<string>LaunchLogo</string>
 		<key>UIImageRespectsSafeAreaInsets</key>
+		<true/>
+	</dict>
+
+	<!--
+	  API base URL, from the API_BASE_URL build setting (project.yml / Config/Local.xcconfig).
+	  A flat key, but it lives here rather than as INFOPLIST_KEY_APIBaseURL in project.yml
+	  because the INFOPLIST_KEY_* mechanism only covers Apple's known keys — a custom key needs
+	  to be a real plist entry for $(...) substitution to happen at merge time. Read by
+	  APIConfiguration at launch.
+	-->
+	<key>APIBaseURL</key>
+	<string>$(API_BASE_URL)</string>
+
+	<!--
+	  The API is plain HTTP: localhost in development, and the Pi over Tailscale otherwise —
+	  no TLS terminates on the Pi. App Transport Security blocks cleartext by default, so it's
+	  disabled here. Acceptable because the Tailscale (WireGuard) tunnel already encrypts every
+	  byte in transit, this is a single-user app with no App Store distribution
+	  (docs/backing-track-generator-scope.md), and a scoped NSExceptionDomains entry can't name
+	  the Pi host — it's per-machine in Config/Local.xcconfig. See ADR 0022.
+	-->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
 </dict>

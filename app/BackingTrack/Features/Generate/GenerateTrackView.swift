@@ -12,9 +12,10 @@ private let chordFlowCoordinateSpace = "chordFlow"
 /// gesture are unreliable inside a `List`/`Form` on iOS — the list's own scroll gesture
 /// recogniser competes for the touch. A plain `ScrollView` doesn't have that problem.
 ///
-/// Precise mode only for now — Vibe mode's backend doesn't exist yet (see `GenerationMode`). The
-/// actual network call and the generating → ready/failed flow are a separate task; `generate()`
-/// here just shows what would be sent.
+/// Precise mode only for now — Vibe mode's backend doesn't exist yet (see `GenerationMode`).
+/// `generate()` submits the form to `POST /tracks/generate` via `GenerateTrackModel` and shows an
+/// alert with the accepted job or the error; polling that job to completion and the generating →
+/// ready/failed screens are a separate task.
 struct GenerateTrackView: View {
     // `@State` (not `@StateObject`) is how the current Observation model holds a reference type —
     // the view owns this instance for its lifetime and SwiftUI tracks reads into it. Injectable
@@ -32,7 +33,6 @@ struct GenerateTrackView: View {
 
     @State private var isShowingSettings = false
     @State private var isShowingAddChord = false
-    @State private var isShowingSubmitConfirmation = false
     @State private var isShowingVibeComingSoon = false
     // Toggling this reveals the custom beat-count / beat-unit pickers instead of the quick-pick
     // list. Kept in the view (not the model) — it's a display choice, not part of the request.
@@ -55,9 +55,7 @@ struct GenerateTrackView: View {
                     model: model,
                     isShowingSettings: $isShowingSettings,
                     isShowingAddChord: $isShowingAddChord,
-                    isShowingVibeComingSoon: $isShowingVibeComingSoon,
-                    isShowingSubmitConfirmation: $isShowingSubmitConfirmation,
-                    confirmationMessage: confirmationMessage(for:)
+                    isShowingVibeComingSoon: $isShowingVibeComingSoon
                 ))
         }
     }
@@ -89,14 +87,25 @@ struct GenerateTrackView: View {
     /// Primary action, pinned above the home indicator rather than scrolling away with the form.
     private var generateBar: some View {
         Button {
-            generate()
+            // `submitGeneration` is `async`; a `Task` bridges the synchronous button action to
+            // it. The model is `@MainActor`, so the work hops back to the main actor to publish
+            // its result — no manual dispatch needed.
+            Task { await model.generate() }
         } label: {
-            Text("Generate Track")
-                .frame(maxWidth: .infinity)
+            // Swap the label for a spinner while the request is in flight; keep it full-width
+            // either way so the bar doesn't resize.
+            Group {
+                if model.isSubmitting {
+                    ProgressView()
+                } else {
+                    Text("Generate Track")
+                }
+            }
+            .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
-        .disabled(!model.canGenerate)
+        .disabled(!model.canGenerate || model.isSubmitting)
         .padding()
         .background(.bar)
     }
@@ -334,23 +343,6 @@ struct GenerateTrackView: View {
         return true
     }
 
-    private func generate() {
-        if model.submit() != nil {
-            isShowingSubmitConfirmation = true
-        }
-    }
-
-    private func confirmationMessage(for request: GenerationRequest) -> String {
-        """
-        \(request.mode) · \(request.tempo) BPM · \(request.timeSignatureBeatCount)/\(request.timeSignatureBeatUnit) · Key of \(request.keyRoot)
-
-        Chords: \(request.chords.joined(separator: " – "))
-
-        Style: \(request.style)
-
-        Networking isn't wired up yet — this is what would be sent to /tracks/generate.
-        """
-    }
 }
 
 /// The screen's sheets and alerts, grouped so `GenerateTrackView.body` stays small enough for the
@@ -360,8 +352,6 @@ private struct GenerateTrackModals: ViewModifier {
     @Binding var isShowingSettings: Bool
     @Binding var isShowingAddChord: Bool
     @Binding var isShowingVibeComingSoon: Bool
-    @Binding var isShowingSubmitConfirmation: Bool
-    let confirmationMessage: (GenerationRequest) -> String
 
     func body(content: Content) -> some View {
         content
@@ -381,14 +371,37 @@ private struct GenerateTrackModals: ViewModifier {
                 Text("Vibe mode renders realistic audio from a text prompt. It isn't available yet — Precise mode for now.")
             }
             .alert(
-                "Track Requested",
-                isPresented: $isShowingSubmitConfirmation,
-                presenting: model.lastSubmission
+                submissionAlert?.title ?? "",
+                // The alert is shown whenever the model is in a terminal submit state; dismissing
+                // it clears that state (`acknowledgeSubmissionResult`), returning to the form.
+                isPresented: Binding(
+                    get: { submissionAlert != nil },
+                    set: { isPresented in if !isPresented { model.acknowledgeSubmissionResult() } }
+                ),
+                presenting: submissionAlert
             ) { _ in
                 Button("OK", role: .cancel) {}
-            } message: { request in
-                Text(confirmationMessage(request))
+            } message: { alert in
+                Text(alert.message)
             }
+    }
+
+    /// The result alert's contents, or `nil` while editing / submitting. Polling the job and the
+    /// generating → ready/failed screens are a later task — for now the confirmation just reports
+    /// that the API accepted the request and created a job.
+    private var submissionAlert: (title: String, message: String)? {
+        switch model.submissionState {
+        case .idle, .submitting:
+            nil
+        case .submitted(let job):
+            (
+                "Track Requested",
+                "The server accepted your request and started job \(job.id.uuidString.prefix(8)) "
+                + "(\(job.status.displayName)). Tracking its progress comes next."
+            )
+        case .failed(let error):
+            ("Couldn't Generate Track", error.errorDescription ?? "Something went wrong.")
+        }
     }
 }
 
