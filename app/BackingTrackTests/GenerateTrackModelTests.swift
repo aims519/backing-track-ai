@@ -2,10 +2,58 @@ import Foundation
 import Testing
 @testable import BackingTrack
 
+/// Counts calls into a `StubAPIClient`. An `actor` because the client is invoked off the main
+/// actor; the `StubAPIClient` struct shares one by reference.
+private actor CallLog {
+    private(set) var submitCount = 0
+    func recordSubmit() { submitCount += 1 }
+}
+
+/// A `BackingTrackAPIClient` that returns a canned result — no network. `result` is set per test.
+private struct StubAPIClient: BackingTrackAPIClient {
+    var result: Result<GenerationJob, APIClientError>
+    let callLog = CallLog()
+
+    func submitGeneration(_ request: GenerationRequest) async throws -> GenerationJob {
+        await callLog.recordSubmit()
+        return try result.get()
+    }
+    func jobStatus(id: UUID) async throws -> GenerationJob { try result.get() }
+
+    static func succeeding(status: JobStatus = .pending) -> StubAPIClient {
+        StubAPIClient(result: .success(GenerationJob(
+            id: UUID(),
+            status: status,
+            startTime: Date(),
+            endTime: nil,
+            trackId: nil,
+            audioLocation: nil,
+            mode: "Precise",
+            tempo: 120,
+            chords: ["C"],
+            keyRoot: "C",
+            timeSignatureBeatCount: 4,
+            timeSignatureBeatUnit: 4
+        )))
+    }
+
+    static func failing(_ error: APIClientError) -> StubAPIClient {
+        StubAPIClient(result: .failure(error))
+    }
+}
+
 // `@MainActor` because `GenerateTrackModel` is main-actor isolated — the tests drive it exactly
 // as the view would.
 @MainActor
 struct GenerateTrackModelTests {
+
+    /// A ready-to-submit model wired to `client` (default: a stub that succeeds).
+    private func readyModel(client: BackingTrackAPIClient = StubAPIClient.succeeding()) -> GenerateTrackModel {
+        let model = GenerateTrackModel(apiClient: client)
+        model.addChord(root: .c, quality: .major)
+        model.selectedStyle = .pop
+        return model
+    }
 
     @Test func cannotGenerateWithAnEmptyForm() {
         let model = GenerateTrackModel()
@@ -26,11 +74,15 @@ struct GenerateTrackModelTests {
         #expect(model.canGenerate)
     }
 
-    @Test func submitDoesNothingWhileIncomplete() {
-        let model = GenerateTrackModel()
+    @Test func generateDoesNothingWhileIncomplete() async {
+        let client = StubAPIClient.succeeding()
+        let model = GenerateTrackModel(apiClient: client)
         model.addChord(root: .c, quality: .major) // still no style
-        #expect(model.submit() == nil)
-        #expect(model.lastSubmission == nil)
+
+        await model.generate()
+
+        #expect(model.submissionState == .idle)
+        #expect(await client.callLog.submitCount == 0) // never reached the API
     }
 
     @Test func buildRequestMapsFormStateOntoTheApiContract() {
@@ -108,15 +160,33 @@ struct GenerateTrackModelTests {
         #expect(model.composedStyle.isEmpty)
     }
 
-    @Test func submitRecordsTheBuiltRequest() {
-        let model = GenerateTrackModel()
-        model.addChord(root: .c, quality: .major)
-        model.selectedStyle = .pop
+    @Test func generateStoresTheAcceptedJobOnSuccess() async {
+        let model = readyModel(client: StubAPIClient.succeeding(status: .pending))
 
-        let returned = model.submit()
+        await model.generate()
 
-        #expect(returned != nil)
-        #expect(model.lastSubmission == returned)
+        guard case .submitted(let job) = model.submissionState else {
+            Issue.record("expected .submitted, got \(model.submissionState)")
+            return
+        }
+        #expect(job.status == .pending)
+    }
+
+    @Test func generateStoresTheErrorOnFailure() async {
+        let model = readyModel(client: StubAPIClient.failing(.unauthorized))
+
+        await model.generate()
+
+        #expect(model.submissionState == .failed(.unauthorized))
+    }
+
+    @Test func acknowledgingTheResultReturnsToIdle() async {
+        let model = readyModel(client: StubAPIClient.failing(.rateLimited(retryAfter: 30)))
+        await model.generate()
+
+        model.acknowledgeSubmissionResult()
+
+        #expect(model.submissionState == .idle)
     }
 
     @Test func vibeModeIsNotSubmittableYet() {

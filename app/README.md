@@ -19,11 +19,14 @@ app/
 ```
 
 `GenerateTrackView` is the root screen: the chord/key/tempo/style/time-signature input form for
-Precise mode. It builds a `GenerationRequest` but doesn't send it yet — the API client and the
-generating → ready/failed flow are still to come, so `Generate` currently just previews the
-request it would POST. Vibe mode is shown in the selector but disabled (its backend doesn't
-exist yet). See [ADR 0020](../docs/adr/0020-structured-chord-picker-over-free-text.md) for why
-chord entry is a constrained picker rather than a text field.
+Precise mode. `Generate` submits the `GenerationRequest` to `POST /tracks/generate` via
+`BackingTrackAPIClient` (`Networking/`) and reports whether the API accepted the job; polling
+that job to completion and the generating → ready/failed screens are still to come. Vibe mode is
+shown in the selector but disabled (its backend doesn't exist yet). See
+[ADR 0020](../docs/adr/0020-structured-chord-picker-over-free-text.md) for why chord entry is a
+constrained picker rather than a text field, and
+[ADR 0022](../docs/adr/0022-plaintext-http-over-tailscale-ats-disabled.md) for the plain-HTTP /
+ATS posture.
 
 ## Setup
 
@@ -49,6 +52,20 @@ cd app
 xcodegen generate
 open BackingTrack.xcodeproj
 ```
+
+### API base URL
+
+The app reads the API's base URL from the `API_BASE_URL` build setting (surfaced as the
+`APIBaseURL` Info.plist key, read by `APIConfiguration`). **Debug** builds default to
+`http://localhost:5198` — a local `dotnet run` of the API (see [`api/README.md`](../api/README.md))
+— so the simulator works with no extra setup. For **Release** / on-device builds, set the Pi's
+Tailscale URL in `Config/Local.xcconfig` (gitignored, per-machine like `DEVELOPMENT_TEAM`);
+`Config/Local.xcconfig.example` shows the line and the `//`-escaping the xcconfig format needs.
+A Release build with no value set fails fast at launch. The transport is plain HTTP over the
+Tailscale tunnel — see [ADR 0022](../docs/adr/0022-plaintext-http-over-tailscale-ats-disabled.md).
+
+Paste a matching `Auth:ApiKey` value into the app's Settings screen; it's stored in the
+Keychain and sent as `X-API-Key`.
 
 Re-run `xcodegen generate` whenever `project.yml` changes, or after adding/removing/moving
 source files (Xcode's file list is derived from what's on disk, not tracked incrementally in

@@ -89,6 +89,19 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: BackingTrack
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+      configs:
+        # Base URL of the backing-track API. Surfaced to the app as the APIBaseURL Info.plist key
+        # (see BackingTrack/Info.plist) and read at launch by APIConfiguration.
+        #
+        # Debug gets the local `dotnet run` address baked in here so the simulator works with no
+        # per-machine setup. The `//` is safe: this becomes a pbxproj build setting, not an
+        # xcconfig line (where `//` starts a comment — see Config/Local.xcconfig.example).
+        #
+        # Release is deliberately left unset here so the machine-local Config/Local.xcconfig
+        # supplies the Pi's Tailscale URL — same pattern as DEVELOPMENT_TEAM. A Release build with
+        # no value set fails fast at launch (APIConfiguration).
+        Debug:
+          API_BASE_URL: http://localhost:5198
 
   BackingTrackTests:
     type: bundle.unit-test

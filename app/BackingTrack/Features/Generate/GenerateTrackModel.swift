@@ -13,6 +13,14 @@ import Observation
 @Observable
 final class GenerateTrackModel {
 
+    /// Talks to the API. Injectable so previews and tests run without the network — production
+    /// gets the real `URLSession`-backed client.
+    @ObservationIgnored private let apiClient: BackingTrackAPIClient
+
+    init(apiClient: BackingTrackAPIClient = LiveBackingTrackAPIClient()) {
+        self.apiClient = apiClient
+    }
+
     // MARK: - Form state
 
     var mode: GenerationMode = .precise
@@ -87,20 +95,45 @@ final class GenerateTrackModel {
         )
     }
 
-    /// The last request `submit()` produced. Retained so the view can show a confirmation of what
-    /// would be sent while the networking layer doesn't exist yet.
-    private(set) var lastSubmission: GenerationRequest?
+    /// Where the submit action is in its lifecycle. Only covers getting a job *accepted* by the
+    /// API — polling that job to completion and the generating/ready/failed screens are separate
+    /// tasks, built around `JobStatus` / the sketched state machine.
+    enum SubmissionState: Equatable {
+        case idle
+        case submitting
+        /// The API accepted the request and created a job (still `Pending`/`InProgress` here).
+        case submitted(GenerationJob)
+        case failed(APIClientError)
+    }
 
-    /// Placeholder submit. The actual `POST /tracks/generate` call, the 429/rate-limit handling,
-    /// and the generating → ready/fallback/failed screen are a separate task (the iOS state
-    /// machine is already sketched). For now this just records what would be sent.
-    @discardableResult
-    func submit() -> GenerationRequest? {
-        guard canGenerate else { return nil }
-        let request = buildRequest()
-        lastSubmission = request
-        // TODO: hand `request` to the API client and navigate to the generating screen.
-        print("Would POST /tracks/generate: \(request)")
-        return request
+    private(set) var submissionState: SubmissionState = .idle
+
+    /// Drives the Generate button's spinner / disabled state.
+    var isSubmitting: Bool { submissionState == .submitting }
+
+    /// Submits the current form to `POST /tracks/generate`. Safe to call only when `canGenerate`;
+    /// the view gates the button on that. Ignored if a submission is already in flight.
+    func generate() async {
+        guard canGenerate, submissionState != .submitting else { return }
+        submissionState = .submitting
+        do {
+            let job = try await apiClient.submitGeneration(buildRequest())
+            submissionState = .submitted(job)
+        } catch is CancellationError {
+            // The task backing this was cancelled (not a real failure) — drop back to the form.
+            submissionState = .idle
+        } catch let error as APIClientError {
+            submissionState = .failed(error)
+        } catch {
+            // Unreachable: the client's only error type is `APIClientError`. Kept exhaustive so an
+            // unexpected throw is asserted in debug and still surfaced (not swallowed) in release.
+            assertionFailure("unexpected error from API client: \(error)")
+            submissionState = .failed(.decoding(String(describing: error)))
+        }
+    }
+
+    /// Called when the user dismisses the result alert — returns to the editable form.
+    func acknowledgeSubmissionResult() {
+        submissionState = .idle
     }
 }

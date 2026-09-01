@@ -6,7 +6,9 @@ import Security
 /// (single-user app, see `docs/backing-track-generator-scope.md`'s Non-Goals) — just a static
 /// secret that needs to live somewhere more secure than `UserDefaults` (an unencrypted plist)
 /// or hardcoded source.
-protocol APIKeyStoring {
+// `Sendable`: the API client holds a store and crosses actor boundaries. Every conformer here is
+// a value type over immutable/Sendable state, so this is a safe requirement to add.
+protocol APIKeyStoring: Sendable {
     /// The stored key, or `nil` if none has been saved yet.
     func apiKey() -> String?
     /// Saves the key, overwriting any previously stored value.
