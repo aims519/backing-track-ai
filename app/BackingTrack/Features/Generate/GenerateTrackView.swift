@@ -123,14 +123,14 @@ struct GenerateTrackView: View {
 
     private var keySection: some View {
         Section {
-            Picker("Key", selection: $model.keyRoot) {
+            Picker("Key Root", selection: $model.keyRoot) {
                 ForEach(NoteName.allCases) { note in
                     Text(note.displayName).tag(note)
                 }
             }
             .pickerStyle(.menu)
         } header: {
-            Text("Key")
+            Text("Key Root")
         } footer: {
             Text("The tonal centre. Major or minor isn't sent separately — your chords imply it.")
         }
@@ -233,8 +233,12 @@ struct GenerateTrackView: View {
     private var styleSection: some View {
         Section {
             Picker("Style", selection: $model.selectedStyle) {
+                // The `nil` row is the initial state — there's no default style, so the user has
+                // to choose one before Generate enables. Tags must be `MusicStyle?` to match the
+                // optional selection binding.
+                Text("Select a style").tag(nil as MusicStyle?)
                 ForEach(MusicStyle.allCases) { style in
-                    Text(style.displayName).tag(style)
+                    Text(style.displayName).tag(style as MusicStyle?)
                 }
             }
             .pickerStyle(.menu)
@@ -244,8 +248,6 @@ struct GenerateTrackView: View {
                 .lineLimit(2...4)
         } header: {
             Text("Style")
-        } footer: {
-            Text("Sent as: \(model.composedStyle)")
         }
     }
 

@@ -21,7 +21,8 @@ final class GenerateTrackModel {
     /// Slider-friendly `Double`; rounded to a whole BPM when the request is built.
     var tempo: Double = 120
     var timeSignature: TimeSignature = .fourFour
-    var selectedStyle: MusicStyle = .blues
+    /// `nil` until the user picks a style — there's no default, so the choice is deliberate.
+    var selectedStyle: MusicStyle?
     /// Optional free-text refinement appended to the picked style, e.g. "slow, brushes not sticks".
     var styleNotes: String = ""
 
@@ -35,17 +36,19 @@ final class GenerateTrackModel {
     }
 
     /// The `Style` string that will be sent: the picked style alone, or the style followed by the
-    /// notes when the user has typed any.
+    /// notes when the user has typed any. Empty when no style is picked — `canGenerate` blocks
+    /// submission in that case, so this is only ever sent with a style present.
     var composedStyle: String {
         let notes = trimmedStyleNotes
-        return notes.isEmpty ? selectedStyle.apiValue : "\(selectedStyle.apiValue). \(notes)"
+        guard let style = selectedStyle else { return notes }
+        return notes.isEmpty ? style.apiValue : "\(style.apiValue). \(notes)"
     }
 
-    /// Whether the form has enough to submit. Tempo, key, time signature and style always hold a
-    /// valid value from their controls, so the only gate is "at least one chord" — plus the mode
-    /// being one that actually works yet.
+    /// Whether the form has enough to submit. Tempo, key and time signature always hold a valid
+    /// value from their controls, so the gates are: an available mode, at least one chord, and a
+    /// style picked.
     var canGenerate: Bool {
-        mode.isAvailable && !chords.isEmpty
+        mode.isAvailable && !chords.isEmpty && selectedStyle != nil
     }
 
     // MARK: - Chord list editing

@@ -7,19 +7,28 @@ import Testing
 @MainActor
 struct GenerateTrackModelTests {
 
-    @Test func cannotGenerateWithNoChords() {
+    @Test func cannotGenerateWithAnEmptyForm() {
         let model = GenerateTrackModel()
         #expect(model.canGenerate == false)
     }
 
-    @Test func canGenerateOnceAChordIsAdded() {
+    @Test func aChordAloneIsNotEnoughWithoutAStyle() {
         let model = GenerateTrackModel()
         model.addChord(root: .c, quality: .major)
+        #expect(model.selectedStyle == nil)
+        #expect(model.canGenerate == false)
+    }
+
+    @Test func canGenerateWithAtLeastOneChordAndAStyle() {
+        let model = GenerateTrackModel()
+        model.addChord(root: .c, quality: .major)
+        model.selectedStyle = .rock
         #expect(model.canGenerate)
     }
 
     @Test func submitDoesNothingWhileIncomplete() {
         let model = GenerateTrackModel()
+        model.addChord(root: .c, quality: .major) // still no style
         #expect(model.submit() == nil)
         #expect(model.lastSubmission == nil)
     }
@@ -81,9 +90,21 @@ struct GenerateTrackModelTests {
         #expect(model.chords.map(\.apiSymbol) == ["F"])
     }
 
+    @Test func styleAloneIsSentWhenNoNotesAreAdded() {
+        let model = GenerateTrackModel()
+        model.selectedStyle = .reggae
+        #expect(model.composedStyle == "reggae")
+    }
+
+    @Test func composedStyleIsEmptyWithNoStylePicked() {
+        let model = GenerateTrackModel()
+        #expect(model.composedStyle.isEmpty)
+    }
+
     @Test func submitRecordsTheBuiltRequest() {
         let model = GenerateTrackModel()
         model.addChord(root: .c, quality: .major)
+        model.selectedStyle = .pop
 
         let returned = model.submit()
 
@@ -98,7 +119,8 @@ struct GenerateTrackModelTests {
         let model = GenerateTrackModel()
         model.mode = .vibe
         model.addChord(root: .c, quality: .major)
-        // Even with a valid chord list, an unavailable mode can't be generated.
+        model.selectedStyle = .rock
+        // Chord list and style are both valid — an unavailable mode is the only thing blocking.
         #expect(model.canGenerate == false)
     }
 }
