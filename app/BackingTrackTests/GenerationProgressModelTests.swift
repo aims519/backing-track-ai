@@ -8,11 +8,14 @@ import Testing
 /// it off the main actor — same reason as `CallLog` in `GenerateTrackModelTests`.
 private actor ScriptedStatusClient: BackingTrackAPIClient {
     private let script: [Result<GenerationJob, APIClientError>]
+    /// Optional per-call delay, so a test can cancel a poll while it's in flight.
+    private let delay: Duration
     private(set) var jobStatusCalls = 0
 
-    init(_ script: [Result<GenerationJob, APIClientError>]) {
+    init(_ script: [Result<GenerationJob, APIClientError>], delay: Duration = .zero) {
         precondition(!script.isEmpty, "script needs at least one entry")
         self.script = script
+        self.delay = delay
     }
 
     func submitGeneration(_ request: GenerationRequest) async throws -> GenerationJob {
@@ -20,6 +23,7 @@ private actor ScriptedStatusClient: BackingTrackAPIClient {
     }
 
     func jobStatus(id: UUID) async throws -> GenerationJob {
+        if delay > .zero { try? await Task.sleep(for: delay) }
         jobStatusCalls += 1
         return try script[min(jobStatusCalls - 1, script.count - 1)].get()
     }
@@ -214,6 +218,33 @@ struct GenerationProgressModelTests {
 
         #expect(model.phase == .polling)
         #expect(!model.phase.isTerminal)
+    }
+
+    /// A poll cancelled mid-flight comes back as `APIClientError.transport(URLError(.cancelled))`,
+    /// not `CancellationError` — it must not be counted as a failed poll. `maxConsecutiveFailures`
+    /// of 1 means that without the `Task.isCancelled` guard this would land in `.failed`.
+    @Test func cancelledMidPollIsNotCountedAsAFailure() async {
+        let id = UUID()
+        let client = ScriptedStatusClient(
+            [.failure(.transport(URLError(.cancelled)))],
+            delay: .milliseconds(50)
+        )
+        let model = makeModel(
+            id: id,
+            client: client,
+            config: PollingConfiguration(
+                interval: .milliseconds(1),
+                timeout: .seconds(10),
+                maxConsecutiveFailures: 1
+            )
+        )
+
+        let task = Task { await model.startPolling() }
+        try? await Task.sleep(for: .milliseconds(5)) // let the poll get in flight
+        task.cancel()
+        await task.value
+
+        #expect(model.phase == .polling)
     }
 
     @Test func progressCaptionMapsStatus() {

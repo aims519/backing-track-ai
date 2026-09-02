@@ -136,6 +136,7 @@ final class GenerateTrackModel {
     /// editable form (still populated, so it doubles as "try again").
     func acknowledgeSubmissionResult() {
         submissionState = .idle
+        progressModel = nil
     }
 
     // MARK: - Progress screen
@@ -146,13 +147,23 @@ final class GenerateTrackModel {
         if case .submitted(let job) = submissionState { job } else { nil }
     }
 
-    /// Builds the progress screen's model — keeps `apiClient` private to this type, and bundles in
-    /// the composed style string (`GenerationJob` doesn't echo `Style` back).
+    /// Memoised so the `.fullScreenCover` content closure — which SwiftUI may re-evaluate while
+    /// presented — reuses one model rather than allocating a throwaway each time. Cleared when the
+    /// screen is dismissed (`acknowledgeSubmissionResult`).
+    @ObservationIgnored private var progressModel: GenerationProgressModel?
+
+    /// The progress screen's model for `job` — keeps `apiClient` private to this type, and bundles
+    /// in the composed style string (`GenerationJob` doesn't echo `Style` back).
     func makeProgressModel(for job: GenerationJob) -> GenerationProgressModel {
-        GenerationProgressModel(
+        if let progressModel, progressModel.initialJob.id == job.id {
+            return progressModel
+        }
+        let model = GenerationProgressModel(
             job: job,
             styleSummary: composedStyle.isEmpty ? nil : composedStyle,
             apiClient: apiClient
         )
+        progressModel = model
+        return model
     }
 }

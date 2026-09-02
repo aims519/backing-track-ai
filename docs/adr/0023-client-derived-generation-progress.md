@@ -55,7 +55,11 @@ back to 2s rather than being fatal, because a wrong cadence degrades the screen 
 the app (unlike an unset `APIBaseURL`).
 
 The screen is presented as a `fullScreenCover`, not pushed onto the navigation stack: generation
-is a modal interruption of the form, and there is no half-submitted state to swipe back to.
+is a modal interruption of the form, and there is no half-submitted state to swipe back to. It
+still has an explicit exit — a toolbar "Cancel" while polling, "Done" once terminal — since a
+generation in progress must be abandonable (the pre-cover flow let the user dismiss the
+acceptance alert immediately). Cancelling only stops the client polling; the backend job has no
+cancel endpoint and may still run to completion.
 
 ## Alternatives considered
 

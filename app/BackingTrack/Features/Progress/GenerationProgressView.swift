@@ -5,8 +5,10 @@ import SwiftUI
 /// "Track ready" or failure state.
 ///
 /// Presented with `.fullScreenCover` rather than a navigation push: generation is a modal
-/// interruption of the form, and there's no half-submitted state to swipe back to. "Done" (shown
-/// only once the job is terminal) dismisses back to the still-populated form.
+/// interruption of the form, and there's no half-submitted state to swipe back to. The toolbar
+/// button ("Cancel" while polling, "Done" once terminal) dismisses back to the still-populated
+/// form; cancelling just stops polling — the backend job has no cancel endpoint and may still
+/// finish (ADR 0023).
 struct GenerationProgressView: View {
     // `@State` + `State(initialValue:)` is how an `@Observable` reference type is owned by a view
     // (same pattern as `GenerateTrackView`) — the cover builds this once and SwiftUI tracks reads.
@@ -33,18 +35,26 @@ struct GenerationProgressView: View {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { dismiss() }
                     }
+                } else {
+                    // A generation in progress must still be abandonable — the pre-cover flow let
+                    // the user dismiss the acceptance alert immediately.
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }
+                    }
                 }
             }
         }
         // `.task` runs for the lifetime of the cover and is cancelled automatically when it's
         // dismissed — the model needs no `Task` of its own and no teardown.
         .task { await model.startPolling() }
-        // `fullScreenCover` has no swipe-to-dismiss, but be explicit: leaving mid-generation is
-        // only via "Done".
+        // `fullScreenCover` has no swipe-to-dismiss; leaving is only via the toolbar button.
         .interactiveDismissDisabled()
-        // VoiceOver: announce the caption when the status changes and the outcome when the phase
-        // settles — rather than letting the per-second timer re-read constantly.
-        .onChange(of: model.latestStatus) { announce(model.progressCaption) }
+        // VoiceOver: announce the caption on a status change *while polling* (a terminal status is
+        // covered by the phase change below, and its caption would be the misleading "Finishing
+        // up…"), and the outcome when the phase settles.
+        .onChange(of: model.latestStatus) {
+            if case .polling = model.phase { announce(model.progressCaption) }
+        }
         .onChange(of: model.phase) { _, phase in announcePhaseChange(phase) }
     }
 
@@ -74,7 +84,10 @@ struct GenerationProgressView: View {
                 .font(.title3)
                 .contentTransition(.opacity)
 
-            TimelineView(.periodic(from: .now, by: 1)) { context in
+            // Anchor the tick schedule on the fixed origin, not `.now` — `.now` is re-read on
+            // every body evaluation (each poll re-renders this view), which would restart the
+            // 1s cadence and make the timer stutter.
+            TimelineView(.periodic(from: model.elapsedOrigin, by: 1)) { context in
                 Text(elapsed(at: context.date))
                     .font(.system(.body, design: .rounded))
                     .monospacedDigit()

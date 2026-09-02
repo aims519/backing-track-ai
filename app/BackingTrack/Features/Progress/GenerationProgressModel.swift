@@ -131,6 +131,10 @@ final class GenerationProgressModel {
             } catch is CancellationError {
                 return
             } catch let error as APIClientError {
+                // A poll cancelled mid-flight (the cover was dismissed) surfaces as
+                // `URLError(.cancelled)` → `APIClientError.transport`, *not* `CancellationError`,
+                // so catch it here before it's counted as a failed poll.
+                if Task.isCancelled { return }
                 consecutiveFailures += 1
                 switch classify(error, consecutiveFailures: consecutiveFailures) {
                 case .giveUp(let failure):
