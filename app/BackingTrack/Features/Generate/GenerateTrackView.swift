@@ -13,9 +13,9 @@ private let chordFlowCoordinateSpace = "chordFlow"
 /// recogniser competes for the touch. A plain `ScrollView` doesn't have that problem.
 ///
 /// Precise mode only for now — Vibe mode's backend doesn't exist yet (see `GenerationMode`).
-/// `generate()` submits the form to `POST /tracks/generate` via `GenerateTrackModel` and shows an
-/// alert with the accepted job or the error; polling that job to completion and the generating →
-/// ready/failed screens are a separate task.
+/// `generate()` submits the form to `POST /tracks/generate` via `GenerateTrackModel`; on
+/// acceptance `GenerationProgressView` is presented as a `fullScreenCover` to follow the job to
+/// completion, and a submission error is shown as an alert on the form.
 struct GenerateTrackView: View {
     // `@State` (not `@StateObject`) is how the current Observation model holds a reference type —
     // the view owns this instance for its lifetime and SwiftUI tracks reads into it. Injectable
@@ -345,8 +345,8 @@ struct GenerateTrackView: View {
 
 }
 
-/// The screen's sheets and alerts, grouped so `GenerateTrackView.body` stays small enough for the
-/// type-checker. Takes the `@Binding`s it toggles plus the model it reads.
+/// The screen's sheets, alerts and the progress cover, grouped so `GenerateTrackView.body` stays
+/// small enough for the type-checker. Takes the `@Binding`s it toggles plus the model it reads.
 private struct GenerateTrackModals: ViewModifier {
     let model: GenerateTrackModel
     @Binding var isShowingSettings: Bool
@@ -372,8 +372,8 @@ private struct GenerateTrackModals: ViewModifier {
             }
             .alert(
                 submissionAlert?.title ?? "",
-                // The alert is shown whenever the model is in a terminal submit state; dismissing
-                // it clears that state (`acknowledgeSubmissionResult`), returning to the form.
+                // Shown only for a submission *failure*; dismissing it clears that state
+                // (`acknowledgeSubmissionResult`), returning to the form.
                 isPresented: Binding(
                     get: { submissionAlert != nil },
                     set: { isPresented in if !isPresented { model.acknowledgeSubmissionResult() } }
@@ -384,21 +384,24 @@ private struct GenerateTrackModals: ViewModifier {
             } message: { alert in
                 Text(alert.message)
             }
+            // On acceptance, the progress screen takes over full-screen and polls the job. Its
+            // `item` binding is `model.acceptedJob`; setting it back to `nil` (the screen calls
+            // `dismiss()`) routes through `acknowledgeSubmissionResult()` → `.idle`, which also
+            // ends the poll loop by tearing down the cover.
+            .fullScreenCover(item: Binding(
+                get: { model.acceptedJob },
+                set: { newValue in if newValue == nil { model.acknowledgeSubmissionResult() } }
+            )) { job in
+                GenerationProgressView(model: model.makeProgressModel(for: job))
+            }
     }
 
-    /// The result alert's contents, or `nil` while editing / submitting. Polling the job and the
-    /// generating → ready/failed screens are a later task — for now the confirmation just reports
-    /// that the API accepted the request and created a job.
+    /// The failure alert's contents, or `nil` otherwise. A *successful* submission routes to the
+    /// `fullScreenCover` above, not an alert.
     private var submissionAlert: (title: String, message: String)? {
         switch model.submissionState {
-        case .idle, .submitting:
+        case .idle, .submitting, .submitted:
             nil
-        case .submitted(let job):
-            (
-                "Track Requested",
-                "The server accepted your request and started job \(job.id.uuidString.prefix(8)) "
-                + "(\(job.status.displayName)). Tracking its progress comes next."
-            )
         case .failed(let error):
             ("Couldn't Generate Track", error.errorDescription ?? "Something went wrong.")
         }

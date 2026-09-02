@@ -95,9 +95,9 @@ final class GenerateTrackModel {
         )
     }
 
-    /// Where the submit action is in its lifecycle. Only covers getting a job *accepted* by the
-    /// API — polling that job to completion and the generating/ready/failed screens are separate
-    /// tasks, built around `JobStatus` / the sketched state machine.
+    /// Where the submit action is in its lifecycle. Covers getting a job *accepted* by the API;
+    /// once `.submitted`, `GenerateTrackView` presents `GenerationProgressView` (as a
+    /// `fullScreenCover`) which polls the job to completion.
     enum SubmissionState: Equatable {
         case idle
         case submitting
@@ -132,8 +132,27 @@ final class GenerateTrackModel {
         }
     }
 
-    /// Called when the user dismisses the result alert — returns to the editable form.
+    /// Called when the user dismisses the failure alert or the progress screen — returns to the
+    /// editable form (still populated, so it doubles as "try again").
     func acknowledgeSubmissionResult() {
         submissionState = .idle
+    }
+
+    // MARK: - Progress screen
+
+    /// The accepted job while the progress screen should be up, `nil` otherwise. Drives the
+    /// `.fullScreenCover(item:)` on `GenerateTrackView`.
+    var acceptedJob: GenerationJob? {
+        if case .submitted(let job) = submissionState { job } else { nil }
+    }
+
+    /// Builds the progress screen's model — keeps `apiClient` private to this type, and bundles in
+    /// the composed style string (`GenerationJob` doesn't echo `Style` back).
+    func makeProgressModel(for job: GenerationJob) -> GenerationProgressModel {
+        GenerationProgressModel(
+            job: job,
+            styleSummary: composedStyle.isEmpty ? nil : composedStyle,
+            apiClient: apiClient
+        )
     }
 }

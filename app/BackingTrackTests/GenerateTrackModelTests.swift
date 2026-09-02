@@ -21,20 +21,7 @@ private struct StubAPIClient: BackingTrackAPIClient {
     func jobStatus(id: UUID) async throws -> GenerationJob { try result.get() }
 
     static func succeeding(status: JobStatus = .pending) -> StubAPIClient {
-        StubAPIClient(result: .success(GenerationJob(
-            id: UUID(),
-            status: status,
-            startTime: Date(),
-            endTime: nil,
-            trackId: nil,
-            audioLocation: nil,
-            mode: "Precise",
-            tempo: 120,
-            chords: ["C"],
-            keyRoot: "C",
-            timeSignatureBeatCount: 4,
-            timeSignatureBeatUnit: 4
-        )))
+        StubAPIClient(result: .success(.preview(status: status)))
     }
 
     static func failing(_ error: APIClientError) -> StubAPIClient {
