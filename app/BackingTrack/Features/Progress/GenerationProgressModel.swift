@@ -189,8 +189,11 @@ final class GenerationProgressModel {
 
 #if DEBUG
 extension GenerationProgressModel {
-    /// A model parked in a specific phase for `#Preview`s — no polling runs (the preview client
-    /// is never actually called).
+    /// A model parked in a specific phase for `#Preview`s. For the `.polling` previews the view's
+    /// `.task` still runs the loop, so the stub client answers with a held non-terminal status
+    /// and the config uses a very long interval — one harmless poll, then it parks until the
+    /// preview is torn down. The terminal previews never poll (`startPolling` returns at its
+    /// guard).
     static func preview(
         _ phase: Phase,
         latestStatus: JobStatus = .inProgress
@@ -198,7 +201,12 @@ extension GenerationProgressModel {
         let model = GenerationProgressModel(
             job: .preview(status: .pending),
             styleSummary: "Blues — slow, brushes not sticks",
-            apiClient: PreviewStatusClient()
+            apiClient: PreviewStatusClient(held: latestStatus),
+            config: PollingConfiguration(
+                interval: .seconds(3600),
+                timeout: .seconds(3600),
+                maxConsecutiveFailures: 4
+            )
         )
         // `phase`/`latestStatus` are `private(set)`; this extension is in the same file, so it can
         // set them to stage a preview.
@@ -208,13 +216,15 @@ extension GenerationProgressModel {
     }
 }
 
-/// Stand-in `BackingTrackAPIClient` for previews. Previews force a phase, so it's never invoked.
+/// Stand-in `BackingTrackAPIClient` for previews — answers every status poll with `held`.
 private struct PreviewStatusClient: BackingTrackAPIClient {
+    var held: JobStatus = .pending
+
     func submitGeneration(_ request: GenerationRequest) async throws -> GenerationJob {
-        fatalError("preview client is not callable")
+        fatalError("the progress screen never submits")
     }
     func jobStatus(id: UUID) async throws -> GenerationJob {
-        fatalError("preview client is not callable")
+        .preview(status: held)
     }
 }
 #endif

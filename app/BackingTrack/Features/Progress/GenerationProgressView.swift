@@ -95,8 +95,14 @@ struct GenerationProgressView: View {
                 .foregroundStyle(Color.accentColor)
                 .accessibilityHidden(true)
 
-            Text("Track ready")
-                .font(.title2.bold())
+            Group {
+                if let duration = generationDuration(of: job) {
+                    Text("Track generated in \(duration)")
+                } else {
+                    Text("Track ready")
+                }
+            }
+            .font(.title3.bold())
 
             if job.status == .completedViaFallback {
                 Text("Arranged with the built-in fallback rather than the model.")
@@ -213,11 +219,24 @@ struct GenerationProgressView: View {
         }
     }
 
-    /// Seconds since `model.elapsedOrigin`, as `m:ss`. Clamped at zero — the origin is the
-    /// server's clock, which can be slightly ahead of the device's.
+    /// Formats a non-negative number of seconds as `m:ss`. Clamped at zero — these come from
+    /// server timestamps, and the server's clock can be slightly ahead of the device's.
+    private func clockString(_ seconds: TimeInterval) -> String {
+        let whole = max(0, Int(seconds.rounded()))
+        return String(format: "%d:%02d", whole / 60, whole % 60)
+    }
+
+    /// Live time since the job started (or since the screen opened, if the server gave no start),
+    /// ticked once a second by the polling view's `TimelineView`.
     private func elapsed(at now: Date) -> String {
-        let seconds = max(0, Int(now.timeIntervalSince(model.elapsedOrigin)))
-        return String(format: "%d:%02d", seconds / 60, seconds % 60)
+        clockString(now.timeIntervalSince(model.elapsedOrigin))
+    }
+
+    /// How long generation actually took, from the finished job's own timestamps. `nil` if either
+    /// timestamp is missing (shouldn't happen for a terminal job, but the DTO fields are optional).
+    private func generationDuration(of job: GenerationJob) -> String? {
+        guard let start = job.startTime, let end = job.endTime else { return nil }
+        return clockString(end.timeIntervalSince(start))
     }
 
     private func failureMessage(_ failure: GenerationProgressModel.Failure) -> String {
