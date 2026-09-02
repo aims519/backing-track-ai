@@ -171,7 +171,7 @@ struct GenerationProgressView: View {
     private var trackSummaryCard: some View {
         SectionCard("Track") {
             VStack(spacing: 0) {
-                summaryRow("Key", model.initialJob.keyRoot)
+                summaryRow("Key Root", model.initialJob.keyRoot)
                 rowDivider
                 summaryRow("Tempo", "\(model.initialJob.tempo) BPM")
                 rowDivider

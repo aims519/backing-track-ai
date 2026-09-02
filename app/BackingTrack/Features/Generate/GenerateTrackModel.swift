@@ -49,7 +49,7 @@ final class GenerateTrackModel {
     var composedStyle: String {
         guard let style = selectedStyle else { return "" }
         let notes = trimmedStyleNotes
-        return notes.isEmpty ? style.apiValue : "\(style.apiValue). \(notes)"
+        return notes.isEmpty ? style.apiValue.capitalized : "\(style.apiValue.capitalized) - \(notes)"
     }
 
     /// Whether the form has enough to submit. Tempo, key and time signature always hold a valid

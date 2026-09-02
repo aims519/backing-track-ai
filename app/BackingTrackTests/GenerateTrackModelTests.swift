@@ -91,21 +91,21 @@ struct GenerateTrackModelTests {
         #expect(request.chords == ["G", "Emin7", "Amin", "D7"])
         #expect(request.timeSignatureBeatCount == 6)
         #expect(request.timeSignatureBeatUnit == 8)
-        #expect(request.style == "jazz")
+        #expect(request.style == "Jazz")
     }
 
     @Test func styleNotesAreAppendedToTheStyleAndTrimmed() {
         let model = GenerateTrackModel()
         model.selectedStyle = .blues
         model.styleNotes = "  slow, brushes not sticks \n"
-        #expect(model.composedStyle == "blues. slow, brushes not sticks")
+        #expect(model.composedStyle == "Blues - slow, brushes not sticks")
     }
 
     @Test func whitespaceOnlyStyleNotesAreIgnored() {
         let model = GenerateTrackModel()
         model.selectedStyle = .funk
         model.styleNotes = "   "
-        #expect(model.composedStyle == "funk")
+        #expect(model.composedStyle == "Funk")
     }
 
     @Test func notesWithNoStylePickedAreNotSentAsAStyle() {
@@ -139,7 +139,7 @@ struct GenerateTrackModelTests {
     @Test func styleAloneIsSentWhenNoNotesAreAdded() {
         let model = GenerateTrackModel()
         model.selectedStyle = .reggae
-        #expect(model.composedStyle == "reggae")
+        #expect(model.composedStyle == "Reggae")
     }
 
     @Test func composedStyleIsEmptyWithNoStylePicked() {
