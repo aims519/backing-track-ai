@@ -49,7 +49,7 @@ final class GenerateTrackModel {
     var composedStyle: String {
         guard let style = selectedStyle else { return "" }
         let notes = trimmedStyleNotes
-        return notes.isEmpty ? style.apiValue : "\(style.apiValue). \(notes)"
+        return notes.isEmpty ? style.apiValue.capitalized : "\(style.apiValue.capitalized) - \(notes)"
     }
 
     /// Whether the form has enough to submit. Tempo, key and time signature always hold a valid
@@ -95,9 +95,9 @@ final class GenerateTrackModel {
         )
     }
 
-    /// Where the submit action is in its lifecycle. Only covers getting a job *accepted* by the
-    /// API — polling that job to completion and the generating/ready/failed screens are separate
-    /// tasks, built around `JobStatus` / the sketched state machine.
+    /// Where the submit action is in its lifecycle. Covers getting a job *accepted* by the API;
+    /// once `.submitted`, `GenerateTrackView` presents `GenerationProgressView` (as a
+    /// `fullScreenCover`) which polls the job to completion.
     enum SubmissionState: Equatable {
         case idle
         case submitting
@@ -132,8 +132,38 @@ final class GenerateTrackModel {
         }
     }
 
-    /// Called when the user dismisses the result alert — returns to the editable form.
+    /// Called when the user dismisses the failure alert or the progress screen — returns to the
+    /// editable form (still populated, so it doubles as "try again").
     func acknowledgeSubmissionResult() {
         submissionState = .idle
+        progressModel = nil
+    }
+
+    // MARK: - Progress screen
+
+    /// The accepted job while the progress screen should be up, `nil` otherwise. Drives the
+    /// `.fullScreenCover(item:)` on `GenerateTrackView`.
+    var acceptedJob: GenerationJob? {
+        if case .submitted(let job) = submissionState { job } else { nil }
+    }
+
+    /// Memoised so the `.fullScreenCover` content closure — which SwiftUI may re-evaluate while
+    /// presented — reuses one model rather than allocating a throwaway each time. Cleared when the
+    /// screen is dismissed (`acknowledgeSubmissionResult`).
+    @ObservationIgnored private var progressModel: GenerationProgressModel?
+
+    /// The progress screen's model for `job` — keeps `apiClient` private to this type, and bundles
+    /// in the composed style string (`GenerationJob` doesn't echo `Style` back).
+    func makeProgressModel(for job: GenerationJob) -> GenerationProgressModel {
+        if let progressModel, progressModel.initialJob.id == job.id {
+            return progressModel
+        }
+        let model = GenerationProgressModel(
+            job: job,
+            styleSummary: composedStyle.isEmpty ? nil : composedStyle,
+            apiClient: apiClient
+        )
+        progressModel = model
+        return model
     }
 }

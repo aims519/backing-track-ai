@@ -89,6 +89,12 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: BackingTrack
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        # Seconds between polls of GET /tracks/status on the generation progress screen. Surfaced
+        # as the StatusPollInterval Info.plist key (see BackingTrack/Info.plist), read by
+        # PollingConfiguration. Set in `base` so Release is covered without a Config/Local.xcconfig
+        # entry (unlike API_BASE_URL, a poll cadence has no per-machine reason to differ); Debug
+        # overrides it below for tighter local iteration.
+        STATUS_POLL_INTERVAL: "2"
       configs:
         # Base URL of the backing-track API. Surfaced to the app as the APIBaseURL Info.plist key
         # (see BackingTrack/Info.plist) and read at launch by APIConfiguration.
@@ -102,6 +108,7 @@ targets:
         # no value set fails fast at launch (APIConfiguration).
         Debug:
           API_BASE_URL: http://localhost:5198
+          STATUS_POLL_INTERVAL: "1" # snappier feedback iterating against a local API
 
   BackingTrackTests:
     type: bundle.unit-test

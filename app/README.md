@@ -11,7 +11,8 @@ app/
   project.yml                 XcodeGen project spec — the .xcodeproj is generated from this, not committed
   BackingTrack/
     App/                      App entry point (BackingTrackApp.swift)
-    Features/                 SwiftUI screens, one subfolder per feature (Generate/, Settings/)
+    Features/                 SwiftUI screens, one subfolder per feature (Generate/, Progress/, Settings/)
+    Components/               Shared view building blocks (SectionCard)
     Models/                   Domain models — the request/parameter types, mirroring api/src/BackingTrack.Core
     Networking/               API client talking to the Pi-hosted backend
     Resources/                Assets.xcassets (app icon, accent color)
@@ -20,13 +21,16 @@ app/
 
 `GenerateTrackView` is the root screen: the chord/key/tempo/style/time-signature input form for
 Precise mode. `Generate` submits the `GenerationRequest` to `POST /tracks/generate` via
-`BackingTrackAPIClient` (`Networking/`) and reports whether the API accepted the job; polling
-that job to completion and the generating → ready/failed screens are still to come. Vibe mode is
-shown in the selector but disabled (its backend doesn't exist yet). See
+`BackingTrackAPIClient` (`Networking/`). On acceptance, `GenerationProgressView` (`Features/Progress/`)
+takes over as a full-screen cover, polling `GET /tracks/status/{jobId}` until the job reaches a
+terminal state and showing a "Track ready" or failure result. Vibe mode is shown in the selector
+but disabled (its backend doesn't exist yet). See
 [ADR 0020](../docs/adr/0020-structured-chord-picker-over-free-text.md) for why chord entry is a
-constrained picker rather than a text field, and
+constrained picker rather than a text field,
 [ADR 0022](../docs/adr/0022-plaintext-http-over-tailscale-ats-disabled.md) for the plain-HTTP /
-ATS posture.
+ATS posture, and
+[ADR 0023](../docs/adr/0023-client-derived-generation-progress.md) for how the progress screen
+derives its feedback and handles a stuck job.
 
 ## Setup
 
@@ -66,6 +70,14 @@ Tailscale tunnel — see [ADR 0022](../docs/adr/0022-plaintext-http-over-tailsca
 
 Paste a matching `Auth:ApiKey` value into the app's Settings screen; it's stored in the
 Keychain and sent as `X-API-Key`.
+
+### Status polling
+
+The progress screen polls `GET /tracks/status/{jobId}` every `STATUS_POLL_INTERVAL` seconds
+(surfaced as the `StatusPollInterval` Info.plist key, read by `PollingConfiguration`). Debug
+builds poll every 1s; the `base` default (Release) is 2s. Unlike `API_BASE_URL`, a missing or
+malformed value isn't fatal — it falls back to 2s. The overall poll timeout and consecutive-error
+budget are constants on `PollingConfiguration`, not build settings.
 
 Re-run `xcodegen generate` whenever `project.yml` changes, or after adding/removing/moving
 source files (Xcode's file list is derived from what's on disk, not tracked incrementally in

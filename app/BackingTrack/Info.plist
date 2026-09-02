@@ -29,6 +29,16 @@
 	<string>$(API_BASE_URL)</string>
 
 	<!--
+	  Seconds between polls of GET /tracks/status on the generation progress screen, from the
+	  STATUS_POLL_INTERVAL build setting (project.yml). Same $(...)-substitution reason as
+	  APIBaseURL above: a custom key has to be a real plist entry, not an INFOPLIST_KEY_*.
+	  Read by PollingConfiguration; a missing or bad value falls back to a default, it isn't
+	  fatal the way an unset APIBaseURL is.
+	-->
+	<key>StatusPollInterval</key>
+	<string>$(STATUS_POLL_INTERVAL)</string>
+
+	<!--
 	  The API is plain HTTP: localhost in development, and the Pi over Tailscale otherwise —
 	  no TLS terminates on the Pi. App Transport Security blocks cleartext by default, so it's
 	  disabled here. Acceptable because the Tailscale (WireGuard) tunnel already encrypts every

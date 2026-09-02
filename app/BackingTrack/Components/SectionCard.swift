@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// One grouped block on `GenerateTrackView` — an uppercase caption, a rounded content card, and
-/// an optional footnote below — styled to read like an inset-grouped `Form` section.
+/// A grouped block — an uppercase caption, a rounded content card, and an optional footnote below
+/// — styled to read like an inset-grouped `Form` section.
 ///
-/// The screen can't actually use `Form`: the chord chip flow needs drag-and-drop, which is
-/// unreliable inside a `List`/`Form` on iOS (the list's scroll gesture competes for the touch).
-/// So every section is hand-built to match, and this is the shared shell they all use.
+/// Used where a hand-built section is preferred over a real `Form`: `GenerateTrackView` needs
+/// drag-and-drop in its chord flow, which is unreliable inside a `List`/`Form` on iOS (the list's
+/// scroll gesture competes for the touch); `GenerationProgressView` is a `fullScreenCover` laid
+/// out as a plain `ScrollView`. This is the shared shell they use to match `Form`'s look.
 struct SectionCard<Content: View>: View {
     private let header: String?
     private let footer: Text?

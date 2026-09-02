@@ -21,20 +21,7 @@ private struct StubAPIClient: BackingTrackAPIClient {
     func jobStatus(id: UUID) async throws -> GenerationJob { try result.get() }
 
     static func succeeding(status: JobStatus = .pending) -> StubAPIClient {
-        StubAPIClient(result: .success(GenerationJob(
-            id: UUID(),
-            status: status,
-            startTime: Date(),
-            endTime: nil,
-            trackId: nil,
-            audioLocation: nil,
-            mode: "Precise",
-            tempo: 120,
-            chords: ["C"],
-            keyRoot: "C",
-            timeSignatureBeatCount: 4,
-            timeSignatureBeatUnit: 4
-        )))
+        StubAPIClient(result: .success(.preview(status: status)))
     }
 
     static func failing(_ error: APIClientError) -> StubAPIClient {
@@ -104,21 +91,21 @@ struct GenerateTrackModelTests {
         #expect(request.chords == ["G", "Emin7", "Amin", "D7"])
         #expect(request.timeSignatureBeatCount == 6)
         #expect(request.timeSignatureBeatUnit == 8)
-        #expect(request.style == "jazz")
+        #expect(request.style == "Jazz")
     }
 
     @Test func styleNotesAreAppendedToTheStyleAndTrimmed() {
         let model = GenerateTrackModel()
         model.selectedStyle = .blues
         model.styleNotes = "  slow, brushes not sticks \n"
-        #expect(model.composedStyle == "blues. slow, brushes not sticks")
+        #expect(model.composedStyle == "Blues - slow, brushes not sticks")
     }
 
     @Test func whitespaceOnlyStyleNotesAreIgnored() {
         let model = GenerateTrackModel()
         model.selectedStyle = .funk
         model.styleNotes = "   "
-        #expect(model.composedStyle == "funk")
+        #expect(model.composedStyle == "Funk")
     }
 
     @Test func notesWithNoStylePickedAreNotSentAsAStyle() {
@@ -152,7 +139,7 @@ struct GenerateTrackModelTests {
     @Test func styleAloneIsSentWhenNoNotesAreAdded() {
         let model = GenerateTrackModel()
         model.selectedStyle = .reggae
-        #expect(model.composedStyle == "reggae")
+        #expect(model.composedStyle == "Reggae")
     }
 
     @Test func composedStyleIsEmptyWithNoStylePicked() {

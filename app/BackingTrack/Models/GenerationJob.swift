@@ -27,3 +27,30 @@ struct GenerationJob: Decodable, Hashable, Sendable {
     let timeSignatureBeatCount: Int
     let timeSignatureBeatUnit: Int
 }
+
+// `id` already satisfies the requirement — this just lets a job drive `.fullScreenCover(item:)`
+// and other identity-keyed SwiftUI APIs on the progress screen.
+extension GenerationJob: Identifiable {}
+
+#if DEBUG
+extension GenerationJob {
+    /// A representative job for `#Preview`s and tests — `endTime`/`trackId` are filled in to match
+    /// `status` so a `.complete` fixture looks like a real completed job.
+    static func preview(id: UUID = UUID(), status: JobStatus = .inProgress) -> GenerationJob {
+        GenerationJob(
+            id: id,
+            status: status,
+            startTime: Date(timeIntervalSinceNow: -42),
+            endTime: status.isTerminal ? Date() : nil,
+            trackId: status.isSuccess ? UUID() : nil,
+            audioLocation: nil,
+            mode: "Precise",
+            tempo: 120,
+            chords: ["C", "Amin", "F", "G"],
+            keyRoot: "C",
+            timeSignatureBeatCount: 4,
+            timeSignatureBeatUnit: 4
+        )
+    }
+}
+#endif
