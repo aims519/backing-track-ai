@@ -17,8 +17,16 @@ final class GenerateTrackModel {
     /// gets the real `URLSession`-backed client.
     @ObservationIgnored private let apiClient: BackingTrackAPIClient
 
-    init(apiClient: BackingTrackAPIClient = LiveBackingTrackAPIClient()) {
+    /// Durable job/track history. Injectable for the same reason as `apiClient`; the default
+    /// writes to the real on-disk store, so a test that drives `generate()` must pass a fake.
+    @ObservationIgnored private let historyStore: JobHistoryStore
+
+    init(
+        apiClient: BackingTrackAPIClient = LiveBackingTrackAPIClient(),
+        historyStore: JobHistoryStore = SwiftDataJobHistoryStore()
+    ) {
         self.apiClient = apiClient
+        self.historyStore = historyStore
     }
 
     // MARK: - Form state
@@ -119,6 +127,10 @@ final class GenerateTrackModel {
         do {
             let job = try await apiClient.submitGeneration(buildRequest())
             submissionState = .submitted(job)
+            // Write the job into local history the moment it's accepted, so it's there even if
+            // the progress screen times out or the app is killed before the job finishes. Style
+            // is passed explicitly — `GenerationJob` doesn't echo it back.
+            recordToHistory { try historyStore.upsertOnSubmit(job: job, style: composedStyle) }
         } catch is CancellationError {
             // The task backing this was cancelled (not a real failure) — drop back to the form.
             submissionState = .idle
@@ -137,6 +149,19 @@ final class GenerateTrackModel {
     func acknowledgeSubmissionResult() {
         submissionState = .idle
         progressModel = nil
+    }
+
+    /// Runs a history write, swallowing any failure. Persistence is a durable mirror of the poll
+    /// loop, not part of the generation flow — a store error must never fail a submission (ADR
+    /// 0024). Logged, not trapped, so debug behaves the same as release.
+    private func recordToHistory(_ write: () throws -> Void) {
+        do {
+            try write()
+        } catch {
+            #if DEBUG
+            print("⚠️ job-history write failed (ignored): \(error)")
+            #endif
+        }
     }
 
     // MARK: - Progress screen
@@ -161,7 +186,8 @@ final class GenerateTrackModel {
         let model = GenerationProgressModel(
             job: job,
             styleSummary: composedStyle.isEmpty ? nil : composedStyle,
-            apiClient: apiClient
+            apiClient: apiClient,
+            historyStore: historyStore
         )
         progressModel = model
         return model

@@ -34,9 +34,13 @@ private struct StubAPIClient: BackingTrackAPIClient {
 @MainActor
 struct GenerateTrackModelTests {
 
-    /// A ready-to-submit model wired to `client` (default: a stub that succeeds).
-    private func readyModel(client: BackingTrackAPIClient = StubAPIClient.succeeding()) -> GenerateTrackModel {
-        let model = GenerateTrackModel(apiClient: client)
+    /// A ready-to-submit model wired to `client` (default: a stub that succeeds) and an in-memory
+    /// history store (the real default would write to the on-disk SwiftData store).
+    private func readyModel(
+        client: BackingTrackAPIClient = StubAPIClient.succeeding(),
+        historyStore: JobHistoryStore = RecordingJobHistoryStore()
+    ) -> GenerateTrackModel {
+        let model = GenerateTrackModel(apiClient: client, historyStore: historyStore)
         model.addChord(root: .c, quality: .major)
         model.selectedStyle = .pop
         return model
@@ -63,13 +67,15 @@ struct GenerateTrackModelTests {
 
     @Test func generateDoesNothingWhileIncomplete() async {
         let client = StubAPIClient.succeeding()
-        let model = GenerateTrackModel(apiClient: client)
+        let store = RecordingJobHistoryStore()
+        let model = GenerateTrackModel(apiClient: client, historyStore: store)
         model.addChord(root: .c, quality: .major) // still no style
 
         await model.generate()
 
         #expect(model.submissionState == .idle)
         #expect(await client.callLog.submitCount == 0) // never reached the API
+        #expect(store.upserts.isEmpty)                 // nothing written to history either
     }
 
     @Test func buildRequestMapsFormStateOntoTheApiContract() {
@@ -165,6 +171,46 @@ struct GenerateTrackModelTests {
         await model.generate()
 
         #expect(model.submissionState == .failed(.unauthorized))
+    }
+
+    @Test func generateWritesTheAcceptedJobToHistory() async {
+        let store = RecordingJobHistoryStore()
+        let model = readyModel(client: StubAPIClient.succeeding(status: .pending), historyStore: store)
+        model.styleNotes = "slow shuffle"
+
+        await model.generate()
+
+        guard case .submitted(let job) = model.submissionState else {
+            Issue.record("expected .submitted, got \(model.submissionState)")
+            return
+        }
+        #expect(store.upserts.count == 1)
+        #expect(store.upserts.first?.job.id == job.id)
+        #expect(store.upserts.first?.style == model.composedStyle) // "Pop - slow shuffle"
+    }
+
+    @Test func aFailedSubmissionWritesNothingToHistory() async {
+        let store = RecordingJobHistoryStore()
+        let model = readyModel(client: StubAPIClient.failing(.unauthorized), historyStore: store)
+
+        await model.generate()
+
+        #expect(store.upserts.isEmpty)
+    }
+
+    @Test func aStoreFailureDoesNotBreakSubmission() async {
+        let store = RecordingJobHistoryStore()
+        store.errorToThrow = RecordingJobHistoryStore.StoreFailure()
+        let model = readyModel(client: StubAPIClient.succeeding(status: .pending), historyStore: store)
+
+        await model.generate()
+
+        // The write was attempted and threw, but the submission still succeeded.
+        #expect(store.upserts.count == 1)
+        guard case .submitted = model.submissionState else {
+            Issue.record("expected .submitted, got \(model.submissionState)")
+            return
+        }
     }
 
     @Test func acknowledgingTheResultReturnsToIdle() async {

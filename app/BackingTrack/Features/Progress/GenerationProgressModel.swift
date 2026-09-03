@@ -44,9 +44,15 @@ final class GenerationProgressModel {
     @ObservationIgnored private let apiClient: BackingTrackAPIClient
     @ObservationIgnored private let config: PollingConfiguration
     @ObservationIgnored private let jobID: UUID
+    /// Durable job/track history. Every `phase` change is mirrored here (via `transition(to:)`),
+    /// so a job the screen stops following — timed out, or lost to an API restart — still has a
+    /// row the user can find later (ADR 0023). A write failure is swallowed; see `recordToHistory`.
+    @ObservationIgnored private let historyStore: JobHistoryStore
     /// When this screen opened — the fallback origin for the elapsed-time display if the server
     /// didn't send a `startTime`.
     @ObservationIgnored private let openedAt = Date()
+    /// Text of the last poll error, stored on the history row when the disposition is `.pollError`.
+    @ObservationIgnored private var lastClientErrorText: String?
 
     /// The job as first accepted — the source for the request-summary card and the elapsed-time
     /// origin. Not replaced as polling proceeds; `latestStatus` carries the live state.
@@ -65,18 +71,20 @@ final class GenerationProgressModel {
         job: GenerationJob,
         styleSummary: String?,
         apiClient: BackingTrackAPIClient,
-        config: PollingConfiguration = .live
+        config: PollingConfiguration = .live,
+        historyStore: JobHistoryStore = SwiftDataJobHistoryStore()
     ) {
         self.jobID = job.id
         self.initialJob = job
         self.styleSummary = styleSummary
         self.apiClient = apiClient
         self.config = config
+        self.historyStore = historyStore
         self.latestStatus = job.status
         // A job that's somehow already terminal on arrival (e.g. an instant failure) shouldn't
         // start the loop at all.
         if job.status.isTerminal {
-            phase = job.status.isSuccess ? .ready(job) : .failed(.jobFailed)
+            transition(to: job.status.isSuccess ? .ready(job) : .failed(.jobFailed), job: job)
         }
     }
 
@@ -112,21 +120,40 @@ final class GenerationProgressModel {
     func startPolling() async {
         guard case .polling = phase else { return }
 
+        // Make sure this job has a history row before the loop can write dispositions to it.
+        // Normally `GenerateTrackModel` inserted it at submit time; doing it here too (idempotent)
+        // means a failed insert there still self-heals, so a job can never be lost from history.
+        recordToHistory {
+            try historyStore.upsertOnSubmit(job: initialJob, style: styleSummary ?? "")
+        }
+
         // Monotonic — a wall-clock change mustn't move the deadline. The *displayed* elapsed time
         // uses `Date` because it's shown relative to the server's `startTime`.
         let deadline = ContinuousClock.now + config.timeout
         var consecutiveFailures = 0
+        var hasRecordedStartTime = initialJob.startTime != nil
 
         while !Task.isCancelled {
             do {
                 let job = try await apiClient.jobStatus(id: jobID)
                 consecutiveFailures = 0
                 pollCount += 1
+                let statusChanged = job.status != latestStatus
                 latestStatus = job.status
 
                 if job.status.isTerminal {
-                    phase = job.status.isSuccess ? .ready(job) : .failed(.jobFailed)
+                    transition(to: job.status.isSuccess ? .ready(job) : .failed(.jobFailed), job: job)
                     return
+                }
+                // Touch the store on an actual transition (Pending → InProgress), or the one poll
+                // where a `startTime` first appears — but not on every identical tick, since polls
+                // land every 1-2s.
+                let startTimeArrived = job.startTime != nil && !hasRecordedStartTime
+                if statusChanged || startTimeArrived {
+                    if job.startTime != nil { hasRecordedStartTime = true }
+                    recordToHistory {
+                        try historyStore.recordStatus(jobID: jobID, status: job.status, startedAt: job.startTime)
+                    }
                 }
             } catch is CancellationError {
                 return
@@ -138,7 +165,10 @@ final class GenerationProgressModel {
                 consecutiveFailures += 1
                 switch classify(error, consecutiveFailures: consecutiveFailures) {
                 case .giveUp(let failure):
-                    phase = .failed(failure)
+                    // Record what the last poll error was, whatever the classification — a `.lost`
+                    // row is as worth explaining as a `.pollError` one.
+                    lastClientErrorText = String(describing: error)
+                    transition(to: .failed(failure))
                     return
                 case .retry:
                     break // fall through to the wait, then poll again
@@ -147,12 +177,13 @@ final class GenerationProgressModel {
                 // Unreachable: the client only ever throws `APIClientError`. Kept exhaustive so an
                 // unexpected throw is asserted in debug and still surfaced (not swallowed).
                 assertionFailure("unexpected error from API client: \(error)")
-                phase = .failed(.pollError(.decoding(String(describing: error))))
+                lastClientErrorText = String(describing: error)
+                transition(to: .failed(.pollError(.decoding(String(describing: error)))))
                 return
             }
 
             if ContinuousClock.now >= deadline {
-                phase = .timedOut
+                transition(to: .timedOut)
                 return
             }
 
@@ -189,6 +220,59 @@ final class GenerationProgressModel {
                 : .retry
         }
     }
+
+    // MARK: - History mirror
+
+    /// The single place `phase` is set. Also folds the new phase down to a `JobDisposition` and
+    /// writes it to local history, so the screen and the durable record never drift. `job` is the
+    /// status poll (or initial job) that caused the change — its `endTime`/`trackId` land on the
+    /// row for a terminal outcome.
+    private func transition(to newPhase: Phase, job: GenerationJob? = nil) {
+        phase = newPhase
+
+        let disposition: JobDisposition
+        switch newPhase {
+        case .polling:
+            // Not actually reachable — `transition` is only ever called with a terminal phase —
+            // but the switch has to be exhaustive and `.inFlight` is the honest mapping.
+            disposition = .inFlight
+        case .ready:
+            disposition = .ready
+        case .timedOut:
+            disposition = .timedOut
+        case .failed(let failure):
+            switch failure {
+            case .jobFailed: disposition = .serverFailed
+            case .lost: disposition = .lost
+            case .pollError: disposition = .pollError
+            }
+        }
+
+        // Prefer the job carried by `.ready` (it has the finished `trackId`).
+        let contextJob: GenerationJob? = if case .ready(let readyJob) = newPhase { readyJob } else { job }
+
+        recordToHistory {
+            try historyStore.recordDisposition(
+                jobID: jobID,
+                disposition,
+                job: contextJob,
+                error: lastClientErrorText
+            )
+        }
+    }
+
+    /// Runs a history write, swallowing any failure — persistence mirrors the poll loop, it isn't
+    /// part of it, so a store error must never derail the screen (that invariant is the whole
+    /// point of ADR 0024). Logged, not trapped, so the debug build behaves like release here.
+    private func recordToHistory(_ write: () throws -> Void) {
+        do {
+            try write()
+        } catch {
+            #if DEBUG
+            print("⚠️ job-history write failed (ignored): \(error)")
+            #endif
+        }
+    }
 }
 
 #if DEBUG
@@ -210,7 +294,8 @@ extension GenerationProgressModel {
                 interval: .seconds(3600),
                 timeout: .seconds(3600),
                 maxConsecutiveFailures: 4
-            )
+            ),
+            historyStore: PreviewJobHistoryStore()
         )
         // `phase`/`latestStatus` are `private(set)`; this extension is in the same file, so it can
         // set them to stage a preview.

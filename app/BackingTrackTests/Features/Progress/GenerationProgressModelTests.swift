@@ -56,13 +56,15 @@ struct GenerationProgressModelTests {
         id: UUID,
         client: ScriptedStatusClient,
         startStatus: JobStatus = .pending,
-        config: PollingConfiguration? = nil
+        config: PollingConfiguration? = nil,
+        historyStore: JobHistoryStore = RecordingJobHistoryStore()
     ) -> GenerationProgressModel {
         GenerationProgressModel(
             job: .preview(id: id, status: startStatus),
             styleSummary: "jazz",
             apiClient: client,
-            config: config ?? fastConfig
+            config: config ?? fastConfig,
+            historyStore: historyStore
         )
     }
 
@@ -262,8 +264,137 @@ struct GenerationProgressModelTests {
             job: .preview(id: id, status: .unknown("Reticulating")),
             styleSummary: nil,
             apiClient: client,
-            config: fastConfig
+            config: fastConfig,
+            historyStore: RecordingJobHistoryStore()
         )
         #expect(unknown.progressCaption == "Working…")
+    }
+
+    // MARK: - History write-through
+    //
+    // The store is a durable mirror of the poll loop (ADR 0023: a job the screen stops following
+    // must still be findable later). These check the disposition that lands for each outcome.
+
+    @Test func mirrorsInProgressStatusWhilePolling() async {
+        let id = UUID()
+        let store = RecordingJobHistoryStore()
+        let client = ScriptedStatusClient.statuses([.pending, .inProgress, .complete], id: id)
+        let model = makeModel(id: id, client: client, historyStore: store)
+
+        await model.startPolling()
+
+        #expect(store.statuses.contains { $0.status == .inProgress })
+        #expect(store.lastDisposition == .ready)
+        #expect(store.dispositions.last?.job?.trackId != nil)
+    }
+
+    @Test func writesServerFailedDisposition() async {
+        let id = UUID()
+        let store = RecordingJobHistoryStore()
+        let client = ScriptedStatusClient.statuses([.inProgress, .failed], id: id)
+        let model = makeModel(id: id, client: client, historyStore: store)
+
+        await model.startPolling()
+
+        #expect(store.lastDisposition == .serverFailed)
+    }
+
+    @Test func writesLostDisposition() async {
+        let id = UUID()
+        let store = RecordingJobHistoryStore()
+        let client = ScriptedStatusClient([
+            .success(.preview(id: id, status: .pending)),
+            .failure(.server(status: 404)),
+            .failure(.server(status: 404)),
+        ])
+        let model = makeModel(id: id, client: client, historyStore: store)
+
+        await model.startPolling()
+
+        #expect(store.lastDisposition == .lost)
+    }
+
+    @Test func writesTimedOutDisposition() async {
+        let id = UUID()
+        let store = RecordingJobHistoryStore()
+        let client = ScriptedStatusClient.statuses([.pending], id: id)
+        let model = makeModel(
+            id: id,
+            client: client,
+            config: PollingConfiguration(
+                interval: .milliseconds(5),
+                timeout: .milliseconds(30),
+                maxConsecutiveFailures: 3
+            ),
+            historyStore: store
+        )
+
+        await model.startPolling()
+
+        #expect(store.lastDisposition == .timedOut)
+    }
+
+    @Test func writesPollErrorDispositionWithDetail() async {
+        let id = UUID()
+        let store = RecordingJobHistoryStore()
+        let client = ScriptedStatusClient([.failure(.server(status: 503))])
+        let model = makeModel(id: id, client: client, historyStore: store)
+
+        await model.startPolling()
+
+        #expect(store.lastDisposition == .pollError)
+        #expect(store.dispositions.last?.error != nil)
+    }
+
+    @Test func cancellationWritesNoTerminalDisposition() async {
+        let id = UUID()
+        let store = RecordingJobHistoryStore()
+        let client = ScriptedStatusClient.statuses([.pending], id: id)
+        let model = makeModel(id: id, client: client, historyStore: store)
+
+        let task = Task { await model.startPolling() }
+        try? await Task.sleep(for: .milliseconds(10))
+        task.cancel()
+        await task.value
+
+        // A dismissed screen leaves the job `.inFlight` — `transition` is never reached, so no
+        // disposition is recorded at all (the row keeps the `.inFlight` its insert gave it).
+        #expect(store.dispositions.isEmpty)
+    }
+
+    @Test func alreadyTerminalOnArrivalWritesDisposition() async {
+        let id = UUID()
+        let store = RecordingJobHistoryStore()
+        let client = ScriptedStatusClient.statuses([.complete], id: id)
+
+        _ = makeModel(id: id, client: client, startStatus: .complete, historyStore: store)
+
+        #expect(store.lastDisposition == .ready)
+    }
+
+    @Test func selfHealsHistoryAtPollStart() async {
+        // Even if GenerateTrackModel's insert failed, the poll loop re-inserts the job so it can't
+        // be lost from history.
+        let id = UUID()
+        let store = RecordingJobHistoryStore()
+        let client = ScriptedStatusClient.statuses([.inProgress, .complete], id: id)
+        let model = makeModel(id: id, client: client, historyStore: store)
+
+        await model.startPolling()
+
+        #expect(store.upserts.contains { $0.job.id == id })
+    }
+
+    @Test func aStoreFailureDoesNotBreakPolling() async {
+        let id = UUID()
+        let store = RecordingJobHistoryStore()
+        store.errorToThrow = RecordingJobHistoryStore.StoreFailure()
+        let client = ScriptedStatusClient.statuses([.pending, .inProgress, .complete], id: id)
+        let model = makeModel(id: id, client: client, historyStore: store)
+
+        await model.startPolling()
+
+        // Every store call threw, yet the screen still reached the track.
+        #expect(model.phase.readyJob?.status == .complete)
     }
 }

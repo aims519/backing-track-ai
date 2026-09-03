@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 // `@main` marks this as the process entry point — SwiftUI's declarative replacement for the
@@ -12,5 +13,10 @@ struct BackingTrackApp: App {
         WindowGroup {
             GenerateTrackView()
         }
+        // `.modelContainer(_:)` (not `.modelContainer(for:)`, which would build a *second*
+        // container) puts the same store `JobHistoryStore` writes into the SwiftUI environment.
+        // Nothing in the app reads it via `@Query` yet — this is the one hook the job-history
+        // screen needs so it can, with no further wiring.
+        .modelContainer(JobHistoryContainer.shared)
     }
 }

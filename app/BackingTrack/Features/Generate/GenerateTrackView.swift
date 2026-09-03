@@ -409,11 +409,11 @@ private struct GenerateTrackModals: ViewModifier {
 }
 
 #Preview("Empty") {
-    GenerateTrackView()
+    GenerateTrackView(model: GenerateTrackModel(historyStore: PreviewJobHistoryStore()))
 }
 
 #Preview("With progression") {
-    let model = GenerateTrackModel()
+    let model = GenerateTrackModel(historyStore: PreviewJobHistoryStore())
     model.addChord(root: .c, quality: .major)
     model.addChord(root: .a, quality: .minor)
     model.addChord(root: .f, quality: .major)

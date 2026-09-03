@@ -48,9 +48,25 @@ enum JobStatus: Sendable, Hashable {
     }
 }
 
-extension JobStatus: Decodable {
-    init(from decoder: any Decoder) throws {
-        let raw = try decoder.singleValueContainer().decode(String.self)
+extension JobStatus {
+    /// The backend's `JobStates` enum name, as it appears in `GenerationJobDto.Status` on the wire.
+    /// The exact inverse of `init(wireValue:)`; `.unknown` round-trips whatever string it captured,
+    /// so a state the app doesn't recognise still persists and re-decodes losslessly.
+    var wireValue: String {
+        switch self {
+        case .pending: "Pending"
+        case .inProgress: "InProgress"
+        case .complete: "Complete"
+        case .completedViaFallback: "CompletedViaFallback"
+        case .failed: "Failed"
+        case .unknown(let raw): raw
+        }
+    }
+
+    /// Maps a backend status string onto a case, keeping an unrecognised value as `.unknown(raw)`
+    /// rather than failing. Shared by the `Decodable` conformance and the persistence layer, which
+    /// stores this string directly (see `JobHistoryEntry`).
+    init(wireValue raw: String) {
         self = switch raw {
         case "Pending": .pending
         case "InProgress": .inProgress
@@ -59,5 +75,11 @@ extension JobStatus: Decodable {
         case "Failed": .failed
         default: .unknown(raw)
         }
+    }
+}
+
+extension JobStatus: Decodable {
+    init(from decoder: any Decoder) throws {
+        self.init(wireValue: try decoder.singleValueContainer().decode(String.self))
     }
 }
