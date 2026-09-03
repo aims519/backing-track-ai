@@ -140,7 +140,7 @@ extension [Chord] {
     /// adjusts for the chord's own removal. Out-of-range indices are clamped; an unknown `id`
     /// leaves the array unchanged.
     ///
-    /// A free function on `[Chord]` rather than a `GenerateTrackModel` method so the reorder math
+    /// A free function on `[Chord]` rather than a `GenerateTrackViewModel` method so the reorder math
     /// is a pure value transformation that can be unit-tested with no view or model involved.
     func movingChord(withID id: UUID, toIndex targetIndex: Int) -> [Chord] {
         guard let fromIndex = firstIndex(where: { $0.id == id }) else { return self }

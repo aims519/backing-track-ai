@@ -2,7 +2,7 @@ import Foundation
 
 /// Talks to the backing-track API's `/tracks` endpoints.
 ///
-/// A protocol so `GenerateTrackModel` and its tests can hold a fake instead of hitting the
+/// A protocol so `GenerateTrackViewModel` and its tests can hold a fake instead of hitting the
 /// network. `Sendable` because the model is `@MainActor` but `await`s the client from a `Task`,
 /// so the instance crosses actor boundaries.
 protocol BackingTrackAPIClient: Sendable {

@@ -24,6 +24,20 @@ struct JobStatusTests {
         #expect(try decode("SomethingNew") == .unknown("SomethingNew"))
     }
 
+    @Test(arguments: [
+        JobStatus.pending, .inProgress, .complete, .completedViaFallback, .failed,
+        .unknown("SomethingNew"),
+    ])
+    func wireValueRoundTrips(_ status: JobStatus) {
+        // The persistence layer stores `wireValue` and rebuilds via `init(wireValue:)`.
+        #expect(JobStatus(wireValue: status.wireValue) == status)
+    }
+
+    @Test func wireValueMatchesTheBackendStrings() {
+        #expect(JobStatus.completedViaFallback.wireValue == "CompletedViaFallback")
+        #expect(JobStatus.unknown("Reticulating").wireValue == "Reticulating")
+    }
+
     @Test func terminalAndSuccessFlags() {
         #expect(JobStatus.pending.isTerminal == false)
         #expect(JobStatus.inProgress.isTerminal == false)

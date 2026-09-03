@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Full-screen cover shown the moment `POST /tracks/generate` accepts a job. Polls the status
-/// endpoint (via `GenerationProgressModel`) and walks the user from "Queued…" through to a
+/// endpoint (via `GenerationProgressViewModel`) and walks the user from "Queued…" through to a
 /// "Track ready" or failure state.
 ///
 /// Presented with `.fullScreenCover` rather than a navigation push: generation is a modal
@@ -10,13 +10,10 @@ import SwiftUI
 /// form; cancelling just stops polling — the backend job has no cancel endpoint and may still
 /// finish (ADR 0023).
 struct GenerationProgressView: View {
-    // `@State` + `State(initialValue:)` is how an `@Observable` reference type is owned by a view
-    // (same pattern as `GenerateTrackView`) — the cover builds this once and SwiftUI tracks reads.
-    @State private var model: GenerationProgressModel
-    // Set by `fullScreenCover`; calling it flips the presenting binding back to `nil`.
+    @State private var model: GenerationProgressViewModel
     @Environment(\.dismiss) private var dismiss
 
-    init(model: GenerationProgressModel) {
+    init(model: GenerationProgressViewModel) {
         _model = State(initialValue: model)
     }
 
@@ -44,10 +41,7 @@ struct GenerationProgressView: View {
                 }
             }
         }
-        // `.task` runs for the lifetime of the cover and is cancelled automatically when it's
-        // dismissed — the model needs no `Task` of its own and no teardown.
         .task { await model.startPolling() }
-        // `fullScreenCover` has no swipe-to-dismiss; leaving is only via the toolbar button.
         .interactiveDismissDisabled()
         // VoiceOver: announce the caption on a status change *while polling* (a terminal status is
         // covered by the phase change below, and its caption would be the misleading "Finishing
@@ -147,7 +141,7 @@ struct GenerationProgressView: View {
         }
     }
 
-    private func failureView(_ failure: GenerationProgressModel.Failure) -> some View {
+    private func failureView(_ failure: GenerationProgressViewModel.Failure) -> some View {
         messageView(
             systemImage: "exclamationmark.triangle",
             title: "Couldn't generate the track",
@@ -252,7 +246,7 @@ struct GenerationProgressView: View {
         return clockString(end.timeIntervalSince(start))
     }
 
-    private func failureMessage(_ failure: GenerationProgressModel.Failure) -> String {
+    private func failureMessage(_ failure: GenerationProgressViewModel.Failure) -> String {
         switch failure {
         case .jobFailed:
             "The track couldn't be generated. Try adjusting the chords or style, then generate again."
@@ -268,7 +262,7 @@ struct GenerationProgressView: View {
         AccessibilityNotification.Announcement(message).post()
     }
 
-    private func announcePhaseChange(_ phase: GenerationProgressModel.Phase) {
+    private func announcePhaseChange(_ phase: GenerationProgressViewModel.Phase) {
         switch phase {
         case .polling:
             break

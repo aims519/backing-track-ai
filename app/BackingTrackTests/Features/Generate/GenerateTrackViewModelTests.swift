@@ -3,7 +3,7 @@ import Testing
 @testable import BackingTrack
 
 /// Counts calls into a `StubAPIClient`. An `actor` because the client is invoked off the main
-/// actor; the `StubAPIClient` struct shares one by reference.
+/// actor; the `StubAPIClient` value type shares one by reference.
 private actor CallLog {
     private(set) var submitCount = 0
     func recordSubmit() { submitCount += 1 }
@@ -29,33 +29,35 @@ private struct StubAPIClient: BackingTrackAPIClient {
     }
 }
 
-// `@MainActor` because `GenerateTrackModel` is main-actor isolated — the tests drive it exactly
-// as the view would.
 @MainActor
-struct GenerateTrackModelTests {
+struct GenerateTrackViewModelTests {
 
-    /// A ready-to-submit model wired to `client` (default: a stub that succeeds).
-    private func readyModel(client: BackingTrackAPIClient = StubAPIClient.succeeding()) -> GenerateTrackModel {
-        let model = GenerateTrackModel(apiClient: client)
+    /// A ready-to-submit model. The history store must be passed — the model's real default would
+    /// write to the on-disk SwiftData store.
+    private func readyModel(
+        client: BackingTrackAPIClient = StubAPIClient.succeeding(),
+        historyStore: JobHistoryStore = RecordingJobHistoryStore()
+    ) -> GenerateTrackViewModel {
+        let model = GenerateTrackViewModel(apiClient: client, historyStore: historyStore)
         model.addChord(root: .c, quality: .major)
         model.selectedStyle = .pop
         return model
     }
 
     @Test func cannotGenerateWithAnEmptyForm() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         #expect(model.canGenerate == false)
     }
 
     @Test func aChordAloneIsNotEnoughWithoutAStyle() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.addChord(root: .c, quality: .major)
         #expect(model.selectedStyle == nil)
         #expect(model.canGenerate == false)
     }
 
     @Test func canGenerateWithAtLeastOneChordAndAStyle() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.addChord(root: .c, quality: .major)
         model.selectedStyle = .rock
         #expect(model.canGenerate)
@@ -63,17 +65,19 @@ struct GenerateTrackModelTests {
 
     @Test func generateDoesNothingWhileIncomplete() async {
         let client = StubAPIClient.succeeding()
-        let model = GenerateTrackModel(apiClient: client)
+        let store = RecordingJobHistoryStore()
+        let model = GenerateTrackViewModel(apiClient: client, historyStore: store)
         model.addChord(root: .c, quality: .major) // still no style
 
         await model.generate()
 
         #expect(model.submissionState == .idle)
         #expect(await client.callLog.submitCount == 0) // never reached the API
+        #expect(store.upserts.isEmpty)                 // nothing written to history either
     }
 
     @Test func buildRequestMapsFormStateOntoTheApiContract() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.keyRoot = .g
         model.tempo = 132.6
         model.timeSignature = TimeSignature(beatCount: 6, beatUnit: 8)
@@ -95,27 +99,27 @@ struct GenerateTrackModelTests {
     }
 
     @Test func styleNotesAreAppendedToTheStyleAndTrimmed() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.selectedStyle = .blues
         model.styleNotes = "  slow, brushes not sticks \n"
         #expect(model.composedStyle == "Blues - slow, brushes not sticks")
     }
 
     @Test func whitespaceOnlyStyleNotesAreIgnored() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.selectedStyle = .funk
         model.styleNotes = "   "
         #expect(model.composedStyle == "Funk")
     }
 
     @Test func notesWithNoStylePickedAreNotSentAsAStyle() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.styleNotes = "slow shuffle"
         #expect(model.composedStyle.isEmpty)
     }
 
     @Test func removeChordDeletesByIdentityNotPosition() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.addChord(root: .c, quality: .major)
         model.addChord(root: .f, quality: .major)
         model.addChord(root: .c, quality: .major) // a repeat — must not also remove this one
@@ -126,7 +130,7 @@ struct GenerateTrackModelTests {
     }
 
     @Test func moveChordReordersTheProgression() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.addChord(root: .c, quality: .major)
         model.addChord(root: .f, quality: .major)
         model.addChord(root: .g, quality: .major)
@@ -137,13 +141,13 @@ struct GenerateTrackModelTests {
     }
 
     @Test func styleAloneIsSentWhenNoNotesAreAdded() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.selectedStyle = .reggae
         #expect(model.composedStyle == "Reggae")
     }
 
     @Test func composedStyleIsEmptyWithNoStylePicked() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         #expect(model.composedStyle.isEmpty)
     }
 
@@ -167,6 +171,46 @@ struct GenerateTrackModelTests {
         #expect(model.submissionState == .failed(.unauthorized))
     }
 
+    @Test func generateWritesTheAcceptedJobToHistory() async {
+        let store = RecordingJobHistoryStore()
+        let model = readyModel(client: StubAPIClient.succeeding(status: .pending), historyStore: store)
+        model.styleNotes = "slow shuffle"
+
+        await model.generate()
+
+        guard case .submitted(let job) = model.submissionState else {
+            Issue.record("expected .submitted, got \(model.submissionState)")
+            return
+        }
+        #expect(store.upserts.count == 1)
+        #expect(store.upserts.first?.job.id == job.id)
+        #expect(store.upserts.first?.style == model.composedStyle) // "Pop - slow shuffle"
+    }
+
+    @Test func aFailedSubmissionWritesNothingToHistory() async {
+        let store = RecordingJobHistoryStore()
+        let model = readyModel(client: StubAPIClient.failing(.unauthorized), historyStore: store)
+
+        await model.generate()
+
+        #expect(store.upserts.isEmpty)
+    }
+
+    @Test func aStoreFailureDoesNotBreakSubmission() async {
+        let store = RecordingJobHistoryStore()
+        store.errorToThrow = RecordingJobHistoryStore.StoreFailure()
+        let model = readyModel(client: StubAPIClient.succeeding(status: .pending), historyStore: store)
+
+        await model.generate()
+
+        // The write was attempted and threw, but the submission still succeeded.
+        #expect(store.upserts.count == 1)
+        guard case .submitted = model.submissionState else {
+            Issue.record("expected .submitted, got \(model.submissionState)")
+            return
+        }
+    }
+
     @Test func acknowledgingTheResultReturnsToIdle() async {
         let model = readyModel(client: StubAPIClient.failing(.rateLimited(retryAfter: 30)))
         await model.generate()
@@ -180,7 +224,7 @@ struct GenerateTrackModelTests {
         #expect(GenerationMode.vibe.isAvailable == false)
         #expect(GenerationMode.precise.isAvailable)
 
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.mode = .vibe
         model.addChord(root: .c, quality: .major)
         model.selectedStyle = .rock

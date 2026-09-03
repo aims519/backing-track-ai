@@ -13,18 +13,14 @@ private let chordFlowCoordinateSpace = "chordFlow"
 /// recogniser competes for the touch. A plain `ScrollView` doesn't have that problem.
 ///
 /// Precise mode only for now — Vibe mode's backend doesn't exist yet (see `GenerationMode`).
-/// `generate()` submits the form to `POST /tracks/generate` via `GenerateTrackModel`; on
+/// `generate()` submits the form to `POST /tracks/generate` via `GenerateTrackViewModel`; on
 /// acceptance `GenerationProgressView` is presented as a `fullScreenCover` to follow the job to
 /// completion, and a submission error is shown as an alert on the form.
 struct GenerateTrackView: View {
-    // `@State` (not `@StateObject`) is how the current Observation model holds a reference type —
-    // the view owns this instance for its lifetime and SwiftUI tracks reads into it. Injectable
-    // (same idea as `SettingsView`'s store) so previews can seed a populated form.
-    @State private var model: GenerateTrackModel
+    // Injectable (same idea as `SettingsView`'s store) so previews can seed a populated form.
+    @State private var model: GenerateTrackViewModel
 
-    init(model: GenerateTrackModel = GenerateTrackModel()) {
-        // `State(initialValue:)` is the supported way to seed `@State` from an initializer; it's
-        // used only on the view's first construction, not on later re-inits.
+    init(model: GenerateTrackViewModel = GenerateTrackViewModel()) {
         _model = State(initialValue: model)
         // Start in custom mode when the model arrives with a signature the quick-pick menu can't
         // represent — otherwise that menu would render with no selection.
@@ -223,7 +219,7 @@ struct GenerateTrackView: View {
                     .monospacedDigit()
                 Slider(
                     value: $model.tempo,
-                    in: GenerateTrackModel.tempoRange,
+                    in: GenerateTrackViewModel.tempoRange,
                     step: 1
                 ) {
                     Text("Tempo")
@@ -348,7 +344,7 @@ struct GenerateTrackView: View {
 /// The screen's sheets, alerts and the progress cover, grouped so `GenerateTrackView.body` stays
 /// small enough for the type-checker. Takes the `@Binding`s it toggles plus the model it reads.
 private struct GenerateTrackModals: ViewModifier {
-    let model: GenerateTrackModel
+    let model: GenerateTrackViewModel
     @Binding var isShowingSettings: Bool
     @Binding var isShowingAddChord: Bool
     @Binding var isShowingVibeComingSoon: Bool
@@ -392,7 +388,7 @@ private struct GenerateTrackModals: ViewModifier {
                 get: { model.acceptedJob },
                 set: { newValue in if newValue == nil { model.acknowledgeSubmissionResult() } }
             )) { job in
-                GenerationProgressView(model: model.makeProgressModel(for: job))
+                GenerationProgressView(model: model.makeProgressViewModel(for: job))
             }
     }
 
@@ -409,11 +405,11 @@ private struct GenerateTrackModals: ViewModifier {
 }
 
 #Preview("Empty") {
-    GenerateTrackView()
+    GenerateTrackView(model: GenerateTrackViewModel(historyStore: PreviewJobHistoryStore()))
 }
 
 #Preview("With progression") {
-    let model = GenerateTrackModel()
+    let model = GenerateTrackViewModel(historyStore: PreviewJobHistoryStore())
     model.addChord(root: .c, quality: .major)
     model.addChord(root: .a, quality: .minor)
     model.addChord(root: .f, quality: .major)

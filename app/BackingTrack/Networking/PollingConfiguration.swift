@@ -1,6 +1,6 @@
 import Foundation
 
-/// How `GenerationProgressModel` polls `GET /tracks/status/{jobId}`: the cadence between polls,
+/// How `GenerationProgressViewModel` polls `GET /tracks/status/{jobId}`: the cadence between polls,
 /// how long to keep polling before declaring the job stuck, and how many consecutive failed
 /// polls to ride out before giving up.
 ///

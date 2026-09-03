@@ -15,6 +15,7 @@ app/
     Components/               Shared view building blocks (SectionCard)
     Models/                   Domain models — the request/parameter types, mirroring api/src/BackingTrack.Core
     Networking/               API client talking to the Pi-hosted backend
+    Persistence/              Local SwiftData store for job/track history
     Resources/                Assets.xcassets (app icon, accent color)
   BackingTrackTests/          Unit tests (Swift Testing framework)
 ```
@@ -30,7 +31,9 @@ constrained picker rather than a text field,
 [ADR 0022](../docs/adr/0022-plaintext-http-over-tailscale-ats-disabled.md) for the plain-HTTP /
 ATS posture, and
 [ADR 0023](../docs/adr/0023-client-derived-generation-progress.md) for how the progress screen
-derives its feedback and handles a stuck job.
+derives its feedback and handles a stuck job, and
+[ADR 0024](../docs/adr/0024-client-side-swiftdata-job-history.md) for the local SwiftData store
+(`Persistence/`) that mirrors every job as it polls.
 
 ## Setup
 

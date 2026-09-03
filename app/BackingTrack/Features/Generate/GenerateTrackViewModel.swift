@@ -3,22 +3,22 @@ import Observation
 
 /// Backing state for `GenerateTrackView` — the parameters of a Precise-mode backing track and
 /// the logic that turns them into a `GenerationRequest`.
-///
-/// `@Observable` (iOS 17+) replaces the older `ObservableObject` / `@Published` pair: SwiftUI
-/// tracks exactly which stored properties a view reads and re-renders only on those changes, with
-/// no per-property annotation. `@MainActor` because every mutation here is driven from the UI and
-/// read back by the view on the main thread — it also satisfies Swift 6's strict concurrency
-/// checking without scattering `await` through the view.
 @MainActor
 @Observable
-final class GenerateTrackModel {
+final class GenerateTrackViewModel {
 
-    /// Talks to the API. Injectable so previews and tests run without the network — production
-    /// gets the real `URLSession`-backed client.
     @ObservationIgnored private let apiClient: BackingTrackAPIClient
 
-    init(apiClient: BackingTrackAPIClient = LiveBackingTrackAPIClient()) {
+    /// Durable job/track history. The default writes to the real on-disk store, so a test that
+    /// drives `generate()` must pass a fake.
+    @ObservationIgnored private let historyStore: JobHistoryStore
+
+    init(
+        apiClient: BackingTrackAPIClient = LiveBackingTrackAPIClient(),
+        historyStore: JobHistoryStore = SwiftDataJobHistoryStore()
+    ) {
         self.apiClient = apiClient
+        self.historyStore = historyStore
     }
 
     // MARK: - Form state
@@ -53,8 +53,7 @@ final class GenerateTrackModel {
     }
 
     /// Whether the form has enough to submit. Tempo, key and time signature always hold a valid
-    /// value from their controls, so the gates are: an available mode, at least one chord, and a
-    /// style picked.
+    /// value from their controls, so only mode, chords and style can block.
     var canGenerate: Bool {
         mode.isAvailable && !chords.isEmpty && selectedStyle != nil
     }
@@ -65,16 +64,14 @@ final class GenerateTrackModel {
         chords.append(Chord(root: root, quality: quality))
     }
 
-    /// Removes one chip by identity — the chip flow has no stable index-based deletion the way a
-    /// `List`'s `.onDelete` offsets would (chips reorder freely), so this is called with the
-    /// specific `Chord` tapped rather than an `IndexSet`.
+    /// Removes one chip by identity, not position — the chip flow has no stable index-based
+    /// deletion the way a `List`'s `.onDelete` offsets would, and repeated chords are common.
     func removeChord(_ chord: Chord) {
         chords.removeAll { $0.id == chord.id }
     }
 
-    /// Moves a chord to `targetIndex` in reading order. Keeps reordering symmetrical with
-    /// `addChord`/`removeChord` (the view drives all three through the model); the index maths
-    /// lives in the pure `[Chord].movingChord(withID:toIndex:)` helper.
+    /// Moves a chord to `targetIndex` in reading order. The index maths lives in the pure
+    /// `[Chord].movingChord(withID:toIndex:)` helper so it can be tested without a model.
     func moveChord(withID id: UUID, toIndex targetIndex: Int) {
         chords = chords.movingChord(withID: id, toIndex: targetIndex)
     }
@@ -96,8 +93,7 @@ final class GenerateTrackModel {
     }
 
     /// Where the submit action is in its lifecycle. Covers getting a job *accepted* by the API;
-    /// once `.submitted`, `GenerateTrackView` presents `GenerationProgressView` (as a
-    /// `fullScreenCover`) which polls the job to completion.
+    /// from `.submitted` on, `GenerationProgressView` polls it to completion.
     enum SubmissionState: Equatable {
         case idle
         case submitting
@@ -108,7 +104,6 @@ final class GenerateTrackModel {
 
     private(set) var submissionState: SubmissionState = .idle
 
-    /// Drives the Generate button's spinner / disabled state.
     var isSubmitting: Bool { submissionState == .submitting }
 
     /// Submits the current form to `POST /tracks/generate`. Safe to call only when `canGenerate`;
@@ -119,8 +114,11 @@ final class GenerateTrackModel {
         do {
             let job = try await apiClient.submitGeneration(buildRequest())
             submissionState = .submitted(job)
+            // Written at acceptance, not at completion, so the job is in history even if the
+            // progress screen times out or the app is killed first. Style is passed explicitly —
+            // `GenerationJob` doesn't echo it back.
+            recordToHistory { try historyStore.upsertOnSubmit(job: job, style: composedStyle) }
         } catch is CancellationError {
-            // The task backing this was cancelled (not a real failure) — drop back to the form.
             submissionState = .idle
         } catch let error as APIClientError {
             submissionState = .failed(error)
@@ -136,34 +134,46 @@ final class GenerateTrackModel {
     /// editable form (still populated, so it doubles as "try again").
     func acknowledgeSubmissionResult() {
         submissionState = .idle
-        progressModel = nil
+        progressViewModel = nil
+    }
+
+    /// Runs a history write, swallowing any failure: the store mirrors the generation flow rather
+    /// than being part of it, so a store error must never fail a submission (ADR 0024). Logged,
+    /// not trapped, so debug behaves the same as release.
+    private func recordToHistory(_ write: () throws -> Void) {
+        do {
+            try write()
+        } catch {
+            #if DEBUG
+            print("⚠️ job-history write failed (ignored): \(error)")
+            #endif
+        }
     }
 
     // MARK: - Progress screen
 
-    /// The accepted job while the progress screen should be up, `nil` otherwise. Drives the
-    /// `.fullScreenCover(item:)` on `GenerateTrackView`.
+    /// The accepted job while the progress screen should be up, `nil` otherwise.
     var acceptedJob: GenerationJob? {
         if case .submitted(let job) = submissionState { job } else { nil }
     }
 
-    /// Memoised so the `.fullScreenCover` content closure — which SwiftUI may re-evaluate while
-    /// presented — reuses one model rather than allocating a throwaway each time. Cleared when the
-    /// screen is dismissed (`acknowledgeSubmissionResult`).
-    @ObservationIgnored private var progressModel: GenerationProgressModel?
+    /// Memoised: SwiftUI may re-evaluate the `.fullScreenCover` content closure while it's
+    /// presented, and a fresh model each time would restart polling. Cleared on dismissal.
+    @ObservationIgnored private var progressViewModel: GenerationProgressViewModel?
 
     /// The progress screen's model for `job` — keeps `apiClient` private to this type, and bundles
     /// in the composed style string (`GenerationJob` doesn't echo `Style` back).
-    func makeProgressModel(for job: GenerationJob) -> GenerationProgressModel {
-        if let progressModel, progressModel.initialJob.id == job.id {
-            return progressModel
+    func makeProgressViewModel(for job: GenerationJob) -> GenerationProgressViewModel {
+        if let progressViewModel, progressViewModel.initialJob.id == job.id {
+            return progressViewModel
         }
-        let model = GenerationProgressModel(
+        let model = GenerationProgressViewModel(
             job: job,
             styleSummary: composedStyle.isEmpty ? nil : composedStyle,
-            apiClient: apiClient
+            apiClient: apiClient,
+            historyStore: historyStore
         )
-        progressModel = model
+        progressViewModel = model
         return model
     }
 }

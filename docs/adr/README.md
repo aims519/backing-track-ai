@@ -28,3 +28,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0021](0021-code-drawn-visual-assets.md) | Code-drawn visual assets (app icon, launch screen), no image-model output |
 | [0022](0022-plaintext-http-over-tailscale-ats-disabled.md) | Plaintext HTTP to the API over Tailscale; App Transport Security disabled |
 | [0023](0023-client-derived-generation-progress.md) | Client-derived generation progress copy and a client-side poll timeout |
+| [0024](0024-client-side-swiftdata-job-history.md) | Client-side SwiftData job/track history, mirrored from the poll loop |
