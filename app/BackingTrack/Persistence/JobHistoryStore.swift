@@ -5,13 +5,9 @@ import SwiftData
 /// tested without a real SwiftData stack — the role `APIKeyStoring` plays for the Keychain.
 ///
 /// `@MainActor`, and *not* `Sendable`: unlike `APIKeyStoring` / `BackingTrackAPIClient` this never
-/// crosses an actor boundary. Both callers are already `@MainActor` and stay on the main actor
-/// across their `await`s, so the store, its `ModelContext` and the `@Model` rows it returns never
-/// need to be `Sendable`. A future background/bulk write would be a `ModelActor` behind this same
-/// protocol.
-///
-/// Ids are passed as `UUID` (callers hold `GenerationJob.id`); the implementation converts to the
-/// stored `uuidString` form.
+/// crosses an actor boundary — both callers stay on the main actor across their `await`s, so the
+/// store, its `ModelContext` and the `@Model` rows it hands back never need to be `Sendable`. A
+/// future background or bulk write would be a `ModelActor` behind this same protocol.
 @MainActor
 protocol JobHistoryStore {
     /// Records a job the moment the API accepts it, and again when the progress screen opens
@@ -38,9 +34,9 @@ protocol JobHistoryStore {
 /// SwiftData-backed `JobHistoryStore`, writing through the container's main-actor context.
 @MainActor
 struct SwiftDataJobHistoryStore: JobHistoryStore {
-    /// `nil` means "the shared on-disk store", resolved on first use. Deferring it this way keeps
-    /// merely *constructing* the store — which every model does as a default init argument, most
-    /// of them only to satisfy the compiler in a form-logic test — from opening SwiftData.
+    /// `nil` means "the shared on-disk store", resolved on first use. Deferred so that merely
+    /// *constructing* the store — which every model does as a default init argument, often only
+    /// to satisfy the compiler in a form-logic test — doesn't open SwiftData.
     private let explicitContainer: ModelContainer?
 
     init(container: ModelContainer? = nil) {
@@ -53,9 +49,9 @@ struct SwiftDataJobHistoryStore: JobHistoryStore {
 
     func upsertOnSubmit(job: GenerationJob, style: String) throws {
         if let existing = try entry(jobID: job.id) {
-            // Refresh the request parameters (they can only have been the same anyway) but leave
-            // the lifecycle fields alone — a submit response is always Pending/InProgress, so
-            // writing its status back would regress a row the poll loop has already finished.
+            // Refresh the request parameters but leave the lifecycle fields alone — a submit
+            // response is always Pending/InProgress, so writing its status back would regress a
+            // row the poll loop has already finished.
             existing.mode = job.mode
             existing.tempo = job.tempo
             existing.chordSymbols = job.chords
@@ -124,8 +120,7 @@ struct SwiftDataJobHistoryStore: JobHistoryStore {
 }
 
 #if DEBUG
-/// A `JobHistoryStore` that drops every write — for `#Preview`s, which shouldn't touch the real
-/// on-disk store. (Tests use their own fakes in the test target.)
+/// A `JobHistoryStore` that drops every write, so `#Preview`s never touch the on-disk store.
 @MainActor
 struct PreviewJobHistoryStore: JobHistoryStore {
     func upsertOnSubmit(job: GenerationJob, style: String) throws {}

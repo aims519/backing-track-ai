@@ -5,19 +5,16 @@ import SwiftData
 /// loop so it survives app relaunch and (once the player screen caches track content) plays back
 /// with no backend/Tailscale connectivity.
 ///
-/// Deliberately *not* the same type as `GenerationJob` — that's the wire DTO (a `Decodable`
-/// `struct`), and SwiftData needs a reference type it can track. This is the persistence model;
-/// `JobHistoryStore` maps between the two. Same split the codebase already draws between the DTO
-/// and the domain enums.
+/// Deliberately *not* the same type as `GenerationJob` — that's the wire DTO, and SwiftData needs
+/// a reference type it can track. `JobHistoryStore` maps between the two.
 ///
 /// Ids are stored as `String` (`uuidString`), not `UUID`: `#Predicate` on `UUID` equality has
-/// been unreliable, and fetch-by-id is the store's hot path. The computed `jobID`/`trackID`
-/// bridges give callers back a `UUID`.
+/// been unreliable, and fetch-by-id is the store's hot path.
 @Model
 final class JobHistoryEntry {
     /// The job id the API issued, as `uuidString`. Uniqueness is enforced by `JobHistoryStore`
-    /// fetching by this value before inserting (a `@Attribute(.unique)` constraint traps against
-    /// the in-memory store the tests use, and buys little for a handful of rows).
+    /// fetching by this value before inserting: an `@Attribute(.unique)` constraint traps against
+    /// the in-memory store the tests use, and buys little for a handful of rows.
     var jobIDString: String
 
     /// When the client submitted. Set once, never rewritten — the history list sorts on this.
@@ -32,8 +29,7 @@ final class JobHistoryEntry {
     /// having nowhere to live.
     var dispositionRawValue: String
 
-    /// A short description of the last poll error, when `disposition` is `.pollError`. Diagnostics
-    /// only.
+    /// Description of the last poll error. Diagnostics only.
     var lastClientError: String?
 
     // MARK: Request parameters (captured at submit)
@@ -64,8 +60,8 @@ final class JobHistoryEntry {
     /// `"preciseMidiJson"` or `"vibeAudio"` once content is cached; `nil` before then. Explicit
     /// rather than derived from `mode` — ADR 0014 keeps the output format unpinned.
     var contentKind: String?
-    /// Precise mode: the per-track MIDI/tempo JSON. The player-screen task that populates this
-    /// can move it to `@Attribute(.externalStorage)` then — the column is empty until it does.
+    /// Precise mode: the per-track MIDI/tempo JSON. Whoever populates this can move it to
+    /// `@Attribute(.externalStorage)` then — the column is empty until they do.
     var preciseContentData: Data?
     /// Vibe mode: the file name (not a path — the container moves between installs) of the cached
     /// audio under Application Support.

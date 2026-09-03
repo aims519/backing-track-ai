@@ -17,7 +17,6 @@ enum JobStatus: Sendable, Hashable {
     /// state before the app is updated, rather than throwing.
     case unknown(String)
 
-    /// Human-readable label for the status, for a confirmation string or a progress screen.
     var displayName: String {
         switch self {
         case .pending: "Pending"
@@ -49,9 +48,9 @@ enum JobStatus: Sendable, Hashable {
 }
 
 extension JobStatus {
-    /// The backend's `JobStates` enum name, as it appears in `GenerationJobDto.Status` on the wire.
-    /// The exact inverse of `init(wireValue:)`; `.unknown` round-trips whatever string it captured,
-    /// so a state the app doesn't recognise still persists and re-decodes losslessly.
+    /// The backend's `JobStates` enum name, as it appears on the wire. The exact inverse of
+    /// `init(wireValue:)`: `.unknown` round-trips the string it captured, so a state the app
+    /// doesn't recognise still persists and re-decodes losslessly.
     var wireValue: String {
         switch self {
         case .pending: "Pending"

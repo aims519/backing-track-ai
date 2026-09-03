@@ -1,11 +1,9 @@
 import Foundation
 @testable import BackingTrack
 
-/// A `JobHistoryStore` that records every write instead of persisting it — lets the model tests
-/// assert *that* the poll loop / submit flow writes through, without standing up a SwiftData
-/// stack. (`SwiftDataJobHistoryStore` itself is covered directly in `JobHistoryStoreTests`.)
-///
-/// `@MainActor` to match the protocol; the model tests are already main-actor.
+/// A `JobHistoryStore` that records every write instead of persisting it, so the model tests can
+/// assert *that* the poll loop / submit flow writes through without standing up a SwiftData stack.
+/// (`SwiftDataJobHistoryStore` itself is covered in `JobHistoryStoreTests`.)
 @MainActor
 final class RecordingJobHistoryStore: JobHistoryStore {
     private(set) var upserts: [(job: GenerationJob, style: String)] = []
@@ -19,7 +17,6 @@ final class RecordingJobHistoryStore: JobHistoryStore {
 
     struct StoreFailure: Error {}
 
-    /// The last disposition written — the usual thing a progress-model test wants to check.
     var lastDisposition: JobDisposition? { dispositions.last?.disposition }
 
     func upsertOnSubmit(job: GenerationJob, style: String) throws {

@@ -3,12 +3,12 @@ import SwiftData
 import Testing
 @testable import BackingTrack
 
-/// Exercises `SwiftDataJobHistoryStore` against a real (in-memory) SwiftData stack. Swift Testing
-/// re-instantiates the suite per `@Test`, so `init()` gives every case a fresh, isolated store.
+/// Exercises `SwiftDataJobHistoryStore` against a real (in-memory) SwiftData stack — `init()`
+/// gives every case a fresh, isolated store.
 ///
 /// `.serialized` because spinning up several `ModelContainer`s for the same `@Model` type
-/// concurrently — which Swift Testing's default parallelism would do — trips SwiftData's global
-/// model cache and traps.
+/// concurrently — which the default parallelism would do — trips SwiftData's global model cache
+/// and traps.
 @MainActor
 @Suite(.serialized)
 struct JobHistoryStoreTests {

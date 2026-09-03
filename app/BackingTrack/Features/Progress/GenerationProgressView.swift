@@ -10,10 +10,7 @@ import SwiftUI
 /// form; cancelling just stops polling — the backend job has no cancel endpoint and may still
 /// finish (ADR 0023).
 struct GenerationProgressView: View {
-    // `@State` + `State(initialValue:)` is how an `@Observable` reference type is owned by a view
-    // (same pattern as `GenerateTrackView`) — the cover builds this once and SwiftUI tracks reads.
     @State private var model: GenerationProgressViewModel
-    // Set by `fullScreenCover`; calling it flips the presenting binding back to `nil`.
     @Environment(\.dismiss) private var dismiss
 
     init(model: GenerationProgressViewModel) {
@@ -44,10 +41,7 @@ struct GenerationProgressView: View {
                 }
             }
         }
-        // `.task` runs for the lifetime of the cover and is cancelled automatically when it's
-        // dismissed — the model needs no `Task` of its own and no teardown.
         .task { await model.startPolling() }
-        // `fullScreenCover` has no swipe-to-dismiss; leaving is only via the toolbar button.
         .interactiveDismissDisabled()
         // VoiceOver: announce the caption on a status change *while polling* (a terminal status is
         // covered by the phase change below, and its caption would be the misleading "Finishing

@@ -4,8 +4,7 @@ import Testing
 
 /// A `BackingTrackAPIClient` that answers successive `jobStatus` calls from a fixed script,
 /// returning each entry in turn and holding the last once the script runs out (so an
-/// "always pending" job is just `[.pending]`). An `actor` because `GenerationProgressViewModel` calls
-/// it off the main actor — same reason as `CallLog` in `GenerateTrackViewModelTests`.
+/// "always pending" job is just `[.pending]`).
 private actor ScriptedStatusClient: BackingTrackAPIClient {
     private let script: [Result<GenerationJob, APIClientError>]
     /// Optional per-call delay, so a test can cancel a poll while it's in flight.
@@ -40,8 +39,6 @@ private extension GenerationProgressViewModel.Phase {
     }
 }
 
-// `@MainActor` because `GenerationProgressViewModel` is main-actor isolated — the tests drive it
-// exactly as the view's `.task` would.
 @MainActor
 struct GenerationProgressViewModelTests {
 
@@ -373,8 +370,8 @@ struct GenerationProgressViewModelTests {
     }
 
     @Test func selfHealsHistoryAtPollStart() async {
-        // Even if GenerateTrackViewModel's insert failed, the poll loop re-inserts the job so it can't
-        // be lost from history.
+        // Even if `GenerateTrackViewModel`'s insert failed, the poll loop re-inserts the job so it
+        // can't be lost from history.
         let id = UUID()
         let store = RecordingJobHistoryStore()
         let client = ScriptedStatusClient.statuses([.inProgress, .complete], id: id)

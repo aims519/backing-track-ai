@@ -4,11 +4,8 @@ import Observation
 /// Backing state for `GenerationProgressView` — polls `GET /tracks/status/{jobId}` for an accepted
 /// generation job and drives the screen through polling → ready / failed / timed-out.
 ///
-/// `@MainActor @Observable` for the same reasons as `GenerateTrackViewModel`: every mutation is driven
-/// from (and read back by) the UI on the main thread, and it satisfies Swift 6 strict concurrency
-/// without scattering `await` through the view. The poll loop is one `async` method that the view
-/// runs from `.task`, so cancellation is automatic when the screen goes away — the model holds no
-/// `Task` of its own.
+/// The poll loop is a single `async` method the view runs from `.task` rather than a `Task` the
+/// model owns, so dismissing the screen cancels it with no teardown of our own.
 @MainActor
 @Observable
 final class GenerationProgressViewModel {
@@ -48,14 +45,13 @@ final class GenerationProgressViewModel {
     /// so a job the screen stops following — timed out, or lost to an API restart — still has a
     /// row the user can find later (ADR 0023). A write failure is swallowed; see `recordToHistory`.
     @ObservationIgnored private let historyStore: JobHistoryStore
-    /// When this screen opened — the fallback origin for the elapsed-time display if the server
-    /// didn't send a `startTime`.
+    /// Fallback origin for the elapsed-time display when the server sent no `startTime`.
     @ObservationIgnored private let openedAt = Date()
     /// Text of the last poll error, stored on the history row when the disposition is `.pollError`.
     @ObservationIgnored private var lastClientErrorText: String?
 
-    /// The job as first accepted — the source for the request-summary card and the elapsed-time
-    /// origin. Not replaced as polling proceeds; `latestStatus` carries the live state.
+    /// The job as first accepted. Not replaced as polling proceeds; `latestStatus` carries the
+    /// live state.
     let initialJob: GenerationJob
     /// The composed style string. Passed in separately because `GenerationJob` doesn't echo it
     /// back (`GenerationJobDto` omits `Style`).
@@ -64,7 +60,6 @@ final class GenerationProgressViewModel {
     private(set) var phase: Phase = .polling
     /// The most recent status seen from the server — drives `progressCaption` while `.polling`.
     private(set) var latestStatus: JobStatus
-    /// Successful status polls so far. Handy for tests and a debug overlay.
     private(set) var pollCount = 0
 
     init(
@@ -81,8 +76,7 @@ final class GenerationProgressViewModel {
         self.config = config
         self.historyStore = historyStore
         self.latestStatus = job.status
-        // A job that's somehow already terminal on arrival (e.g. an instant failure) shouldn't
-        // start the loop at all.
+        // A job already terminal on arrival (an instant failure, say) must never start the loop.
         if job.status.isTerminal {
             transition(to: job.status.isSuccess ? .ready(job) : .failed(.jobFailed), job: job)
         }
@@ -115,14 +109,12 @@ final class GenerationProgressViewModel {
     // MARK: - Polling
 
     /// Polls the status endpoint until the job reaches a terminal state, the timeout is hit, or
-    /// the task is cancelled (the screen was dismissed). Safe to call once per screen; a second
-    /// call is a no-op once `phase` has left `.polling`.
+    /// the task is cancelled. A second call is a no-op once `phase` has left `.polling`.
     func startPolling() async {
         guard case .polling = phase else { return }
 
-        // Make sure this job has a history row before the loop can write dispositions to it.
-        // Normally `GenerateTrackViewModel` inserted it at submit time; doing it here too (idempotent)
-        // means a failed insert there still self-heals, so a job can never be lost from history.
+        // `GenerateTrackViewModel` normally inserted the row at submit time; re-inserting here
+        // (idempotent) self-heals a failed insert, so a job can't be lost from history.
         recordToHistory {
             try historyStore.upsertOnSubmit(job: initialJob, style: styleSummary ?? "")
         }
@@ -145,9 +137,9 @@ final class GenerationProgressViewModel {
                     transition(to: job.status.isSuccess ? .ready(job) : .failed(.jobFailed), job: job)
                     return
                 }
-                // Touch the store on an actual transition (Pending → InProgress), or the one poll
-                // where a `startTime` first appears — but not on every identical tick, since polls
-                // land every 1-2s.
+                // Touch the store only on an actual transition, or the one poll where a
+                // `startTime` first appears — polls land every 1-2s, so writing every tick would
+                // be pure churn.
                 let startTimeArrived = job.startTime != nil && !hasRecordedStartTime
                 if statusChanged || startTimeArrived {
                     if job.startTime != nil { hasRecordedStartTime = true }
@@ -223,18 +215,17 @@ final class GenerationProgressViewModel {
 
     // MARK: - History mirror
 
-    /// The single place `phase` is set. Also folds the new phase down to a `JobDisposition` and
-    /// writes it to local history, so the screen and the durable record never drift. `job` is the
-    /// status poll (or initial job) that caused the change — its `endTime`/`trackId` land on the
-    /// row for a terminal outcome.
+    /// The single place `phase` is set — it also folds the new phase down to a `JobDisposition`
+    /// and writes it to history, so the screen and the durable record can't drift. `job` is the
+    /// poll that caused the change; its `endTime`/`trackId` land on the row.
     private func transition(to newPhase: Phase, job: GenerationJob? = nil) {
         phase = newPhase
 
         let disposition: JobDisposition
         switch newPhase {
         case .polling:
-            // Not actually reachable — `transition` is only ever called with a terminal phase —
-            // but the switch has to be exhaustive and `.inFlight` is the honest mapping.
+            // Unreachable — `transition` is only called with a terminal phase — but `.inFlight`
+            // is the honest mapping if that ever changes.
             disposition = .inFlight
         case .ready:
             disposition = .ready
@@ -261,9 +252,9 @@ final class GenerationProgressViewModel {
         }
     }
 
-    /// Runs a history write, swallowing any failure — persistence mirrors the poll loop, it isn't
-    /// part of it, so a store error must never derail the screen (that invariant is the whole
-    /// point of ADR 0024). Logged, not trapped, so the debug build behaves like release here.
+    /// Runs a history write, swallowing any failure: the store mirrors the poll loop rather than
+    /// being part of it, so a store error must never derail the screen (ADR 0024). Logged, not
+    /// trapped, so debug behaves the same as release.
     private func recordToHistory(_ write: () throws -> Void) {
         do {
             try write()
@@ -277,11 +268,8 @@ final class GenerationProgressViewModel {
 
 #if DEBUG
 extension GenerationProgressViewModel {
-    /// A model parked in a specific phase for `#Preview`s. For the `.polling` previews the view's
-    /// `.task` still runs the loop, so the stub client answers with a held non-terminal status
-    /// and the config uses a very long interval — one harmless poll, then it parks until the
-    /// preview is torn down. The terminal previews never poll (`startPolling` returns at its
-    /// guard).
+    /// A model parked in a specific phase for `#Preview`s. The `.polling` previews still run the
+    /// loop, so the interval is set absurdly long: one harmless poll, then it parks.
     static func preview(
         _ phase: Phase,
         latestStatus: JobStatus = .inProgress
@@ -297,8 +285,6 @@ extension GenerationProgressViewModel {
             ),
             historyStore: PreviewJobHistoryStore()
         )
-        // `phase`/`latestStatus` are `private(set)`; this extension is in the same file, so it can
-        // set them to stage a preview.
         model.phase = phase
         model.latestStatus = latestStatus
         return model

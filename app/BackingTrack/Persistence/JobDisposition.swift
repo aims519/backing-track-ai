@@ -3,11 +3,11 @@ import Foundation
 /// What the *client* ended up doing with a generation job — the durable, flattened form of
 /// `GenerationProgressViewModel.Phase` + `.Failure`.
 ///
-/// The progress screen's `Phase`/`Failure` carry payloads (the job, an `APIClientError`) that
-/// don't belong in a stored record, and some of their distinctions don't matter once the screen
-/// is gone. This enum keeps only what the history list needs, and stores as a single string.
+/// `Phase`/`Failure` carry payloads (the job, an `APIClientError`) that don't belong in a stored
+/// record, and distinctions that stop mattering once the screen is gone. This keeps only what the
+/// history list needs, as a single string.
 ///
-/// The key case is `.timedOut` / `.lost`: ADR 0023 notes that a job the client stops following
+/// The key cases are `.timedOut` / `.lost`: ADR 0023 notes that a job the client stops following
 /// (poll budget spent, or the in-memory job dropped by an API restart) may still finish
 /// server-side "with nowhere for the user to see it". Persisting the disposition is what gives it
 /// somewhere.

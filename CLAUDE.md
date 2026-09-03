@@ -48,6 +48,9 @@ If applicable, link the PR to its Notion task. Match based on task name as order
 
 ## Swift conventions
 
-Explain non-trivial Swift idioms with brief inline comments — the owner
-directs and reviews this code but is less experienced with the platform,
-and needs to be able to read and understand it without external lookup.
+Assume the reader knows SwiftUI. Comment the *why*, never the *what*:
+non-obvious decisions and the alternative rejected, tradeoffs, platform
+footguns, server quirks, and links to the relevant ADR. Don't explain
+standard language or framework behaviour, restate the line below, or add
+ceremony to inits and previews. `MARK:` separators and `///` one-liners
+that add signal are welcome.

@@ -17,14 +17,10 @@ private let chordFlowCoordinateSpace = "chordFlow"
 /// acceptance `GenerationProgressView` is presented as a `fullScreenCover` to follow the job to
 /// completion, and a submission error is shown as an alert on the form.
 struct GenerateTrackView: View {
-    // `@State` (not `@StateObject`) is how the current Observation model holds a reference type —
-    // the view owns this instance for its lifetime and SwiftUI tracks reads into it. Injectable
-    // (same idea as `SettingsView`'s store) so previews can seed a populated form.
+    // Injectable (same idea as `SettingsView`'s store) so previews can seed a populated form.
     @State private var model: GenerateTrackViewModel
 
     init(model: GenerateTrackViewModel = GenerateTrackViewModel()) {
-        // `State(initialValue:)` is the supported way to seed `@State` from an initializer; it's
-        // used only on the view's first construction, not on later re-inits.
         _model = State(initialValue: model)
         // Start in custom mode when the model arrives with a signature the quick-pick menu can't
         // represent — otherwise that menu would render with no selection.

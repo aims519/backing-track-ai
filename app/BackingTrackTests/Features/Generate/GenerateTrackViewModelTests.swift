@@ -3,7 +3,7 @@ import Testing
 @testable import BackingTrack
 
 /// Counts calls into a `StubAPIClient`. An `actor` because the client is invoked off the main
-/// actor; the `StubAPIClient` struct shares one by reference.
+/// actor; the `StubAPIClient` value type shares one by reference.
 private actor CallLog {
     private(set) var submitCount = 0
     func recordSubmit() { submitCount += 1 }
@@ -29,13 +29,11 @@ private struct StubAPIClient: BackingTrackAPIClient {
     }
 }
 
-// `@MainActor` because `GenerateTrackViewModel` is main-actor isolated — the tests drive it exactly
-// as the view would.
 @MainActor
 struct GenerateTrackViewModelTests {
 
-    /// A ready-to-submit model wired to `client` (default: a stub that succeeds) and an in-memory
-    /// history store (the real default would write to the on-disk SwiftData store).
+    /// A ready-to-submit model. The history store must be passed — the model's real default would
+    /// write to the on-disk SwiftData store.
     private func readyModel(
         client: BackingTrackAPIClient = StubAPIClient.succeeding(),
         historyStore: JobHistoryStore = RecordingJobHistoryStore()
