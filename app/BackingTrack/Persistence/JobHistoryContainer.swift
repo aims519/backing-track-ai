@@ -15,6 +15,14 @@ enum JobHistoryContainer {
     private static func make() -> ModelContainer {
         let schema = Schema([JobHistoryEntry.self])
         let onDisk = ModelConfiguration(schema: schema)
+        // `Application Support` doesn't exist on a fresh install. Without this, SwiftData's first
+        // open fails with an `[error]`-level `NSCocoaError 512` and a large filesystem dump before
+        // CoreData's internal recovery quietly creates the directory and retries — every first
+        // launch and every reinstall.
+        try? FileManager.default.createDirectory(
+            at: onDisk.url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
         do {
             return try ModelContainer(for: schema, configurations: onDisk)
         } catch {

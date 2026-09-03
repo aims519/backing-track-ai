@@ -75,10 +75,14 @@ defaulted arguments, following the `APIKeyStoring` / `KeychainAPIKeyStore` patte
 - The shared container is resolved lazily inside `SwiftDataJobHistoryStore` — every
   model takes one as a default init argument, and most only to satisfy a
   form-logic test, so constructing the store must not open SwiftData.
-- If the container can't open its store — most likely an unmigratable schema, since
-  there is no `SchemaMigrationPlan` yet — it deletes the store and rebuilds empty;
-  if even that fails it falls back to an in-memory container for the session. It
-  never crashes the app over persistence.
+- The store's directory (`Application Support`) is created before the container
+  opens — it doesn't exist on a fresh install, and SwiftData's own first-open
+  recovery for that works but logs an `[error]`-level failure and a large
+  filesystem dump on every first launch.
+- If the container still can't open its store — most likely an unmigratable schema,
+  since there is no `SchemaMigrationPlan` yet — it deletes the store and rebuilds
+  empty; if even that fails it falls back to an in-memory container for the
+  session. It never crashes the app over persistence.
 - IDs are stored as `String` (`uuidString`). Local-only; no CloudKit.
 
 ## Alternatives considered
