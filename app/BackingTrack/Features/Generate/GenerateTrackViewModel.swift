@@ -11,7 +11,7 @@ import Observation
 /// checking without scattering `await` through the view.
 @MainActor
 @Observable
-final class GenerateTrackModel {
+final class GenerateTrackViewModel {
 
     /// Talks to the API. Injectable so previews and tests run without the network — production
     /// gets the real `URLSession`-backed client.
@@ -148,7 +148,7 @@ final class GenerateTrackModel {
     /// editable form (still populated, so it doubles as "try again").
     func acknowledgeSubmissionResult() {
         submissionState = .idle
-        progressModel = nil
+        progressViewModel = nil
     }
 
     /// Runs a history write, swallowing any failure. Persistence is a durable mirror of the poll
@@ -175,21 +175,21 @@ final class GenerateTrackModel {
     /// Memoised so the `.fullScreenCover` content closure — which SwiftUI may re-evaluate while
     /// presented — reuses one model rather than allocating a throwaway each time. Cleared when the
     /// screen is dismissed (`acknowledgeSubmissionResult`).
-    @ObservationIgnored private var progressModel: GenerationProgressModel?
+    @ObservationIgnored private var progressViewModel: GenerationProgressViewModel?
 
     /// The progress screen's model for `job` — keeps `apiClient` private to this type, and bundles
     /// in the composed style string (`GenerationJob` doesn't echo `Style` back).
-    func makeProgressModel(for job: GenerationJob) -> GenerationProgressModel {
-        if let progressModel, progressModel.initialJob.id == job.id {
-            return progressModel
+    func makeProgressViewModel(for job: GenerationJob) -> GenerationProgressViewModel {
+        if let progressViewModel, progressViewModel.initialJob.id == job.id {
+            return progressViewModel
         }
-        let model = GenerationProgressModel(
+        let model = GenerationProgressViewModel(
             job: job,
             styleSummary: composedStyle.isEmpty ? nil : composedStyle,
             apiClient: apiClient,
             historyStore: historyStore
         )
-        progressModel = model
+        progressViewModel = model
         return model
     }
 }

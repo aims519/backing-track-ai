@@ -4,8 +4,8 @@ import Testing
 
 /// A `BackingTrackAPIClient` that answers successive `jobStatus` calls from a fixed script,
 /// returning each entry in turn and holding the last once the script runs out (so an
-/// "always pending" job is just `[.pending]`). An `actor` because `GenerationProgressModel` calls
-/// it off the main actor — same reason as `CallLog` in `GenerateTrackModelTests`.
+/// "always pending" job is just `[.pending]`). An `actor` because `GenerationProgressViewModel` calls
+/// it off the main actor — same reason as `CallLog` in `GenerateTrackViewModelTests`.
 private actor ScriptedStatusClient: BackingTrackAPIClient {
     private let script: [Result<GenerationJob, APIClientError>]
     /// Optional per-call delay, so a test can cancel a poll while it's in flight.
@@ -34,16 +34,16 @@ private actor ScriptedStatusClient: BackingTrackAPIClient {
     }
 }
 
-private extension GenerationProgressModel.Phase {
+private extension GenerationProgressViewModel.Phase {
     var readyJob: GenerationJob? {
         if case .ready(let job) = self { return job } else { return nil }
     }
 }
 
-// `@MainActor` because `GenerationProgressModel` is main-actor isolated — the tests drive it
+// `@MainActor` because `GenerationProgressViewModel` is main-actor isolated — the tests drive it
 // exactly as the view's `.task` would.
 @MainActor
-struct GenerationProgressModelTests {
+struct GenerationProgressViewModelTests {
 
     /// Millisecond durations so the poll loop runs to completion near-instantly.
     private let fastConfig = PollingConfiguration(
@@ -58,8 +58,8 @@ struct GenerationProgressModelTests {
         startStatus: JobStatus = .pending,
         config: PollingConfiguration? = nil,
         historyStore: JobHistoryStore = RecordingJobHistoryStore()
-    ) -> GenerationProgressModel {
-        GenerationProgressModel(
+    ) -> GenerationProgressViewModel {
+        GenerationProgressViewModel(
             job: .preview(id: id, status: startStatus),
             styleSummary: "jazz",
             apiClient: client,
@@ -260,7 +260,7 @@ struct GenerationProgressModelTests {
         #expect(inProgress.progressCaption == "Composing your track…")
 
         // An unrecognised backend state still yields a caption rather than crashing.
-        let unknown = GenerationProgressModel(
+        let unknown = GenerationProgressViewModel(
             job: .preview(id: id, status: .unknown("Reticulating")),
             styleSummary: nil,
             apiClient: client,
@@ -373,7 +373,7 @@ struct GenerationProgressModelTests {
     }
 
     @Test func selfHealsHistoryAtPollStart() async {
-        // Even if GenerateTrackModel's insert failed, the poll loop re-inserts the job so it can't
+        // Even if GenerateTrackViewModel's insert failed, the poll loop re-inserts the job so it can't
         // be lost from history.
         let id = UUID()
         let store = RecordingJobHistoryStore()

@@ -4,7 +4,7 @@ import SwiftData
 /// The app's single SwiftData store, holding `JobHistoryEntry` rows.
 ///
 /// A lazy `static let` rather than an `@Environment`-injected container: the write path runs from
-/// `@MainActor @Observable` models (`GenerateTrackModel`, `GenerationProgressModel`), not just
+/// `@MainActor @Observable` models (`GenerateTrackViewModel`, `GenerationProgressViewModel`), not just
 /// views, so it needs a handle that doesn't depend on being inside a SwiftUI `body`.
 ///
 /// `BackingTrackApp` also hands this same instance to `.modelContainer(_:)` so a future history

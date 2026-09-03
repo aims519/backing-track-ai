@@ -4,14 +4,14 @@ import Observation
 /// Backing state for `GenerationProgressView` — polls `GET /tracks/status/{jobId}` for an accepted
 /// generation job and drives the screen through polling → ready / failed / timed-out.
 ///
-/// `@MainActor @Observable` for the same reasons as `GenerateTrackModel`: every mutation is driven
+/// `@MainActor @Observable` for the same reasons as `GenerateTrackViewModel`: every mutation is driven
 /// from (and read back by) the UI on the main thread, and it satisfies Swift 6 strict concurrency
 /// without scattering `await` through the view. The poll loop is one `async` method that the view
 /// runs from `.task`, so cancellation is automatic when the screen goes away — the model holds no
 /// `Task` of its own.
 @MainActor
 @Observable
-final class GenerationProgressModel {
+final class GenerationProgressViewModel {
 
     /// Where the screen is in following the job. `.polling` is the only non-terminal case.
     enum Phase: Equatable {
@@ -121,7 +121,7 @@ final class GenerationProgressModel {
         guard case .polling = phase else { return }
 
         // Make sure this job has a history row before the loop can write dispositions to it.
-        // Normally `GenerateTrackModel` inserted it at submit time; doing it here too (idempotent)
+        // Normally `GenerateTrackViewModel` inserted it at submit time; doing it here too (idempotent)
         // means a failed insert there still self-heals, so a job can never be lost from history.
         recordToHistory {
             try historyStore.upsertOnSubmit(job: initialJob, style: styleSummary ?? "")
@@ -276,7 +276,7 @@ final class GenerationProgressModel {
 }
 
 #if DEBUG
-extension GenerationProgressModel {
+extension GenerationProgressViewModel {
     /// A model parked in a specific phase for `#Preview`s. For the `.polling` previews the view's
     /// `.task` still runs the loop, so the stub client answers with a held non-terminal status
     /// and the config uses a very long interval — one harmless poll, then it parks until the
@@ -285,8 +285,8 @@ extension GenerationProgressModel {
     static func preview(
         _ phase: Phase,
         latestStatus: JobStatus = .inProgress
-    ) -> GenerationProgressModel {
-        let model = GenerationProgressModel(
+    ) -> GenerationProgressViewModel {
+        let model = GenerationProgressViewModel(
             job: .preview(status: .pending),
             styleSummary: "Blues — slow, brushes not sticks",
             apiClient: PreviewStatusClient(held: latestStatus),

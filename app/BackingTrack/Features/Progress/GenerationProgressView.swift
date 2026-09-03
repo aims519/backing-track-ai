@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Full-screen cover shown the moment `POST /tracks/generate` accepts a job. Polls the status
-/// endpoint (via `GenerationProgressModel`) and walks the user from "Queued…" through to a
+/// endpoint (via `GenerationProgressViewModel`) and walks the user from "Queued…" through to a
 /// "Track ready" or failure state.
 ///
 /// Presented with `.fullScreenCover` rather than a navigation push: generation is a modal
@@ -12,11 +12,11 @@ import SwiftUI
 struct GenerationProgressView: View {
     // `@State` + `State(initialValue:)` is how an `@Observable` reference type is owned by a view
     // (same pattern as `GenerateTrackView`) — the cover builds this once and SwiftUI tracks reads.
-    @State private var model: GenerationProgressModel
+    @State private var model: GenerationProgressViewModel
     // Set by `fullScreenCover`; calling it flips the presenting binding back to `nil`.
     @Environment(\.dismiss) private var dismiss
 
-    init(model: GenerationProgressModel) {
+    init(model: GenerationProgressViewModel) {
         _model = State(initialValue: model)
     }
 
@@ -147,7 +147,7 @@ struct GenerationProgressView: View {
         }
     }
 
-    private func failureView(_ failure: GenerationProgressModel.Failure) -> some View {
+    private func failureView(_ failure: GenerationProgressViewModel.Failure) -> some View {
         messageView(
             systemImage: "exclamationmark.triangle",
             title: "Couldn't generate the track",
@@ -252,7 +252,7 @@ struct GenerationProgressView: View {
         return clockString(end.timeIntervalSince(start))
     }
 
-    private func failureMessage(_ failure: GenerationProgressModel.Failure) -> String {
+    private func failureMessage(_ failure: GenerationProgressViewModel.Failure) -> String {
         switch failure {
         case .jobFailed:
             "The track couldn't be generated. Try adjusting the chords or style, then generate again."
@@ -268,7 +268,7 @@ struct GenerationProgressView: View {
         AccessibilityNotification.Announcement(message).post()
     }
 
-    private func announcePhaseChange(_ phase: GenerationProgressModel.Phase) {
+    private func announcePhaseChange(_ phase: GenerationProgressViewModel.Phase) {
         switch phase {
         case .polling:
             break

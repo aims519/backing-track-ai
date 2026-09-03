@@ -51,13 +51,13 @@ defaulted arguments, following the `APIKeyStoring` / `KeychainAPIKeyStore` patte
 - Status is stored as the backend's wire string (`JobStatus.wireValue`), not an
   encoded enum, so `JobStatus.unknown("…")` round-trips its captured value.
 - `JobDisposition` (`inFlight / ready / serverFailed / timedOut / lost /
-  pollError`) is a flattened, persistable form of `GenerationProgressModel.Phase`
+  pollError`) is a flattened, persistable form of `GenerationProgressViewModel.Phase`
   + `.Failure`. Persisting `.timedOut` / `.lost` is what closes the ADR 0023 gap.
 - A `JobHistoryStore` protocol (`@MainActor`, **not** `Sendable` — unlike the API
   client it never crosses an actor boundary) with a SwiftData-backed
   implementation and an injected default, mirroring `APIKeyStoring`. The
-  `@Observable` models call it; `GenerateTrackModel` writes a row the moment the
-  API accepts a job, and `GenerationProgressModel` funnels every `phase` change
+  `@Observable` models call it; `GenerateTrackViewModel` writes a row the moment the
+  API accepts a job, and `GenerationProgressViewModel` funnels every `phase` change
   through one `transition(to:)` that also records the disposition.
 - The poll loop is otherwise unchanged: in-memory state stays the source of truth
   for the live screen, and the store is a durable mirror. A store write failure is
@@ -137,7 +137,7 @@ mirror approach keeps the screen working even if persistence fails.
   `JobHistoryStore` is the place to revisit it.
 - A swallowed store-write failure means that job may be missing from history, with
   only a debug `print` to signal it. The alternative — failing the generation
-  because persistence hiccuped — is worse. `GenerationProgressModel` re-runs the
+  because persistence hiccuped — is worse. `GenerationProgressViewModel` re-runs the
   (idempotent) insert when polling starts, so a failure at submit time still
   self-heals as long as the screen opens.
 - `JobHistoryEntry` is not `Sendable` and its context is main-actor-bound. A future
@@ -153,14 +153,14 @@ mirror approach keeps the screen working even if persistence fails.
   case — so most rows will sit at `.inFlight` with a stale status. **The history
   screen must reconcile on open**: re-poll every non-terminal row's job and write
   the result through. That's required follow-up, not a nicety.
-- The write-through lives inside `GenerationProgressModel`, which already owns the
+- The write-through lives inside `GenerationProgressViewModel`, which already owns the
   poll loop, the timeout policy and the error classification (ADR 0023). That's a
   lot of non-presentation responsibility on a view-model, and there's no service
   layer between the view-models and the `APIClient` / `JobHistoryStore`. Left as-is
   here to keep the diff to "add persistence" rather than reshaping accepted code.
   **Anticipated refactor:** extract a `JobTracker` that owns polling + timeout +
   classification + persistence and exposes the job's state as an `AsyncStream`;
-  `GenerationProgressModel` then only maps that to `Phase`. The history-screen task
+  `GenerationProgressViewModel` then only maps that to `Phase`. The history-screen task
   is the right time — its reconcile-on-open pass is the second caller of "poll a
   job and persist the result", so the interface can be designed against two real
   consumers instead of guessed at now.

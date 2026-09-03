@@ -29,37 +29,37 @@ private struct StubAPIClient: BackingTrackAPIClient {
     }
 }
 
-// `@MainActor` because `GenerateTrackModel` is main-actor isolated — the tests drive it exactly
+// `@MainActor` because `GenerateTrackViewModel` is main-actor isolated — the tests drive it exactly
 // as the view would.
 @MainActor
-struct GenerateTrackModelTests {
+struct GenerateTrackViewModelTests {
 
     /// A ready-to-submit model wired to `client` (default: a stub that succeeds) and an in-memory
     /// history store (the real default would write to the on-disk SwiftData store).
     private func readyModel(
         client: BackingTrackAPIClient = StubAPIClient.succeeding(),
         historyStore: JobHistoryStore = RecordingJobHistoryStore()
-    ) -> GenerateTrackModel {
-        let model = GenerateTrackModel(apiClient: client, historyStore: historyStore)
+    ) -> GenerateTrackViewModel {
+        let model = GenerateTrackViewModel(apiClient: client, historyStore: historyStore)
         model.addChord(root: .c, quality: .major)
         model.selectedStyle = .pop
         return model
     }
 
     @Test func cannotGenerateWithAnEmptyForm() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         #expect(model.canGenerate == false)
     }
 
     @Test func aChordAloneIsNotEnoughWithoutAStyle() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.addChord(root: .c, quality: .major)
         #expect(model.selectedStyle == nil)
         #expect(model.canGenerate == false)
     }
 
     @Test func canGenerateWithAtLeastOneChordAndAStyle() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.addChord(root: .c, quality: .major)
         model.selectedStyle = .rock
         #expect(model.canGenerate)
@@ -68,7 +68,7 @@ struct GenerateTrackModelTests {
     @Test func generateDoesNothingWhileIncomplete() async {
         let client = StubAPIClient.succeeding()
         let store = RecordingJobHistoryStore()
-        let model = GenerateTrackModel(apiClient: client, historyStore: store)
+        let model = GenerateTrackViewModel(apiClient: client, historyStore: store)
         model.addChord(root: .c, quality: .major) // still no style
 
         await model.generate()
@@ -79,7 +79,7 @@ struct GenerateTrackModelTests {
     }
 
     @Test func buildRequestMapsFormStateOntoTheApiContract() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.keyRoot = .g
         model.tempo = 132.6
         model.timeSignature = TimeSignature(beatCount: 6, beatUnit: 8)
@@ -101,27 +101,27 @@ struct GenerateTrackModelTests {
     }
 
     @Test func styleNotesAreAppendedToTheStyleAndTrimmed() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.selectedStyle = .blues
         model.styleNotes = "  slow, brushes not sticks \n"
         #expect(model.composedStyle == "Blues - slow, brushes not sticks")
     }
 
     @Test func whitespaceOnlyStyleNotesAreIgnored() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.selectedStyle = .funk
         model.styleNotes = "   "
         #expect(model.composedStyle == "Funk")
     }
 
     @Test func notesWithNoStylePickedAreNotSentAsAStyle() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.styleNotes = "slow shuffle"
         #expect(model.composedStyle.isEmpty)
     }
 
     @Test func removeChordDeletesByIdentityNotPosition() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.addChord(root: .c, quality: .major)
         model.addChord(root: .f, quality: .major)
         model.addChord(root: .c, quality: .major) // a repeat — must not also remove this one
@@ -132,7 +132,7 @@ struct GenerateTrackModelTests {
     }
 
     @Test func moveChordReordersTheProgression() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.addChord(root: .c, quality: .major)
         model.addChord(root: .f, quality: .major)
         model.addChord(root: .g, quality: .major)
@@ -143,13 +143,13 @@ struct GenerateTrackModelTests {
     }
 
     @Test func styleAloneIsSentWhenNoNotesAreAdded() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.selectedStyle = .reggae
         #expect(model.composedStyle == "Reggae")
     }
 
     @Test func composedStyleIsEmptyWithNoStylePicked() {
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         #expect(model.composedStyle.isEmpty)
     }
 
@@ -226,7 +226,7 @@ struct GenerateTrackModelTests {
         #expect(GenerationMode.vibe.isAvailable == false)
         #expect(GenerationMode.precise.isAvailable)
 
-        let model = GenerateTrackModel()
+        let model = GenerateTrackViewModel()
         model.mode = .vibe
         model.addChord(root: .c, quality: .major)
         model.selectedStyle = .rock

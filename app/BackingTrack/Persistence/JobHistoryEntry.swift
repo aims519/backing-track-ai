@@ -39,7 +39,7 @@ final class JobHistoryEntry {
     // MARK: Request parameters (captured at submit)
 
     // `GenerationJob` echoes all of these back except `style`, which only exists on
-    // `GenerateTrackModel.composedStyle` — captured here so the history row is self-contained.
+    // `GenerateTrackViewModel.composedStyle` — captured here so the history row is self-contained.
     var mode: String
     var tempo: Int
     var chordSymbols: [String]

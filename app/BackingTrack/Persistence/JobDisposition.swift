@@ -1,7 +1,7 @@
 import Foundation
 
 /// What the *client* ended up doing with a generation job — the durable, flattened form of
-/// `GenerationProgressModel.Phase` + `.Failure`.
+/// `GenerationProgressViewModel.Phase` + `.Failure`.
 ///
 /// The progress screen's `Phase`/`Failure` carry payloads (the job, an `APIClientError`) that
 /// don't belong in a stored record, and some of their distinctions don't matter once the screen
