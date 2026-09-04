@@ -34,6 +34,11 @@ final class GenerateTrackViewModel {
     /// Optional free-text refinement appended to the picked style, e.g. "slow, brushes not sticks".
     var styleNotes: String = ""
 
+    /// Set when the form was just seeded from a history row (`apply(entry:)`) and something didn't
+    /// round-trip cleanly — an unparseable chord, or a style that isn't one of the presets.
+    /// Shown as an inline note on the form; cleared on the next submit.
+    var seedWarning: String?
+
     /// BPM range the API accepts (`GenerationRequestDto.Validate`).
     static let tempoRange: ClosedRange<Double> = 40...240
 
@@ -110,6 +115,7 @@ final class GenerateTrackViewModel {
     /// the view gates the button on that. Ignored if a submission is already in flight.
     func generate() async {
         guard canGenerate, submissionState != .submitting else { return }
+        seedWarning = nil
         submissionState = .submitting
         do {
             let job = try await apiClient.submitGeneration(buildRequest())
@@ -135,6 +141,67 @@ final class GenerateTrackViewModel {
     func acknowledgeSubmissionResult() {
         submissionState = .idle
         progressViewModel = nil
+    }
+
+    // MARK: - Seeding from history
+
+    /// Loads a past job's parameters back into the form ("Use these settings" on the history
+    /// screen). Chords are rebuilt from their stored API symbols; any that can't be — a spelling
+    /// the picker can't produce — are dropped and named in `seedWarning`. `style` is split back
+    /// into the picked style plus notes; if the stored string isn't one of the presets the whole
+    /// thing goes into the notes field.
+    func apply(entry: JobHistoryEntry) {
+        mode = GenerationMode(rawValue: entry.mode.lowercased()) ?? .precise
+        keyRoot = NoteName(rawValue: entry.keyRoot) ?? .c
+        tempo = Double(entry.tempo)
+        timeSignature = TimeSignature(
+            beatCount: entry.timeSignatureBeatCount,
+            beatUnit: entry.timeSignatureBeatUnit
+        )
+
+        let parsedChords = entry.chordSymbols.map { (symbol: $0, chord: Chord(apiSymbol: $0)) }
+        chords = parsedChords.compactMap(\.chord)
+
+        let (style, notes) = Self.decomposeStyle(entry.style)
+        selectedStyle = style
+        styleNotes = style == nil ? entry.style : notes
+
+        seedWarning = Self.seedWarning(
+            unparsedChords: parsedChords.filter { $0.chord == nil }.map(\.symbol),
+            styleUnmatched: style == nil && !entry.style.isEmpty
+        )
+        submissionState = .idle
+    }
+
+    /// Inverse of `composedStyle`: `"Blues - slow, brushes"` → `(.blues, "slow, brushes")`,
+    /// `"Rock"` → `(.rock, "")`. Splits on the *first* `" - "` only, so notes may themselves
+    /// contain that separator. A left token that isn't a known style yields `(nil, "")` — the
+    /// caller then keeps the whole stored string as notes.
+    static func decomposeStyle(_ stored: String) -> (MusicStyle?, String) {
+        let token: String
+        let notes: String
+        if let separator = stored.range(of: " - ") {
+            token = String(stored[..<separator.lowerBound])
+            notes = String(stored[separator.upperBound...])
+        } else {
+            token = stored
+            notes = ""
+        }
+        guard let style = MusicStyle(rawValue: token.lowercased()) else { return (nil, "") }
+        return (style, notes)
+    }
+
+    private static func seedWarning(unparsedChords: [String], styleUnmatched: Bool) -> String? {
+        var parts: [String] = []
+        if !unparsedChords.isEmpty {
+            let list = unparsedChords.joined(separator: ", ")
+            parts.append("couldn't restore \(unparsedChords.count == 1 ? "chord" : "chords") \(list)")
+        }
+        if styleUnmatched {
+            parts.append("the style isn't a preset, so it's in the notes field")
+        }
+        guard !parts.isEmpty else { return nil }
+        return "Loaded from history — " + parts.joined(separator: "; ") + "."
     }
 
     /// Runs a history write, swallowing any failure: the store mirrors the generation flow rather

@@ -220,6 +220,136 @@ struct GenerateTrackViewModelTests {
         #expect(model.submissionState == .idle)
     }
 
+    // MARK: - Style decomposition (inverse of `composedStyle`)
+
+    @Test func decomposeStyleSplitsThePickedStyleFromTheNotes() {
+        #expect(GenerateTrackViewModel.decomposeStyle("Blues - slow, brushes not sticks").0 == .blues)
+        #expect(GenerateTrackViewModel.decomposeStyle("Blues - slow, brushes not sticks").1 == "slow, brushes not sticks")
+    }
+
+    @Test func decomposeStyleHandlesAStyleWithNoNotes() {
+        let (style, notes) = GenerateTrackViewModel.decomposeStyle("Rock")
+        #expect(style == .rock)
+        #expect(notes.isEmpty)
+    }
+
+    @Test func decomposeStyleOnlySplitsOnTheFirstSeparator() {
+        let (style, notes) = GenerateTrackViewModel.decomposeStyle("Jazz - laid back - a touch of swing")
+        #expect(style == .jazz)
+        #expect(notes == "laid back - a touch of swing")
+    }
+
+    @Test func decomposeStyleReturnsNilForANonPresetStyle() {
+        let (style, notes) = GenerateTrackViewModel.decomposeStyle("Sludgecore - down-tuned")
+        #expect(style == nil)
+        #expect(notes.isEmpty)
+    }
+
+    @Test(arguments: MusicStyle.allCases)
+    func decomposeStyleRoundTripsWhateverComposedStyleProduces(style: MusicStyle) {
+        let model = GenerateTrackViewModel()
+        model.selectedStyle = style
+        model.styleNotes = "warm, roomy"
+
+        let (decomposed, notes) = GenerateTrackViewModel.decomposeStyle(model.composedStyle)
+
+        #expect(decomposed == style)
+        #expect(notes == "warm, roomy")
+    }
+
+    // MARK: - Seeding the form from a history row
+
+    @Test func applyMapsEveryFieldBackOntoTheForm() {
+        let model = GenerateTrackViewModel()
+        let entry = JobHistoryEntry.preview(
+            mode: "Precise",
+            tempo: 96,
+            chordSymbols: ["G", "Emin7", "Amin", "D7"],
+            keyRoot: "G",
+            timeSignatureBeatCount: 6,
+            timeSignatureBeatUnit: 8,
+            style: "Jazz - laid back"
+        )
+
+        model.apply(entry: entry)
+
+        #expect(model.mode == .precise)
+        #expect(model.keyRoot == .g)
+        #expect(model.tempo == 96)
+        #expect(model.timeSignature == TimeSignature(beatCount: 6, beatUnit: 8))
+        #expect(model.chords.map(\.apiSymbol) == ["G", "Emin7", "Amin", "D7"])
+        #expect(model.selectedStyle == .jazz)
+        #expect(model.styleNotes == "laid back")
+        #expect(model.seedWarning == nil)
+        #expect(model.canGenerate)
+    }
+
+    @Test func applyReproducesTheOriginalRequestForACleanRow() {
+        let original = GenerateTrackViewModel()
+        original.keyRoot = .d
+        original.tempo = 140
+        original.timeSignature = .fourFour
+        original.selectedStyle = .funk
+        original.styleNotes = "syncopated"
+        original.addChord(root: .d, quality: .minor7)
+        original.addChord(root: .g, quality: .dominant7)
+        let request = original.buildRequest()
+        let entry = JobHistoryEntry.preview(
+            tempo: request.tempo,
+            chordSymbols: request.chords,
+            keyRoot: request.keyRoot,
+            timeSignatureBeatCount: request.timeSignatureBeatCount,
+            timeSignatureBeatUnit: request.timeSignatureBeatUnit,
+            style: request.style
+        )
+
+        let seeded = GenerateTrackViewModel()
+        seeded.apply(entry: entry)
+
+        #expect(seeded.buildRequest() == request)
+    }
+
+    @Test func applyKeepsParseableChordsAndWarnsAboutTheRest() {
+        let model = GenerateTrackViewModel()
+        let entry = JobHistoryEntry.preview(chordSymbols: ["C", "Cm7", "F", "Bhalfdim"])
+
+        model.apply(entry: entry)
+
+        #expect(model.chords.map(\.apiSymbol) == ["C", "F"])
+        #expect(model.seedWarning?.contains("Cm7") == true)
+        #expect(model.seedWarning?.contains("Bhalfdim") == true)
+    }
+
+    @Test func applyDumpsANonPresetStyleIntoTheNotesField() {
+        let model = GenerateTrackViewModel()
+        let entry = JobHistoryEntry.preview(style: "Klezmer - frantic")
+
+        model.apply(entry: entry)
+
+        #expect(model.selectedStyle == nil)
+        #expect(model.styleNotes == "Klezmer - frantic")
+        #expect(model.seedWarning?.contains("notes field") == true)
+    }
+
+    @Test func applyRestoresAnUncommonTimeSignature() {
+        let model = GenerateTrackViewModel()
+        model.apply(entry: JobHistoryEntry.preview(timeSignatureBeatCount: 5, timeSignatureBeatUnit: 8))
+
+        #expect(model.timeSignature == TimeSignature(beatCount: 5, beatUnit: 8))
+        #expect(model.timeSignature.isCommon == false) // the view flips its Custom toggle on for this
+    }
+
+    @Test func submittingClearsTheSeedWarning() async {
+        let model = readyModel()
+        model.apply(entry: JobHistoryEntry.preview(chordSymbols: ["Cm7"], style: "Pop"))
+        model.addChord(root: .c, quality: .major) // apply cleared the chords; give it something valid
+        #expect(model.seedWarning != nil)
+
+        await model.generate()
+
+        #expect(model.seedWarning == nil)
+    }
+
     @Test func vibeModeIsNotSubmittableYet() {
         #expect(GenerationMode.vibe.isAvailable == false)
         #expect(GenerationMode.precise.isAvailable)

@@ -43,6 +43,37 @@ struct ChordTests {
         }
     }
 
+    @Test(arguments: NoteName.allCases, ChordQuality.allCases)
+    func apiSymbolRoundTripsBackToTheSameChord(root: NoteName, quality: ChordQuality) {
+        let original = Chord(root: root, quality: quality)
+        let parsed = Chord(apiSymbol: original.apiSymbol)
+        #expect(parsed?.root == root)
+        #expect(parsed?.quality == quality)
+    }
+
+    @Test(arguments: [
+        "Cm7",   // musician spelling, not the API's `min7`
+        "Db",    // flat root — the picker is sharp-only
+        "Cadd9", // a quality the picker doesn't offer
+        "H",     // not a note
+        "",      // empty
+    ])
+    func rejectsSymbolsThePickerCouldNotProduce(symbol: String) {
+        #expect(Chord(apiSymbol: symbol) == nil)
+    }
+
+    @Test func parsesASharpRootWithAQuality() {
+        let parsed = Chord(apiSymbol: "F#min7")
+        #expect(parsed?.root == .fSharp)
+        #expect(parsed?.quality == .minor7)
+    }
+
+    @Test func parsesABareSharpRootAsMajor() {
+        let parsed = Chord(apiSymbol: "C#")
+        #expect(parsed?.root == .cSharp)
+        #expect(parsed?.quality == .major)
+    }
+
     @Test func repeatedChordsAreDistinctRows() {
         // Same root + quality, but two separate list entries — so `id` must not be derived from
         // the musical content.

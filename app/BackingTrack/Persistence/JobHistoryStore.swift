@@ -29,6 +29,10 @@ protocol JobHistoryStore {
     /// Newest first. For the future history screen's non-reactive callers; the screen itself
     /// should prefer `@Query`.
     func allEntries() throws -> [JobHistoryEntry]
+
+    /// Removes one row. The history screen's swipe-to-delete — the only user-initiated write,
+    /// as opposed to the poll-loop mirror the other methods serve. No-op if the row is gone.
+    func delete(jobID: UUID) throws
 }
 
 /// SwiftData-backed `JobHistoryStore`, writing through the container's main-actor context.
@@ -117,6 +121,12 @@ struct SwiftDataJobHistoryStore: JobHistoryStore {
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         ))
     }
+
+    func delete(jobID: UUID) throws {
+        guard let entry = try entry(jobID: jobID) else { return }
+        context.delete(entry)
+        try context.save()
+    }
 }
 
 #if DEBUG
@@ -128,5 +138,6 @@ struct PreviewJobHistoryStore: JobHistoryStore {
     func recordDisposition(jobID: UUID, _ disposition: JobDisposition, job: GenerationJob?, error: String?) throws {}
     func entry(jobID: UUID) throws -> JobHistoryEntry? { nil }
     func allEntries() throws -> [JobHistoryEntry] { [] }
+    func delete(jobID: UUID) throws {}
 }
 #endif

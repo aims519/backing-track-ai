@@ -9,6 +9,7 @@ final class RecordingJobHistoryStore: JobHistoryStore {
     private(set) var upserts: [(job: GenerationJob, style: String)] = []
     private(set) var statuses: [(jobID: UUID, status: JobStatus, startedAt: Date?)] = []
     private(set) var dispositions: [(jobID: UUID, disposition: JobDisposition, job: GenerationJob?, error: String?)] = []
+    private(set) var deletions: [UUID] = []
 
     /// When set, every method throws it — for checking that a store failure never derails a
     /// generation (ADR 0024's headline invariant). Calls are still recorded first, so a test can
@@ -41,5 +42,10 @@ final class RecordingJobHistoryStore: JobHistoryStore {
     func allEntries() throws -> [JobHistoryEntry] {
         if let errorToThrow { throw errorToThrow }
         return []
+    }
+
+    func delete(jobID: UUID) throws {
+        deletions.append(jobID)
+        if let errorToThrow { throw errorToThrow }
     }
 }
