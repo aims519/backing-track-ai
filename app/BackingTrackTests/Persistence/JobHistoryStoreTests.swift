@@ -133,6 +133,25 @@ struct JobHistoryStoreTests {
         #expect(try #require(try store.entry(jobID: job.id)).status == .unknown("Reticulating"))
     }
 
+    @Test func deleteRemovesTheRow() throws {
+        let job = GenerationJob.preview(status: .complete)
+        try store.upsertOnSubmit(job: job, style: "Reggae")
+
+        try store.delete(jobID: job.id)
+
+        #expect(try store.entry(jobID: job.id) == nil)
+        #expect(try store.allEntries().isEmpty)
+    }
+
+    @Test func deleteIsANoOpForAnUnknownJob() throws {
+        let job = GenerationJob.preview(status: .complete)
+        try store.upsertOnSubmit(job: job, style: "Reggae")
+
+        try store.delete(jobID: UUID())
+
+        #expect(try store.allEntries().count == 1)
+    }
+
     @Test func allEntriesAreNewestFirst() async throws {
         let older = GenerationJob.preview(id: UUID(), status: .pending)
         let newer = GenerationJob.preview(id: UUID(), status: .pending)

@@ -133,6 +133,41 @@ struct Chord: Identifiable, Hashable, Sendable {
     var apiSymbol: String { root.rawValue + quality.apiSuffix }
 }
 
+extension Chord {
+    /// The inverse of `apiSymbol`: `"Amin7"` → `Chord(root: .a, quality: .minor7)`.
+    ///
+    /// Used to rebuild a progression from a stored history row (`JobHistoryEntry.chordSymbols`).
+    /// Returns `nil` for anything the structured picker couldn't have produced — a flat root
+    /// (`"Db"`), a musician-spelled minor (`"Cm7"` rather than `"Cmin7"`), or an unknown quality
+    /// (`"Cadd9"`). The re-run path drops those and names them in a warning rather than guessing.
+    init?(apiSymbol raw: String) {
+        // A root is one letter, optionally followed by `#` — the only place `#` occurs. Try the
+        // two-character root first; whatever's left must equal a quality suffix exactly, so
+        // `"min7"` is never mis-split into `"min"` + `"7"`.
+        var candidates: [(root: String, suffix: Substring)] = []
+        if raw.count >= 2 {
+            let afterTwo = raw.index(raw.startIndex, offsetBy: 2)
+            candidates.append((String(raw[..<afterTwo]), raw[afterTwo...]))
+        }
+        candidates.append((String(raw.prefix(1)), raw.dropFirst()))
+
+        for (rootString, suffix) in candidates {
+            guard let root = NoteName(rawValue: rootString),
+                  let quality = Self.qualitiesByAPISuffix[String(suffix)]
+            else { continue }
+            self.init(root: root, quality: quality)
+            return
+        }
+        return nil
+    }
+
+    /// Every `ChordQuality` keyed on the suffix `apiSymbol` appends. All ten suffixes are
+    /// distinct (major's is the empty string), so the mapping is unambiguous.
+    private static let qualitiesByAPISuffix: [String: ChordQuality] = Dictionary(
+        uniqueKeysWithValues: ChordQuality.allCases.map { ($0.apiSuffix, $0) }
+    )
+}
+
 extension [Chord] {
     /// Returns a copy with the chord identified by `id` moved so it lands at `targetIndex` in
     /// reading order. `targetIndex` is measured against the array *including* the dragged chord

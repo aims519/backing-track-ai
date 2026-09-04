@@ -120,3 +120,43 @@ final class JobHistoryEntry {
         set { dispositionRawValue = newValue.rawValue }
     }
 }
+
+#if DEBUG
+extension JobHistoryEntry {
+    /// A representative row for `#Preview`s and tests — `status` / `disposition` default to a
+    /// finished-and-ready job; override any field for other states.
+    static func preview(
+        jobID: UUID = UUID(),
+        createdAt: Date = .now,
+        status: JobStatus = .complete,
+        disposition: JobDisposition = .ready,
+        mode: String = "Precise",
+        tempo: Int = 120,
+        chordSymbols: [String] = ["C", "Amin", "F", "G7"],
+        keyRoot: String = "C",
+        timeSignatureBeatCount: Int = 4,
+        timeSignatureBeatUnit: Int = 4,
+        style: String = "Blues - slow, brushes",
+        startedAt: Date? = Date(timeIntervalSinceNow: -40),
+        finishedAt: Date? = Date(timeIntervalSinceNow: -12),
+        trackIDString: String? = UUID().uuidString
+    ) -> JobHistoryEntry {
+        JobHistoryEntry(
+            jobIDString: jobID.uuidString,
+            createdAt: createdAt,
+            statusWireValue: status.wireValue,
+            dispositionRawValue: disposition.rawValue,
+            mode: mode,
+            tempo: tempo,
+            chordSymbols: chordSymbols,
+            keyRoot: keyRoot,
+            timeSignatureBeatCount: timeSignatureBeatCount,
+            timeSignatureBeatUnit: timeSignatureBeatUnit,
+            style: style,
+            startedAt: startedAt,
+            finishedAt: finishedAt,
+            trackIDString: trackIDString
+        )
+    }
+}
+#endif
