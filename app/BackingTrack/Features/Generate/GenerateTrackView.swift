@@ -27,6 +27,9 @@ struct GenerateTrackView: View {
         _isCustomTimeSignature = State(initialValue: !model.timeSignature.isCommon)
     }
 
+    // The app's only navigation path. Empty = the form; `HistoryRoute.list` pushes the history
+    // screen, which pushes its own detail views. Re-running a past job resets this to pop back here.
+    @State private var path = NavigationPath()
     @State private var isShowingSettings = false
     @State private var isShowingAddChord = false
     @State private var isShowingVibeComingSoon = false
@@ -41,12 +44,24 @@ struct GenerateTrackView: View {
     // their own properties below. Kept together they form one expression big enough that the
     // type-checker struggles with it.
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             cardStack
                 .background(Color(.systemGroupedBackground))
                 .navigationTitle("New Track")
-                .toolbar { settingsToolbarItem }
+                .toolbar { toolbarItems }
                 .safeAreaInset(edge: .bottom) { generateBar }
+                .navigationDestination(for: HistoryRoute.self) { _ in
+                    HistoryView(onReRun: reRun)
+                }
+                // `apply(entry:)` may set a signature the quick-pick menu can't show; keep the
+                // view-local Custom toggle in step with it. Guarded so it doesn't fight the
+                // toggle's own snap-back onChange.
+                .onChange(of: model.timeSignature) { _, signature in
+                    let shouldBeCustom = !signature.isCommon
+                    if isCustomTimeSignature != shouldBeCustom {
+                        isCustomTimeSignature = shouldBeCustom
+                    }
+                }
                 .modifier(GenerateTrackModals(
                     model: model,
                     isShowingSettings: $isShowingSettings,
@@ -54,6 +69,12 @@ struct GenerateTrackView: View {
                     isShowingVibeComingSoon: $isShowingVibeComingSoon
                 ))
         }
+    }
+
+    /// "Use these settings" on a history row: seed the form from that job, then pop back to it.
+    private func reRun(_ entry: JobHistoryEntry) {
+        model.apply(entry: entry)
+        path = NavigationPath()
     }
 
     private var cardStack: some View {
@@ -69,9 +90,14 @@ struct GenerateTrackView: View {
             .padding(.vertical, 16)
         }
     }
-
-    private var settingsToolbarItem: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
+    
+    private var toolbarItems: some ToolbarContent {
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            Button {
+                path.append(HistoryRoute.list)
+            } label: {
+                Label("History", systemImage: "clock")
+            }
             Button {
                 isShowingSettings = true
             } label: {
@@ -82,26 +108,36 @@ struct GenerateTrackView: View {
 
     /// Primary action, pinned above the home indicator rather than scrolling away with the form.
     private var generateBar: some View {
-        Button {
-            // `submitGeneration` is `async`; a `Task` bridges the synchronous button action to
-            // it. The model is `@MainActor`, so the work hops back to the main actor to publish
-            // its result — no manual dispatch needed.
-            Task { await model.generate() }
-        } label: {
-            // Swap the label for a spinner while the request is in flight; keep it full-width
-            // either way so the bar doesn't resize.
-            Group {
-                if model.isSubmitting {
-                    ProgressView()
-                } else {
-                    Text("Generate Track")
-                }
+        VStack(spacing: 8) {
+            // Shown after "Use these settings" seeded the form and something didn't round-trip.
+            if let warning = model.seedWarning {
+                Text(warning)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity)
+
+            Button {
+                // `submitGeneration` is `async`; a `Task` bridges the synchronous button action to
+                // it. The model is `@MainActor`, so the work hops back to the main actor to publish
+                // its result — no manual dispatch needed.
+                Task { await model.generate() }
+            } label: {
+                // Swap the label for a spinner while the request is in flight; keep it full-width
+                // either way so the bar doesn't resize.
+                Group {
+                    if model.isSubmitting {
+                        ProgressView()
+                    } else {
+                        Text("Generate Track")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(!model.canGenerate || model.isSubmitting)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .disabled(!model.canGenerate || model.isSubmitting)
         .padding()
         .background(.bar)
     }
