@@ -130,6 +130,7 @@ extension JobHistoryEntry {
         createdAt: Date = .now,
         status: JobStatus = .complete,
         disposition: JobDisposition = .ready,
+        lastClientError: String? = nil,
         mode: String = "Precise",
         tempo: Int = 120,
         chordSymbols: [String] = ["C", "Amin", "F", "G7"],
@@ -141,7 +142,7 @@ extension JobHistoryEntry {
         finishedAt: Date? = Date(timeIntervalSinceNow: -12),
         trackIDString: String? = UUID().uuidString
     ) -> JobHistoryEntry {
-        JobHistoryEntry(
+        let entry = JobHistoryEntry(
             jobIDString: jobID.uuidString,
             createdAt: createdAt,
             statusWireValue: status.wireValue,
@@ -157,6 +158,8 @@ extension JobHistoryEntry {
             finishedAt: finishedAt,
             trackIDString: trackIDString
         )
+        entry.lastClientError = lastClientError
+        return entry
     }
 }
 #endif
