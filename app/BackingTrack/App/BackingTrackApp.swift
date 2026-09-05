@@ -8,8 +8,8 @@ struct BackingTrackApp: App {
             GenerateTrackView()
         }
         // `.modelContainer(_:)` (not `.modelContainer(for:)`, which would build a *second*
-        // container) puts the same store `JobHistoryStore` writes into the environment. Nothing
-        // reads it via `@Query` yet — it's the one hook the job-history screen will need.
+        // container) puts the same store `JobHistoryStore` writes into the environment, so
+        // `HistoryView`'s `@Query` and the reconcile/delete writes share one `mainContext`.
         .modelContainer(JobHistoryContainer.shared)
     }
 }
