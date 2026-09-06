@@ -153,6 +153,14 @@ struct HistoryDetailView: View {
         .buttonStyle(.bordered)
         .controlSize(.large)
         .background(Color(.systemGroupedBackground))
+        // Freshen this one job on open, same as the list does its visible rows — a job that's
+        // still running (or that timed out client-side but may have finished) shouldn't show a
+        // stale status just because you drilled in before the list's own pass resolved it.
+        .task {
+            if entry.disposition == .inFlight || entry.disposition == .timedOut {
+                await vm.checkAgain(entry)
+            }
+        }
         .confirmationDialog("Load these settings into the form?", isPresented: $isConfirmingReRun) {
             Button("Load settings") { onReRun(entry) }
             Button("Cancel", role: .cancel) {}

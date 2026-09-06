@@ -58,6 +58,18 @@ struct HistoryViewModelTests {
         #expect(vm.refreshError != nil)
     }
 
+    @Test func aPollCutShortByNavigationDoesNotRaiseABanner() async throws {
+        // The detail view's on-open reconcile is cancelled when the screen is popped mid-poll;
+        // that surfaces as a cancelled transport error and must not leave a spurious banner.
+        let id = try seed(.inFlight)
+        let entry = try #require(try store.entry(jobID: id))
+        let vm = model(ScriptedStatusClient([.failure(.transport(URLError(.cancelled)))]))
+
+        await vm.checkAgain(entry)
+
+        #expect(vm.refreshError == nil)
+    }
+
     @Test func aNewPassClearsAStaleBanner() async throws {
         try seed(.inFlight)
         let vm = model(ScriptedStatusClient([.failure(.server(status: 503))]))
