@@ -6,7 +6,7 @@ import SwiftUI
 ///
 /// Presented with `.fullScreenCover` rather than a navigation push: generation is a modal
 /// interruption of the form, and there's no half-submitted state to swipe back to. The toolbar
-/// button ("Cancel" while polling, "Done" once terminal) dismisses back to the still-populated
+/// button ("Dismiss" while polling, "Done" once terminal) dismisses back to the still-populated
 /// form; cancelling just stops polling — the backend job has no cancel endpoint and may still
 /// finish (ADR 0023).
 struct GenerationProgressView: View {
@@ -36,7 +36,7 @@ struct GenerationProgressView: View {
                     // A generation in progress must still be abandonable — the pre-cover flow let
                     // the user dismiss the acceptance alert immediately.
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { dismiss() }
+                        Button("Dismiss") { dismiss() }
                     }
                 }
             }
@@ -153,8 +153,7 @@ struct GenerationProgressView: View {
         messageView(
             systemImage: "clock.badge.exclamationmark",
             title: "This is taking longer than expected",
-            message: "Your track may still be generating on the server. You'll be able to check on "
-                + "it once the track library screen exists."
+            message: "Your track may still be generating on the server. Check History for the result."
         )
     }
 
