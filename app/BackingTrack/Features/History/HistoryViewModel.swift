@@ -67,9 +67,10 @@ final class HistoryViewModel {
     }
 
     private func note(_ outcome: JobReconciler.Outcome) {
-        if case .unreachable(let error) = outcome {
-            refreshError = Self.refreshErrorMessage(error)
-        }
+        guard case .unreachable(let error) = outcome else { return }
+        // A poll cut short by the screen going away isn't a refresh failure worth surfacing.
+        if case .transport(let urlError) = error, urlError.code == .cancelled { return }
+        refreshError = Self.refreshErrorMessage(error)
     }
 
     // MARK: - Delete
