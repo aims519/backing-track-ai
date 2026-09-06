@@ -301,5 +301,8 @@ private struct PreviewStatusClient: BackingTrackAPIClient {
     func jobStatus(id: UUID) async throws -> GenerationJob {
         .preview(status: held)
     }
+    func downloadTrackData(trackID: UUID) async throws -> Data {
+        fatalError("the progress screen never downloads")
+    }
 }
 #endif

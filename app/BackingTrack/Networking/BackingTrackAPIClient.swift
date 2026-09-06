@@ -11,6 +11,12 @@ protocol BackingTrackAPIClient: Sendable {
     /// Fetches the current state of a job (`GET /tracks/status/{jobId}`). Not used by the submit
     /// flow itself — it's here for the status-polling task that builds on this.
     func jobStatus(id: UUID) async throws -> GenerationJob
+
+    /// Raw bytes of `GET /tracks/download/{trackId}`. Not decoded here: for a Precise track the
+    /// body is the note-event JSON, and it's the *bytes* that get cached
+    /// (`JobHistoryEntry.preciseContentData`) and later re-decoded for offline replay. The
+    /// player's `TrackLoader` owns decoding.
+    func downloadTrackData(trackID: UUID) async throws -> Data
 }
 
 /// The real client. Talks JSON over `URLSession`, authenticating with the `X-API-Key` header the
@@ -49,6 +55,11 @@ struct LiveBackingTrackAPIClient: BackingTrackAPIClient {
         return try await send(urlRequest)
     }
 
+    func downloadTrackData(trackID: UUID) async throws -> Data {
+        let urlRequest = try makeRequest(path: "tracks/download/\(trackID.uuidString)", method: "GET")
+        return try await sendForData(urlRequest)
+    }
+
     // MARK: - Request building
 
     private func makeRequest(path: String, method: String) throws -> URLRequest {
@@ -68,7 +79,33 @@ struct LiveBackingTrackAPIClient: BackingTrackAPIClient {
 
     // MARK: - Sending & response mapping
 
+    /// Sends a request expecting a `GenerationJob` JSON body on 200.
     private func send(_ urlRequest: URLRequest) async throws -> GenerationJob {
+        let (data, http) = try await perform(urlRequest)
+        guard http.statusCode == 200 else {
+            throw Self.failure(status: http.statusCode, data: data, http: http)
+        }
+        do {
+            return try Self.jobDecoder.decode(GenerationJob.self, from: data)
+        } catch {
+            throw APIClientError.decoding(String(describing: error))
+        }
+    }
+
+    /// Sends a request and returns the raw 200 body — for `GET /tracks/download`, where the client
+    /// caches and forwards the bytes rather than decoding them. Same status-code → error mapping as
+    /// `send`, minus the `.decoding` case (nothing is decoded here).
+    private func sendForData(_ urlRequest: URLRequest) async throws -> Data {
+        let (data, http) = try await perform(urlRequest)
+        guard http.statusCode == 200 else {
+            throw Self.failure(status: http.statusCode, data: data, http: http)
+        }
+        return data
+    }
+
+    /// Runs the request and unwraps the HTTP response, mapping the two transport-level failures
+    /// (`URLError`, non-HTTP response) the same way for every caller.
+    private func perform(_ urlRequest: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let data: Data
         let response: URLResponse
         do {
@@ -76,26 +113,24 @@ struct LiveBackingTrackAPIClient: BackingTrackAPIClient {
         } catch let urlError as URLError {
             throw APIClientError.transport(urlError)
         }
-
         guard let http = response as? HTTPURLResponse else {
             throw APIClientError.decoding("Response was not HTTP")
         }
+        return (data, http)
+    }
 
-        switch http.statusCode {
-        case 200:
-            do {
-                return try Self.jobDecoder.decode(GenerationJob.self, from: data)
-            } catch {
-                throw APIClientError.decoding(String(describing: error))
-            }
+    /// Maps a non-200 status to an `APIClientError`. Shared so the job path and the download path
+    /// can't drift apart (ADR 0025).
+    private static func failure(status: Int, data: Data, http: HTTPURLResponse) -> APIClientError {
+        switch status {
         case 400:
-            throw APIClientError.validation(Self.validationMessages(from: data))
+            .validation(validationMessages(from: data))
         case 401:
-            throw APIClientError.unauthorized
+            .unauthorized
         case 429:
-            throw APIClientError.rateLimited(retryAfter: Self.retryAfter(from: http))
+            .rateLimited(retryAfter: retryAfter(from: http))
         default:
-            throw APIClientError.server(status: http.statusCode)
+            .server(status: status)
         }
     }
 

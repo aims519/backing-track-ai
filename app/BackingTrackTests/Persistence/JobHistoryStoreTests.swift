@@ -133,6 +133,36 @@ struct JobHistoryStoreTests {
         #expect(try #require(try store.entry(jobID: job.id)).status == .unknown("Reticulating"))
     }
 
+    @Test func cachePreciseContentStoresBytesKindAndTimestamp() throws {
+        let job = GenerationJob.preview(status: .complete)
+        try store.upsertOnSubmit(job: job, style: "Blues")
+        let bytes = Data("{\"LengthInBeats\":8,\"Drums\":[],\"Bass\":[],\"ChordVoicings\":[]}".utf8)
+        let cachedAt = Date(timeIntervalSince1970: 1_800_000_000)
+
+        try store.cachePreciseContent(jobID: job.id, data: bytes, cachedAt: cachedAt)
+
+        let entry = try #require(try store.entry(jobID: job.id))
+        #expect(entry.preciseContentData == bytes)
+        #expect(entry.contentKindValue == .preciseMidiJson)
+        #expect(entry.contentCachedAt == cachedAt)
+    }
+
+    @Test func cachePreciseContentIsANoOpForAnUnknownJob() throws {
+        try store.cachePreciseContent(jobID: UUID(), data: Data("x".utf8), cachedAt: .now)
+        #expect(try store.allEntries().isEmpty)
+    }
+
+    @Test func cachePreciseContentOverwritesAnEarlierCache() throws {
+        let job = GenerationJob.preview(status: .complete)
+        try store.upsertOnSubmit(job: job, style: "Rock")
+        try store.cachePreciseContent(jobID: job.id, data: Data("first".utf8), cachedAt: .now)
+
+        let second = Data("second".utf8)
+        try store.cachePreciseContent(jobID: job.id, data: second, cachedAt: .now)
+
+        #expect(try #require(try store.entry(jobID: job.id)).preciseContentData == second)
+    }
+
     @Test func deleteRemovesTheRow() throws {
         let job = GenerationJob.preview(status: .complete)
         try store.upsertOnSubmit(job: job, style: "Reggae")

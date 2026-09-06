@@ -119,6 +119,22 @@ final class JobHistoryEntry {
         get { JobDisposition(rawValue: dispositionRawValue) }
         set { dispositionRawValue = newValue.rawValue }
     }
+
+    /// Typed view of `contentKind` — `nil` before any content is cached. Precise tracks cache the
+    /// downloaded note-event JSON in `preciseContentData`; Vibe audio would cache a file named by
+    /// `cachedAudioFilename` (not built yet).
+    var contentKindValue: TrackContentKind? {
+        get { contentKind.flatMap(TrackContentKind.init(rawValue:)) }
+        set { contentKind = newValue?.rawValue }
+    }
+}
+
+/// What kind of playable content a history row has cached. Persisted as the raw string in
+/// `JobHistoryEntry.contentKind` — kept explicit rather than derived from `mode` because ADR 0014
+/// leaves the output format unpinned.
+enum TrackContentKind: String, Sendable {
+    case preciseMidiJson
+    case vibeAudio
 }
 
 #if DEBUG
