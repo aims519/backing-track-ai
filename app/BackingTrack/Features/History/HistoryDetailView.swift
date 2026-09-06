@@ -7,6 +7,9 @@ struct HistoryDetailView: View {
     @State private var isCheckingStatus: Bool = false
     @State private var isConfirmingDelete: Bool = false
     @State private var isConfirmingReRun: Bool = false
+    /// Set by the Delete button; the row is actually removed in `.onDisappear`, once this view is
+    /// off the stack — deleting the `@Model` while it's still in the nav path traps.
+    @State private var deletedJobID: UUID?
     let onReRun: (JobHistoryEntry) -> Void
     
     private var rowDivider: some View {
@@ -155,8 +158,16 @@ struct HistoryDetailView: View {
             Button("Cancel", role: .cancel) {}
         }
         .confirmationDialog("Delete this generation?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) { vm.delete(entry); dismiss() }
+            Button("Delete", role: .destructive) {
+                deletedJobID = entry.jobID
+                dismiss()
+            }
             Button("Cancel", role: .cancel) {}
+        }
+        .onDisappear {
+            // The view is off the stack now — the entry is no longer in the nav path or rendered,
+            // so removing it can't force a re-render against a destroyed `@Model`.
+            if let deletedJobID { vm.delete(jobID: deletedJobID) }
         }
     }
 }

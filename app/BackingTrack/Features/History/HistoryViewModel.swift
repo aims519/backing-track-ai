@@ -76,6 +76,12 @@ final class HistoryViewModel {
 
     func delete(_ entry: JobHistoryEntry) {
         guard let jobID = entry.jobID else { return }
+        delete(jobID: jobID)
+    }
+
+    /// Deletes by id — the detail view uses this from `.onDisappear`, once it's no longer holding
+    /// (or rendering) the row, so the delete can't trip a re-render of a destroyed `@Model`.
+    func delete(jobID: UUID) {
         do {
             try historyStore.delete(jobID: jobID)
         } catch {
