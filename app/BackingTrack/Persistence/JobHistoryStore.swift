@@ -24,6 +24,14 @@ protocol JobHistoryStore {
     /// `trackId`. No-op if the row is gone.
     func recordDisposition(jobID: UUID, _ disposition: JobDisposition, job: GenerationJob?, error: String?) throws
 
+    /// Stores a downloaded Precise track's note-event JSON on the row, so the player can replay it
+    /// with no backend/Tailscale connectivity. Sets `contentKindValue = .preciseMidiJson` and
+    /// `contentCachedAt`. No-op if the row is gone.
+    ///
+    /// Unlike the other writes this mirrors a successful *download*, not a poll — the third kind of
+    /// non-mirror write after `delete` (ADR 0025).
+    func cachePreciseContent(jobID: UUID, data: Data, cachedAt: Date) throws
+
     func entry(jobID: UUID) throws -> JobHistoryEntry?
 
     /// Newest first. For the future history screen's non-reactive callers; the screen itself
@@ -106,6 +114,14 @@ struct SwiftDataJobHistoryStore: JobHistoryStore {
         try context.save()
     }
 
+    func cachePreciseContent(jobID: UUID, data: Data, cachedAt: Date) throws {
+        guard let entry = try entry(jobID: jobID) else { return }
+        entry.preciseContentData = data
+        entry.contentKindValue = .preciseMidiJson
+        entry.contentCachedAt = cachedAt
+        try context.save()
+    }
+
     func entry(jobID: UUID) throws -> JobHistoryEntry? {
         // Fetched by scanning rather than a `#Predicate` on `jobIDString`: the history is a
         // single user's own generations (tens of rows, not thousands), and `#Predicate`
@@ -136,6 +152,7 @@ struct PreviewJobHistoryStore: JobHistoryStore {
     func upsertOnSubmit(job: GenerationJob, style: String) throws {}
     func recordStatus(jobID: UUID, status: JobStatus, startedAt: Date?) throws {}
     func recordDisposition(jobID: UUID, _ disposition: JobDisposition, job: GenerationJob?, error: String?) throws {}
+    func cachePreciseContent(jobID: UUID, data: Data, cachedAt: Date) throws {}
     func entry(jobID: UUID) throws -> JobHistoryEntry? { nil }
     func allEntries() throws -> [JobHistoryEntry] { [] }
     func delete(jobID: UUID) throws {}

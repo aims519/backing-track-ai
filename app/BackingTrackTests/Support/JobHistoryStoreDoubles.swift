@@ -10,6 +10,11 @@ final class RecordingJobHistoryStore: JobHistoryStore {
     private(set) var statuses: [(jobID: UUID, status: JobStatus, startedAt: Date?)] = []
     private(set) var dispositions: [(jobID: UUID, disposition: JobDisposition, job: GenerationJob?, error: String?)] = []
     private(set) var deletions: [UUID] = []
+    private(set) var caches: [(jobID: UUID, data: Data, cachedAt: Date)] = []
+
+    /// What `entry(jobID:)` hands back — `nil` by default (the poll-loop tests never read it).
+    /// The `TrackLoader` cache-hit tests set a row here.
+    var stubbedEntry: JobHistoryEntry?
 
     /// When set, every method throws it — for checking that a store failure never derails a
     /// generation (ADR 0024's headline invariant). Calls are still recorded first, so a test can
@@ -35,9 +40,14 @@ final class RecordingJobHistoryStore: JobHistoryStore {
         if let errorToThrow { throw errorToThrow }
     }
 
+    func cachePreciseContent(jobID: UUID, data: Data, cachedAt: Date) throws {
+        caches.append((jobID, data, cachedAt))
+        if let errorToThrow { throw errorToThrow }
+    }
+
     func entry(jobID: UUID) throws -> JobHistoryEntry? {
         if let errorToThrow { throw errorToThrow }
-        return nil
+        return stubbedEntry
     }
     func allEntries() throws -> [JobHistoryEntry] {
         if let errorToThrow { throw errorToThrow }

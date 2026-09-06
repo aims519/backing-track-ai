@@ -200,4 +200,66 @@ struct BackingTrackAPIClientTests {
         #expect(seenPath == "/tracks/status/\(id.uuidString)")
         #expect(job.status == .inProgress)
     }
+
+    // MARK: - downloadTrackData
+
+    @Test func downloadHitsTheDownloadEndpointWithTheKeyAndReturnsTheBodyUnchanged() async throws {
+        let id = UUID()
+        let body = Data(#"{"LengthInBeats":8,"Drums":[],"Bass":[],"ChordVoicings":[]}"#.utf8)
+        var seenRequest: URLRequest?
+        StubURLProtocol.handler = { request in
+            seenRequest = request
+            return (200, [:], body)
+        }
+
+        let data = try await makeClient(key: "dl-key").downloadTrackData(trackID: id)
+
+        let request = try #require(seenRequest)
+        #expect(request.url?.path == "/tracks/download/\(id.uuidString)")
+        #expect(request.httpMethod == "GET")
+        #expect(request.value(forHTTPHeaderField: "X-API-Key") == "dl-key")
+        #expect(data == body)   // bytes forwarded verbatim, not decoded
+    }
+
+    @Test func downloadMissingKeyFailsBeforeSending() async {
+        var handlerCalled = false
+        StubURLProtocol.handler = { _ in
+            handlerCalled = true
+            return (200, [:], Data())
+        }
+
+        await #expect(throws: APIClientError.missingAPIKey) {
+            try await makeClient(key: nil).downloadTrackData(trackID: UUID())
+        }
+        #expect(handlerCalled == false)
+    }
+
+    @Test func downloadNotFoundBecomesAServerError() async {
+        StubURLProtocol.handler = { _ in (404, [:], Data()) }
+
+        await #expect(throws: APIClientError.server(status: 404)) {
+            try await makeClient().downloadTrackData(trackID: UUID())
+        }
+    }
+
+    @Test func downloadUnauthorizedBecomesAClearError() async {
+        StubURLProtocol.handler = { _ in (401, [:], Data()) }
+
+        await #expect(throws: APIClientError.unauthorized) {
+            try await makeClient().downloadTrackData(trackID: UUID())
+        }
+    }
+
+    @Test func downloadTransportFailureIsSurfaced() async {
+        StubURLProtocol.handler = { _ in throw URLError(.notConnectedToInternet) }
+
+        let error = await #expect(throws: APIClientError.self) {
+            try await makeClient().downloadTrackData(trackID: UUID())
+        }
+        guard case .transport(let urlError) = error else {
+            Issue.record("expected .transport, got \(String(describing: error))")
+            return
+        }
+        #expect(urlError.code == .notConnectedToInternet)
+    }
 }

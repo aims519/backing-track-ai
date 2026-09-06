@@ -23,6 +23,10 @@ actor ScriptedStatusClient: BackingTrackAPIClient {
         fatalError("these tests never submit")
     }
 
+    func downloadTrackData(trackID: UUID) async throws -> Data {
+        fatalError("these tests never download")
+    }
+
     func jobStatus(id: UUID) async throws -> GenerationJob {
         if delay > .zero { try? await Task.sleep(for: delay) }
         jobStatusCalls += 1
