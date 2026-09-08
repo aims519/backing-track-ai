@@ -30,3 +30,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0023](0023-client-derived-generation-progress.md) | Client-derived generation progress copy and a client-side poll timeout |
 | [0024](0024-client-side-swiftdata-job-history.md) | Client-side SwiftData job/track history, mirrored from the poll loop |
 | [0025](0025-client-job-reconciler-over-jobtracker-extraction.md) | A standalone client-side JobReconciler, not the JobTracker extraction |
+| [0026](0026-bundled-soundfont-and-idempotent-audio-setup.md) | Bundled SoundFont and idempotent audio-engine setup |

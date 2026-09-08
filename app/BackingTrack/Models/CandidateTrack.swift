@@ -35,6 +35,20 @@ struct CandidateTrack: Decodable, Equatable, Sendable {
         chordVoicings = try container.decodeIfPresent([ChordVoicingEvent].self, forKey: .chordVoicings) ?? []
     }
 
+    /// Memberwise init — the custom `init(from:)` suppresses the synthesised one. For building
+    /// fixtures in tests and previews.
+    init(
+        lengthInBeats: Double,
+        drums: [DrumNoteEvent] = [],
+        bass: [BassNoteEvent] = [],
+        chordVoicings: [ChordVoicingEvent] = []
+    ) {
+        self.lengthInBeats = lengthInBeats
+        self.drums = drums
+        self.bass = bass
+        self.chordVoicings = chordVoicings
+    }
+
     /// Decodes a downloaded track body. Throws `DecodingError`; `TrackLoader` maps it to
     /// `TrackLoadError.decode`.
     static func decode(from data: Data) throws -> CandidateTrack {
@@ -90,25 +104,52 @@ struct ChordVoicingEvent: Decodable, Equatable, Sendable {
 
 #if DEBUG
 extension CandidateTrack {
-    /// A tiny two-bar loop for `#Preview`s and tests.
-    static func preview(lengthInBeats: Double = 8) -> CandidateTrack {
-        let json = """
-        {
-          "LengthInBeats": \(lengthInBeats),
-          "Drums": [
-            {"MidiNote": 36, "BeatPosition": 0, "DurationInBeats": 0.5, "Velocity": 110},
-            {"MidiNote": 38, "BeatPosition": 1, "DurationInBeats": 0.5, "Velocity": 120}
-          ],
-          "Bass": [
-            {"MidiNote": 40, "BeatPosition": 0, "DurationInBeats": 1, "Velocity": 95}
-          ],
-          "ChordVoicings": [
-            {"MidiNotes": [48, 52, 55], "BeatPosition": 0, "DurationInBeats": 4, "Velocity": 85}
-          ]
+    /// A playable 4/4 loop for `#Preview`s and audio testing — a C–Am–F–G7 progression with a
+    /// backbeat kit, a root/fifth bass line and a held chord voicing per bar. `lengthInBeats`
+    /// sets the loop point; the pattern fills whole bars up to it (min one bar).
+    static func preview(lengthInBeats: Double = 16) -> CandidateTrack {
+        let bars = max(1, Int(lengthInBeats / 4))
+
+        // Per-bar material, cycling through the four chords of the progression.
+        let bassRoot   = [36, 33, 29, 31]   // C2, A1, F1, G1
+        let bassFifth  = [43, 40, 36, 38]   // G2, E2, C2, D2
+        let voicings   = [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62, 65]]  // C, Am, F, G7
+
+        var drums: [DrumNoteEvent] = []
+        var bass: [BassNoteEvent] = []
+        var chordVoicings: [ChordVoicingEvent] = []
+
+        for bar in 0..<bars {
+            let start = Double(bar) * 4
+            let chord = bar % 4
+
+            // Kick on 1 & 3, snare on 2 & 4, closed hat on every eighth.
+            drums.append(DrumNoteEvent(beatPosition: start,     durationInBeats: 0.5, midiNote: 36, velocity: 105))
+            drums.append(DrumNoteEvent(beatPosition: start + 2, durationInBeats: 0.5, midiNote: 36, velocity: 98))
+            drums.append(DrumNoteEvent(beatPosition: start + 1, durationInBeats: 0.5, midiNote: 38, velocity: 115))
+            drums.append(DrumNoteEvent(beatPosition: start + 3, durationInBeats: 0.5, midiNote: 38, velocity: 115))
+            for eighth in 0..<8 {
+                drums.append(DrumNoteEvent(
+                    beatPosition: start + Double(eighth) * 0.5,
+                    durationInBeats: 0.25, midiNote: 42, velocity: 62
+                ))
+            }
+
+            bass.append(BassNoteEvent(beatPosition: start,     durationInBeats: 1, midiNote: bassRoot[chord],  velocity: 100))
+            bass.append(BassNoteEvent(beatPosition: start + 2, durationInBeats: 1, midiNote: bassFifth[chord], velocity: 88))
+            bass.append(BassNoteEvent(beatPosition: start + 3, durationInBeats: 1, midiNote: bassRoot[chord],  velocity: 92))
+
+            chordVoicings.append(ChordVoicingEvent(
+                beatPosition: start, durationInBeats: 4, midiNotes: voicings[chord], velocity: 50
+            ))
         }
-        """
-        // Force-try: the literal above is a fixed, valid document.
-        return try! CandidateTrack.decode(from: Data(json.utf8))
+
+        return CandidateTrack(
+            lengthInBeats: lengthInBeats,
+            drums: drums,
+            bass: bass,
+            chordVoicings: chordVoicings
+        )
     }
 }
 #endif
