@@ -40,7 +40,7 @@ final class GenerateTrackViewModel {
     var seedWarning: String?
 
     /// BPM range the API accepts (`GenerationRequestDto.Validate`).
-    static let tempoRange: ClosedRange<Double> = 40...240
+    static let tempoRange: ClosedRange<Double> = Tempo.range
 
     // MARK: - Derived values
 

@@ -45,6 +45,7 @@ struct ChordChip: View {
     }
 }
 
+#if DEBUG
 #Preview {
     ChipFlowLayout(spacing: 10) {
         ChordChip(chord: Chord(root: .c, quality: .major)) {}
@@ -56,3 +57,4 @@ struct ChordChip: View {
     }
     .padding()
 }
+#endif

@@ -20,7 +20,16 @@ final class AudioEngine {
     private let chordSampler = AVAudioUnitSampler()
     private let chordMixer = AVAudioMixerNode()
     private var sequencer: AVAudioSequencer?
-    
+
+    /// Two bars of woodblock clicks before playback starts, when `isCountInEnabled`. Scheduled by
+    /// a `Task` off `play()` rather than baked into the sequence — the sequencer has no time
+    /// before beat 0, and a leading bar would offset every position calculation.
+    private static let countInBars = 2
+    private let clickSampler = AVAudioUnitSampler()
+    private let beatsInBar: Int
+    var isCountInEnabled = true
+    private var countInTask: Task<Void, Never>?
+
     private var mutedVoices: Set<PlaybackVoice> = []
     private var voiceVolumes: [PlaybackVoice: Float]
     
@@ -31,14 +40,35 @@ final class AudioEngine {
             onStateChange?(state)
         }
     }
-    
+
+    /// Set when an interruption paused playback, so `onShouldResume` only resumes audio the
+    /// *system* stopped — not audio the user paused (a spurious `.ended` while paused would
+    /// otherwise restart it, which reads as "pause didn't work").
+    private var pausedForInterruption = false
+
+    /// The play head at the moment of `pause()`, so `play()` can restart the sequencer from
+    /// there. `currentPositionInBeats` climbs past the loop and never wraps, so it's reduced
+    /// into `[0, lengthInBeats)` on resume — otherwise the sequencer restarts in the dead zone
+    /// past the last event and plays silence until the next loop.
+    private var pausedAtBeat: Double?
+
     private lazy var sessionController: AudioSessionController = {
         let c = AudioSessionController()
-        
-        c.onInterruptionBegan = { [weak self] in self?.pause() }
-        c.onShouldResume = { [weak self]  in self?.play() }
+
+        c.onInterruptionBegan = { [weak self] in
+            guard let self, self.state == .playing else { return }
+            self.pausedForInterruption = true
+            self.log.debug("interruption began — pausing")
+            self.pause()
+        }
+        c.onShouldResume = { [weak self] in
+            guard let self, self.pausedForInterruption else { return }
+            self.pausedForInterruption = false
+            self.log.debug("interruption ended — resuming")
+            self.play()
+        }
         c.onRouteGone = { [weak self] in self?.pause() }
-        
+
         return c
     }()
     private var interruptionListenTask: Task<Void, Never>?
@@ -46,6 +76,7 @@ final class AudioEngine {
     
     init(playableTrack: PlayableTrack){
         self.playableTrack = playableTrack
+        self.beatsInBar = max(1, Int(playableTrack.beatsPerBar.rounded()))
         self.voiceVolumes = [.bass: 1, .drums: 1, .chords: 1]
         setUp()
     }
@@ -106,6 +137,18 @@ final class AudioEngine {
             engine.connect(chordSampler, to: chordMixer, format: nil)
             engine.connect(chordMixer, to: engine.mainMixerNode, format: nil)
             
+            
+            // Count-in click — Standard Kit, played by note number (76/77 = wood block). Straight
+            // to the main mixer: it isn't one of the mutable voices.
+            try clickSampler.loadSoundBankInstrument(
+                at: bankURL,
+                program: UInt8(0),
+                bankMSB: UInt8(kAUSampler_DefaultPercussionBankMSB),
+                bankLSB: UInt8(kAUSampler_DefaultBankLSB)
+            )
+            engine.attach(clickSampler)
+            engine.connect(clickSampler, to: engine.mainMixerNode, format: nil)
+
             try engine.start()
             
             let seq = AVAudioSequencer(audioEngine: engine)
@@ -139,9 +182,9 @@ final class AudioEngine {
             }
             
             seq.prepareToPlay()
-            
+
             sequencer = seq
-            
+
             log.debug("Audio engine, samplers, and sequencer initialised")
             isSetUp = true
             state = .idle
@@ -159,38 +202,114 @@ final class AudioEngine {
             setUp()
             guard let seq = sequencer else { return }
 
+            // Re-activate every time, not just in setUp(): once audio pauses in the background
+            // iOS suspends the app and deactivates the session, and a plain engine/sequencer
+            // restart then plays to nowhere (silent until the view is reloaded). setActive is
+            // cheap when the session is already active.
+            try AVAudioSession.sharedInstance().setActive(true)
             if !engine.isRunning {
-                try engine.start()   // belt-and-suspenders, see note below
+                try engine.start()
             }
-            
-            if state == .idle { seq.currentPositionInBeats = 0 }
+            pausedForInterruption = false
 
-            try seq.start()
-            state = .playing
+            switch state {
+            case .playing, .countingIn:
+                return   // already going
+
+            case .paused:
+                // Resume. pause() froze the engine (and so the sequencer's clock). The play head
+                // climbs past the loop and never wraps, so reduce it back into the event range or
+                // the sequencer restarts in the dead zone past the last event.
+                if let saved = pausedAtBeat {
+                    let loop = playableTrack.track.lengthInBeats
+                    seq.currentPositionInBeats = loop > 0 ? saved.truncatingRemainder(dividingBy: loop) : saved
+                }
+                pausedAtBeat = nil
+                if !seq.isPlaying { try seq.start() }
+                state = .playing
+
+            case .idle, .failed:
+                seq.currentPositionInBeats = 0
+                if isCountInEnabled {
+                    startCountIn(rate: seq.rate)
+                } else {
+                    try seq.start()
+                    state = .playing
+                }
+            }
+            log.debug("play — state \(String(describing: self.state)), pos \(seq.currentPositionInBeats)")
         } catch(let error) {
             log.error("Failed to play audio: \(error.localizedDescription)")
             state = .failed("Failed to play audio: \(error.localizedDescription)")
         }
     }
-    
-    /// Stop audio and keep current sequencer position
-    func pause() {
-        guard state == .playing else { return }
-        guard let seq = sequencer else { return }
-        
-        seq.stop()
-        
-        state = .paused
+
+    /// Two bars of woodblock clicks, then start the sequencer. Timed off an absolute clock so the
+    /// per-beat jitter doesn't accumulate. Cancelled by `pause()` / `stop()` / `teardown()`.
+    private func startCountIn(rate: Float) {
+        let secondsPerBeat = 60.0 / (Double(rate) * Double(playableTrack.originalTempo))
+        let totalBeats = beatsInBar * Self.countInBars
+        state = .countingIn
+
+        countInTask = Task { [weak self] in
+            let clock = ContinuousClock()
+            let start = clock.now
+
+            for beat in 0..<totalBeats {
+                try? await Task.sleep(until: start.advanced(by: .seconds(Double(beat) * secondsPerBeat)), clock: clock)
+                guard let self, !Task.isCancelled else { return }
+                // Accent (76) on each bar's downbeat, plain (77) elsewhere.
+                let isDownbeat = beat % self.beatsInBar == 0
+                self.clickSampler.startNote(isDownbeat ? 76 : 77, withVelocity: 100, onChannel: 0)
+            }
+
+            try? await Task.sleep(until: start.advanced(by: .seconds(Double(totalBeats) * secondsPerBeat)), clock: clock)
+            guard let self, !Task.isCancelled else { return }
+            self.countInTask = nil
+            if let seq = self.sequencer, !seq.isPlaying { try? seq.start() }
+            self.state = .playing
+        }
     }
-    
-    /// Stop audio and reset sequencer position to the start
-    func stop() {
+
+    private func cancelCountIn() {
+        countInTask?.cancel()
+        countInTask = nil
+        clickSampler.sendController(123, withValue: 0, onChannel: 0)   // All Notes Off
+    }
+
+    /// Pause. Records the play head, stops the sequencer, silences held notes and pauses the
+    /// engine (so nothing rings and iOS reads the output as stopped). `play()` restarts the
+    /// sequencer from the recorded — and loop-wrapped — position.
+    func pause() {
+        // Pressed during the count-in: cancel it, the music never started.
+        if state == .countingIn {
+            cancelCountIn()
+            state = .idle
+            return
+        }
         guard state == .playing else { return }
         guard let seq = sequencer else { return }
-        
+
+        pausedAtBeat = seq.currentPositionInBeats
+        seq.stop()
+        for voice in PlaybackVoice.allCases {
+            getSampler(for: voice).sendController(123, withValue: 0, onChannel: 0)   // All Notes Off
+        }
+        engine.pause()
+        state = .paused
+        log.debug("pause — pos \(self.pausedAtBeat ?? -1), engine \(self.engine.isRunning)")
+    }
+
+    /// Stop — resets the sequencer to the top and stops the engine.
+    func stop() {
+        guard state != .idle else { return }
+        cancelCountIn()
+        guard let seq = sequencer else { state = .idle; return }
+
         seq.stop()
         seq.currentPositionInBeats = 0
-        
+        engine.pause()
+
         state = .idle
     }
     
@@ -198,6 +317,10 @@ final class AudioEngine {
         guard let seq = sequencer else { return }
         seq.rate = Float(newTempo / Double(playableTrack.originalTempo))
     }
+
+    /// Play head in beats. Keeps climbing past the loop point — never wraps — so callers that
+    /// want a position within the loop reduce it themselves (see plan Risk 1).
+    var currentBeat: Double { sequencer?.currentPositionInBeats ?? 0 }
     
     private func getSampler(for voice: PlaybackVoice) -> AVAudioUnitSampler {
         switch voice {
@@ -234,6 +357,7 @@ final class AudioEngine {
     func volume(for voice: PlaybackVoice) -> Float { voiceVolumes[voice] ?? 1 }
     
     func teardown() {
+        cancelCountIn()
         interruptionListenTask?.cancel()
         routeChangeListenTask?.cancel()
         sequencer?.stop()

@@ -76,7 +76,9 @@ struct AddChordView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     // The trailing closure is the `onAdd` handler — a no-op here since the preview has no list.
     AddChordView { _, _ in }
 }
+#endif
