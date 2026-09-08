@@ -69,8 +69,9 @@ enum PlayerSequenceBuilder {
 
         var merged: [SequencedNote] = []
         for (_, keyNotes) in byKey {
-            var run = keyNotes.sorted { $0.beat < $1.beat }[0]
-            for next in keyNotes.sorted(by: { $0.beat < $1.beat }).dropFirst() {
+            let sorted = keyNotes.sorted { $0.beat < $1.beat }
+            var run = sorted[0]
+            for next in sorted.dropFirst() {
                 let runEnd = run.beat + run.durationInBeats
                 if next.beat < runEnd {
                     run.durationInBeats = max(runEnd, next.beat + next.durationInBeats) - run.beat

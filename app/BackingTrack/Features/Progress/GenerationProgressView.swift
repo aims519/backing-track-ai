@@ -129,7 +129,7 @@ struct GenerationProgressView: View {
 
             trackSummaryCard
 
-            if let input = PlayerInput.from(job: job, style: model.styleSummary) {
+            if let input = PlayerInput.from(job: job, style: model.styleSummary), input.isPrecise {
                 NavigationLink(value: PlayerRoute.player(input)) {
                     Label("Play", systemImage: "play.fill")
                         .frame(maxWidth: .infinity)

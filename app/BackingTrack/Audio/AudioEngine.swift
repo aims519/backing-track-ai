@@ -56,10 +56,20 @@ final class AudioEngine {
         let c = AudioSessionController()
 
         c.onInterruptionBegan = { [weak self] in
-            guard let self, self.state == .playing else { return }
-            self.pausedForInterruption = true
-            self.log.debug("interruption began — pausing")
-            self.pause()
+            guard let self else { return }
+            switch self.state {
+            case .playing:
+                self.pausedForInterruption = true
+                self.log.debug("interruption began — pausing")
+                self.pause()
+            case .countingIn:
+                // Interrupted mid count-in: cancel it (pause() handles .countingIn -> .idle).
+                // Nothing to auto-resume — the user re-taps play for a fresh count-in.
+                self.log.debug("interruption began during count-in — cancelling")
+                self.pause()
+            default:
+                break
+            }
         }
         c.onShouldResume = { [weak self] in
             guard let self, self.pausedForInterruption else { return }
@@ -96,8 +106,13 @@ final class AudioEngine {
             interruptionListenTask = Task { await sessionController.observeInterruptions() }
             routeChangeListenTask = Task { await sessionController.observeRouteChanges() }
             
-            // Load sountfont
-            let bankURL = Bundle.main.url(forResource: "GeneralUser-GS", withExtension: "sf2")!
+            // Load soundfont. A missing bundle resource is a build-config error, but surface it
+            // as a failed state like every other setup error rather than trapping.
+            guard let bankURL = Bundle.main.url(forResource: "GeneralUser-GS", withExtension: "sf2") else {
+                log.error("GeneralUser-GS.sf2 missing from the bundle")
+                state = .failed("The instrument sounds are missing from this build.")
+                return
+            }
 
             // Load instruments
             try bassSampler.loadSoundBankInstrument(
@@ -304,6 +319,8 @@ final class AudioEngine {
     func stop() {
         guard state != .idle else { return }
         cancelCountIn()
+        // Otherwise a later interruption-ended would auto-resume what the user just stopped.
+        pausedForInterruption = false
         guard let seq = sequencer else { state = .idle; return }
 
         seq.stop()
