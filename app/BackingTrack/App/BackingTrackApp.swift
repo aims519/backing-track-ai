@@ -5,7 +5,8 @@ import SwiftUI
 struct BackingTrackApp: App {
     var body: some Scene {
         WindowGroup {
-            GenerateTrackView()
+            //GenerateTrackView()
+            PlayerView(vm: PlayerViewModel(playableTrack: PlayableTrack.preview()) )
         }
         // `.modelContainer(_:)` (not `.modelContainer(for:)`, which would build a *second*
         // container) puts the same store `JobHistoryStore` writes into the environment, so
