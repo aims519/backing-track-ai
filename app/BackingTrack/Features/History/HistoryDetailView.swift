@@ -132,14 +132,10 @@ struct HistoryDetailView: View {
                     Text("Use these settings").frame(maxWidth: .infinity)
                 }
 
-                if entry.trackID != nil {
-                    Button {} label: {
+                if let input = PlayerInput.from(entry: entry), input.isPrecise {
+                    NavigationLink(value: PlayerRoute.player(input)) {
                         Text("Play").frame(maxWidth: .infinity)
                     }
-                    .disabled(true)
-                    Text("Playback arrives with the player screen.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
 
                 Button(role: .destructive) {
@@ -180,6 +176,7 @@ struct HistoryDetailView: View {
     }
 }
 
+#if DEBUG
 #Preview("Ready") {
     HistoryDetailView(entry: JobHistoryEntry.preview(), vm: HistoryViewModel(), onReRun: { _ in })
 }
@@ -210,3 +207,4 @@ struct HistoryDetailView: View {
         GenerationProgressView(model: vm.progressViewModel(for: $0))
     }
 }
+#endif

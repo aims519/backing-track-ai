@@ -53,6 +53,14 @@ struct GenerateTrackView: View {
                 .navigationDestination(for: HistoryRoute.self) { _ in
                     HistoryView(onReRun: reRun)
                 }
+                // One registration covers Play links from both the history list's detail view
+                // and (below, on its own stack) the progress cover.
+                .navigationDestination(for: PlayerRoute.self) { route in
+                    switch route {
+                    case .player(let input):
+                        PlayerView(model: PlayerViewModel(input: input))
+                    }
+                }
                 // `apply(entry:)` may set a signature the quick-pick menu can't show; keep the
                 // view-local Custom toggle in step with it. Guarded so it doesn't fight the
                 // toggle's own snap-back onChange.
@@ -440,6 +448,7 @@ private struct GenerateTrackModals: ViewModifier {
     }
 }
 
+#if DEBUG
 #Preview("Empty") {
     GenerateTrackView(model: GenerateTrackViewModel(historyStore: PreviewJobHistoryStore()))
 }
@@ -453,3 +462,4 @@ private struct GenerateTrackModals: ViewModifier {
     model.selectedStyle = .rock
     return GenerateTrackView(model: model)
 }
+#endif

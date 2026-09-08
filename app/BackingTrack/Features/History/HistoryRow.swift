@@ -22,6 +22,7 @@ struct HistoryRow: View {
     }
 }
 
+#if DEBUG
 #Preview("Ready") {
     List {
         HistoryRow(entry: .preview())
@@ -40,3 +41,4 @@ struct HistoryRow: View {
         HistoryRow(entry: .preview(disposition: .inFlight))
     }
 }
+#endif

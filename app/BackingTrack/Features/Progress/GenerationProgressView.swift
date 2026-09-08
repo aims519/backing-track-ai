@@ -27,6 +27,14 @@ struct GenerationProgressView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
+            // The cover has its own NavigationStack — "Generate → Ready → Play" reads as a push
+            // inside this self-contained modal. Back returns to Ready; "Done" dismisses the cover.
+            .navigationDestination(for: PlayerRoute.self) { route in
+                switch route {
+                case .player(let input):
+                    PlayerView(model: PlayerViewModel(input: input))
+                }
+            }
             .toolbar {
                 if model.phase.isTerminal {
                     ToolbarItem(placement: .confirmationAction) {
@@ -121,23 +129,15 @@ struct GenerationProgressView: View {
 
             trackSummaryCard
 
-            VStack(spacing: 6) {
-                Button {
-                    // Playback lands with the player screen — a later task.
-                } label: {
+            if let input = PlayerInput.from(job: job, style: model.styleSummary) {
+                NavigationLink(value: PlayerRoute.player(input)) {
                     Label("Play", systemImage: "play.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled(true)
-                .accessibilityHint("Not available yet")
-
-                Text("Playback arrives with the player screen.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
             }
-            .padding(.horizontal, 16)
         }
     }
 
@@ -275,6 +275,7 @@ struct GenerationProgressView: View {
     }
 }
 
+#if DEBUG
 #Preview("Polling – queued") {
     GenerationProgressView(model: .preview(.polling, latestStatus: .pending))
 }
@@ -298,3 +299,4 @@ struct GenerationProgressView: View {
 #Preview("Timed out") {
     GenerationProgressView(model: .preview(.timedOut))
 }
+#endif
