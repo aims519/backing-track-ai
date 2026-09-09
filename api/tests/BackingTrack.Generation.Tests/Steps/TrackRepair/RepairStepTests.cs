@@ -11,7 +11,7 @@ public class RepairStepTests
     private static RepairStep CreateRepairStep() =>
         new(null!, new TrackRepairProviderInfo("test", "test-model", 4096), new TrackRepairMetrics(), NullLogger<RepairStep>.Instance);
 
-    private static TrackRepairPatch EmptyPatch => new([], null, null, null, null);
+    private static TrackRepairPatch EmptyPatch => new([], null, null, null);
 
     [Fact]
     public void ApplyPatch_NoCorrectionsOrReplacements_ReturnsTrackWithSameContent()
@@ -37,7 +37,7 @@ public class RepairStepTests
         DrumNoteEvent drum = new(2, 1, 40, 100);
         CandidateTrack originalTrack = new(16, [drum], [], []);
         NoteCorrection correction = new(ValidationFailureType.InvalidDrumNoteChoice, drum, null, null, [42], null);
-        TrackRepairPatch patch = new([correction], null, null, null, null);
+        TrackRepairPatch patch = new([correction], null, null, null);
 
         CandidateTrack result = repairStep.ApplyPatch(originalTrack, patch);
 
@@ -56,7 +56,7 @@ public class RepairStepTests
         CandidateTrack originalTrack = new(16, [], [bass], []);
         NoteCorrection beatPositionFix = new(ValidationFailureType.BeatPositionOutOfRange, bass, 8, null, null, null);
         NoteCorrection durationFix = new(ValidationFailureType.InvalidNoteDuration, bass, null, 2, null, null);
-        TrackRepairPatch patch = new([beatPositionFix, durationFix], null, null, null, null);
+        TrackRepairPatch patch = new([beatPositionFix, durationFix], null, null, null);
 
         CandidateTrack result = repairStep.ApplyPatch(originalTrack, patch);
 
@@ -74,7 +74,7 @@ public class RepairStepTests
         ChordVoicingEvent chordVoicing = new(0, 4, [60, 64, 67], 100);
         CandidateTrack originalTrack = new(16, [], [], [chordVoicing]);
         NoteCorrection correction = new(ValidationFailureType.InvalidChordVoicingNoteChoice, chordVoicing, null, null, [61, 64, 67], null);
-        TrackRepairPatch patch = new([correction], null, null, null, null);
+        TrackRepairPatch patch = new([correction], null, null, null);
 
         CandidateTrack result = repairStep.ApplyPatch(originalTrack, patch);
 
@@ -90,7 +90,7 @@ public class RepairStepTests
         DrumNoteEvent nonExistentNote = new(4, 1, 41, 100);
         CandidateTrack originalTrack = new(16, [existingNote], [], []);
         NoteCorrection correction = new(ValidationFailureType.InvalidDrumNoteChoice, nonExistentNote, null, null, [42], null);
-        TrackRepairPatch patch = new([correction], null, null, null, null);
+        TrackRepairPatch patch = new([correction], null, null, null);
 
         CandidateTrack result = repairStep.ApplyPatch(originalTrack, patch);
 
@@ -104,34 +104,11 @@ public class RepairStepTests
         DrumNoteEvent originalDrum = new(0, 1, 40, 100);
         CandidateTrack originalTrack = new(16, [originalDrum], [], []);
         DrumNoteEvent[] newDrumPart = [new(0, 1, 36, 100), new(2, 1, 38, 100)];
-        TrackRepairPatch patch = new([], newDrumPart, null, null, null);
+        TrackRepairPatch patch = new([], newDrumPart, null, null);
 
         CandidateTrack result = repairStep.ApplyPatch(originalTrack, patch);
 
         Assert.Equal(newDrumPart, result.Drums);
-    }
-
-    [Fact]
-    public void ApplyPatch_NewLengthInBeatsSupplied_UpdatesTrackLength()
-    {
-        RepairStep repairStep = CreateRepairStep();
-        CandidateTrack originalTrack = new(16, [], [], []);
-        TrackRepairPatch patch = new([], null, null, null, 32);
-
-        CandidateTrack result = repairStep.ApplyPatch(originalTrack, patch);
-
-        Assert.Equal(32, result.LengthInBeats);
-    }
-
-    [Fact]
-    public void ApplyPatch_NewLengthInBeatsNotSupplied_KeepsOriginalTrackLength()
-    {
-        RepairStep repairStep = CreateRepairStep();
-        CandidateTrack originalTrack = new(16, [], [], []);
-
-        CandidateTrack result = repairStep.ApplyPatch(originalTrack, EmptyPatch);
-
-        Assert.Equal(16, result.LengthInBeats);
     }
 
     [Fact]
@@ -158,7 +135,7 @@ public class RepairStepTests
         DrumNoteEvent newDrum = new(0, 1, 36, 100);
         DrumNoteEvent[] newDrumPart = [newDrum];
         NoteCorrection correction = new(ValidationFailureType.InvalidDrumNoteChoice, newDrum, null, null, [38], null);
-        TrackRepairPatch patch = new([correction], newDrumPart, null, null, null);
+        TrackRepairPatch patch = new([correction], newDrumPart, null, null);
 
         CandidateTrack result = repairStep.ApplyPatch(originalTrack, patch);
 
@@ -176,7 +153,7 @@ public class RepairStepTests
         CandidateTrack originalTrack = new(16, [originalDrum], [], []);
         DrumNoteEvent[] newDrumPart = [new(0, 1, 36, 100)];
         NoteCorrection correction = new(ValidationFailureType.InvalidDrumNoteChoice, originalDrum, null, null, [42], null);
-        TrackRepairPatch patch = new([correction], newDrumPart, null, null, null);
+        TrackRepairPatch patch = new([correction], newDrumPart, null, null);
 
         CandidateTrack result = repairStep.ApplyPatch(originalTrack, patch);
 

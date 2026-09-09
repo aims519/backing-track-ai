@@ -48,12 +48,7 @@ public static class GenerateStepPrompts
            instrument, e.g. piano. Should use mid-range frequencies and compliment the drum and
            bass tracks. Duplicate notes in a single ChordNoteEvent are not allowed.
 
-        4. LengthInBeats - the total number of beats in the track.
-           Calculate this as (chords.Count * beatsPerBar), where beatsPerBar is always the Time
-           Signature's beat count. Example for 4/4 time signature with 8 chords in the
-           progression: (8 * 4) = 32 beats per loop.
-           Do not pad out the length to be longer than one progression loop, as the looping will
-           be handled in playback later.
+        4. LengthInBeats - set to 0. The system computes and overwrites this anyway.
 
         Each event should be a MIDI note with MIDI velocity 1-127 as is standard.
         """;

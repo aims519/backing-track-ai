@@ -7,6 +7,11 @@ namespace BackingTrack.Generation.Steps.TrackValidation;
 
 public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
 {
+    /// <summary>
+    /// GenerateStep now derives LengthInBeats from the request rather than the model, so this is a
+    /// by-construction regression guard: it can only fail if the generate/repair steps' chord count
+    /// diverges from the job's (e.g. a chord silently dropped during retrieval).
+    /// </summary>
     public IReadOnlyList<ValidationFailure> ValidateLengthInBeats(CandidateTrack candidateTrack, GenerationJob generationJob)
     {
         int beatsPerBar = generationJob.TimeSignatureBeatCount;
@@ -14,7 +19,7 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
         IList<ValidationFailure> failures = [];
 
         if (Math.Abs(candidateTrack.LengthInBeats - (beatsPerBar * barCount)) > 0)
-            failures.Add(new(Type: ValidationFailureType.InvalidTrackLengthInBeats, null, $"Unexpected {nameof(candidateTrack.LengthInBeats)}. Expected {(beatsPerBar * barCount)} bars but got {candidateTrack.LengthInBeats}"));
+            failures.Add(new(Type: ValidationFailureType.InvalidTrackLengthInBeats, null, $"Unexpected {nameof(candidateTrack.LengthInBeats)}. Expected {(beatsPerBar * barCount)} beats but got {candidateTrack.LengthInBeats}"));
 
         return (IReadOnlyList<ValidationFailure>)failures;
     }
