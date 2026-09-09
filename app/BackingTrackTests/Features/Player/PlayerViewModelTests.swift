@@ -83,6 +83,19 @@ struct PlayerViewModelTests {
         }
     }
 
+    @Test func aLoadFinishingAfterTeardownIsDropped() async {
+        // teardown() ran while the download was still in flight — building the engine now would
+        // orphan it (nothing left to call teardown on).
+        let (model, _, _, _) = makeModel(apiClient: FakeTrackAPIClient(bytes: Self.trackJSON))
+        model.teardown()
+
+        await model.load()
+
+        guard case .loading = model.phase else {
+            Issue.record("expected phase to stay .loading, got \(model.phase)"); return
+        }
+    }
+
     @Test func aVibeInputFailsFastWithoutBuildingAnEngine() async {
         let api = FakeTrackAPIClient(bytes: Self.trackJSON)
         let (model, engine, _, _) = makeModel(input: .preview(mode: "Vibe"), apiClient: api)

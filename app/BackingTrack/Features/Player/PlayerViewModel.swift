@@ -44,6 +44,7 @@ final class PlayerViewModel {
     @ObservationIgnored private let makeNowPlaying: @MainActor (_ title: String, _ subtitle: String) -> any NowPlayingControlling
     @ObservationIgnored private var engine: (any TrackPlaying)?
     @ObservationIgnored private var nowPlaying: (any NowPlayingControlling)?
+    @ObservationIgnored private var isTornDown = false
 
     init(
         input: PlayerInput,
@@ -82,7 +83,12 @@ final class PlayerViewModel {
             return
         }
 
-        switch await loader.load(trackID: input.trackID, jobID: input.jobID) {
+        let result = await loader.load(trackID: input.trackID, jobID: input.jobID)
+        // The screen may have gone away during the download — teardown() already ran with
+        // engine/nowPlaying still nil, so building them now would orphan them.
+        guard !isTornDown else { return }
+
+        switch result {
         case .failure(let error):
             phase = .failed(error)
 
@@ -200,19 +206,19 @@ final class PlayerViewModel {
         let loopLength = playable.track.lengthInBeats
         guard loopLength > 0 else { return }
 
+        var previousLoopBeat = 0.0
         while !Task.isCancelled {
             // Reading currentPositionInBeats contends with the sequencer's timing thread, so only
             // do it while it matters (playing) and no faster than the highlight needs.
             if playbackState == .playing {
                 let loopBeat = engine.currentBeat.truncatingRemainder(dividingBy: loopLength)
                 let bar = playable.bar(atLoopBeat: loopBeat)
-                if bar != currentBar {
-                    let wrapped = bar < currentBar
-                    currentBar = bar
-                    // Re-sync the lock-screen scrubber when the loop restarts; the system
-                    // extrapolates position from the rate the rest of the time.
-                    if wrapped { syncNowPlaying() }
-                }
+                if bar != currentBar { currentBar = bar }
+                // Re-anchor the lock-screen scrubber whenever the loop restarts (the beat
+                // position drops); the system extrapolates from the rate in between. Detecting
+                // the wrap on the beat rather than the bar works for a one-bar loop too.
+                if loopBeat < previousLoopBeat { syncNowPlaying() }
+                previousLoopBeat = loopBeat
             }
             try? await Task.sleep(for: .milliseconds(250))
         }
@@ -237,6 +243,7 @@ final class PlayerViewModel {
     /// From the view's `.onDisappear` — releases the engine's process-wide audio resources and
     /// clears the lock-screen entry.
     func teardown() {
+        isTornDown = true
         engine?.teardown()
         nowPlaying?.teardown()
     }
@@ -244,20 +251,38 @@ final class PlayerViewModel {
 
 #if DEBUG
 extension PlayerViewModel {
-    /// A model parked in a given phase for `#Preview`s. No engine — previews are for layout, and
-    /// none should touch `AVAudioEngine`.
+    /// A model parked in a given phase for `#Preview`s. `PlayerView`'s `.task` still calls
+    /// `load()` in a preview; for a parked `.loaded` / `.failed` phase it no-ops on the phase
+    /// guard, and a `.loading` preview is held there by an API client that never resolves — so
+    /// no preview touches the real network or an `AVAudioEngine`.
     static func preview(
         _ phase: LoadPhase = .loaded(.preview()),
         playbackState: PlaybackState = .idle,
         currentBar: Int = 0
     ) -> PlayerViewModel {
-        // load() is never called on a preview model (phase is set below), so the API client is
-        // never touched — the default is fine; the store is the in-memory preview one.
-        let model = PlayerViewModel(input: .preview(), historyStore: PreviewJobHistoryStore())
+        let model = PlayerViewModel(
+            input: .preview(),
+            apiClient: NeverResolvingAPIClient(),
+            historyStore: PreviewJobHistoryStore()
+        )
         model.phase = phase
         model.playbackState = playbackState
         model.currentBar = currentBar
         return model
+    }
+}
+
+/// Download hangs indefinitely, so a `.loading` preview keeps showing its spinner.
+private struct NeverResolvingAPIClient: BackingTrackAPIClient {
+    func submitGeneration(_ request: GenerationRequest) async throws -> GenerationJob {
+        fatalError("previews never submit")
+    }
+    func jobStatus(id: UUID) async throws -> GenerationJob {
+        fatalError("previews never poll")
+    }
+    func downloadTrackData(trackID: UUID) async throws -> Data {
+        try await Task.sleep(for: .seconds(3600))
+        return Data()
     }
 }
 #endif

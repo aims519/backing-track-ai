@@ -52,28 +52,43 @@ final class AudioEngine {
     /// past the last event and plays silence until the next loop.
     private var pausedAtBeat: Double?
 
+    /// An `AVAudioSequencer` doesn't survive a system audio-session interruption — the engine
+    /// restarts fine but the sequencer's scheduling is left corrupt (transport says playing,
+    /// audio is garbled or silent, and it stays that way even after a manual stop-and-replay).
+    /// Set on any interruption; `play()` swaps in a fresh sequencer before the next start.
+    private var sequencerNeedsRebuild = false
+
     private lazy var sessionController: AudioSessionController = {
         let c = AudioSessionController()
 
         c.onInterruptionBegan = { [weak self] in
-            guard let self, self.state == .playing else { return }
-            self.pausedForInterruption = true
-            self.log.debug("interruption began — pausing")
-            self.pause()
+            guard let self else { return }
+            // The system has already stopped the engine and left the sequencer corrupt; the
+            // next play() rebuilds it.
+            self.sequencerNeedsRebuild = true
+            switch self.state {
+            case .playing:
+                self.pausedForInterruption = true
+                self.pausedAtBeat = self.sequencer?.currentPositionInBeats
+                self.state = .paused
+                self.log.notice("interruption began — paused at \(self.pausedAtBeat ?? -1)")
+            case .countingIn:
+                self.cancelCountIn()
+                self.state = .idle
+                self.log.notice("interruption began during count-in — cancelled")
+            default:
+                break
+            }
         }
         c.onShouldResume = { [weak self] in
             guard let self, self.pausedForInterruption else { return }
-            self.pausedForInterruption = false
-            self.log.debug("interruption ended — resuming")
+            self.log.notice("interruption ended — resuming")
             self.play()
         }
         c.onRouteGone = { [weak self] in self?.pause() }
 
         return c
     }()
-    private var interruptionListenTask: Task<Void, Never>?
-    private var routeChangeListenTask: Task<Void, Never>?
-    
     init(playableTrack: PlayableTrack){
         self.playableTrack = playableTrack
         self.beatsInBar = max(1, Int(playableTrack.beatsPerBar.rounded()))
@@ -83,21 +98,23 @@ final class AudioEngine {
     
     private func setUp() {
         do {
-            guard !isSetUp else {
-                log.debug("Set up skipped")
-                return
-            }
+            guard !isSetUp else { return }
             
             // Session setup
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
             try AVAudioSession.sharedInstance().setActive(true)
             
             // Listen for audio session notifications
-            interruptionListenTask = Task { await sessionController.observeInterruptions() }
-            routeChangeListenTask = Task { await sessionController.observeRouteChanges() }
+            sessionController.startObserving()
+            log.notice("audio session observers started")
             
-            // Load sountfont
-            let bankURL = Bundle.main.url(forResource: "GeneralUser-GS", withExtension: "sf2")!
+            // Load soundfont. A missing bundle resource is a build-config error, but surface it
+            // as a failed state like every other setup error rather than trapping.
+            guard let bankURL = Bundle.main.url(forResource: "GeneralUser-GS", withExtension: "sf2") else {
+                log.error("GeneralUser-GS.sf2 missing from the bundle")
+                state = .failed("The instrument sounds are missing from this build.")
+                return
+            }
 
             // Load instruments
             try bassSampler.loadSoundBankInstrument(
@@ -150,40 +167,8 @@ final class AudioEngine {
             engine.connect(clickSampler, to: engine.mainMixerNode, format: nil)
 
             try engine.start()
-            
-            let seq = AVAudioSequencer(audioEngine: engine)
-            
-            // Tempo
-            let tempoEvent = AVExtendedTempoEvent(tempo: Double(playableTrack.originalTempo)) // BPM
-            seq.tempoTrack.addEvent(tempoEvent, at: AVMusicTimeStamp(0))
-            
-            // One AVMusicTrack per voice, built from the pure translation in PlayerSequenceBuilder.
-            // Track order doesn't matter — each routes to its own sampler via destinationAudioUnit.
-            for voice in PlaybackVoice.allCases {
-                let musicTrack = seq.createAndAppendTrack()
-                musicTrack.lengthInBeats = playableTrack.track.lengthInBeats
-                musicTrack.destinationAudioUnit = getSampler(for: voice)
 
-                for note in PlayerSequenceBuilder.notes(for: voice, in: playableTrack.track) {
-                    let midiEvent = AVMIDINoteEvent(
-                        channel: 0,
-                        key: UInt32(note.key),
-                        velocity: UInt32(note.velocity),
-                        duration: note.durationInBeats   // beats, not seconds
-                    )
-                    musicTrack.addEvent(midiEvent, at: AVMusicTimeStamp(note.beat))
-                }
-            }
-
-            // Looping
-            for track in seq.tracks {
-                track.isLoopingEnabled = true
-                track.numberOfLoops = -1   // AVMusicTrackLoopCount.forever — loop indefinitely
-            }
-            
-            seq.prepareToPlay()
-
-            sequencer = seq
+            sequencer = buildSequencer()
 
             log.debug("Audio engine, samplers, and sequencer initialised")
             isSetUp = true
@@ -194,13 +179,51 @@ final class AudioEngine {
             state = .failed("Failed to set up audio engine: \(error.localizedDescription)")
         }
     }
-    
-    
-    
+
+    /// Builds the sequencer from the track: a tempo event, one looping `AVMusicTrack` per voice
+    /// routed to its sampler. Recreated on interruption recovery — an `AVAudioSequencer` does not
+    /// survive an audio-session interruption (the engine restarts fine, the sequencer's
+    /// scheduling is left corrupted).
+    private func buildSequencer() -> AVAudioSequencer {
+        let seq = AVAudioSequencer(audioEngine: engine)
+
+        seq.tempoTrack.addEvent(
+            AVExtendedTempoEvent(tempo: Double(playableTrack.originalTempo)),
+            at: AVMusicTimeStamp(0)
+        )
+
+        for voice in PlaybackVoice.allCases {
+            let musicTrack = seq.createAndAppendTrack()
+            musicTrack.lengthInBeats = playableTrack.track.lengthInBeats
+            musicTrack.destinationAudioUnit = getSampler(for: voice)
+
+            for note in PlayerSequenceBuilder.notes(for: voice, in: playableTrack.track) {
+                musicTrack.addEvent(
+                    AVMIDINoteEvent(
+                        channel: 0,
+                        key: UInt32(note.key),
+                        velocity: UInt32(note.velocity),
+                        duration: note.durationInBeats   // beats, not seconds
+                    ),
+                    at: AVMusicTimeStamp(note.beat)
+                )
+            }
+        }
+
+        for track in seq.tracks {
+            track.isLoopingEnabled = true
+            track.numberOfLoops = -1   // AVMusicTrackLoopCount.forever
+        }
+
+        seq.prepareToPlay()
+        return seq
+    }
+
+
+
     func play() {
         do {
             setUp()
-            guard let seq = sequencer else { return }
 
             // Re-activate every time, not just in setUp(): once audio pauses in the background
             // iOS suspends the app and deactivates the session, and a plain engine/sequencer
@@ -210,6 +233,16 @@ final class AudioEngine {
             if !engine.isRunning {
                 try engine.start()
             }
+
+            // An interruption leaves the sequencer corrupt — swap in a fresh one.
+            if sequencerNeedsRebuild {
+                log.debug("Rebuilding sequencer after interruption...")
+                sequencer?.stop()
+                sequencer = nil
+                sequencer = buildSequencer()
+                sequencerNeedsRebuild = false
+            }
+            guard let seq = sequencer else { return }
             pausedForInterruption = false
 
             switch state {
@@ -217,12 +250,14 @@ final class AudioEngine {
                 return   // already going
 
             case .paused:
-                // Resume. pause() froze the engine (and so the sequencer's clock). The play head
-                // climbs past the loop and never wraps, so reduce it back into the event range or
-                // the sequencer restarts in the dead zone past the last event.
+                // Resume. The play head climbs past the loop and never wraps, so reduce it back
+                // into the event range or the sequencer restarts in the dead zone past the last
+                // event. A rebuilt sequencer also starts from 0, so the same wrap applies.
                 if let saved = pausedAtBeat {
                     let loop = playableTrack.track.lengthInBeats
-                    seq.currentPositionInBeats = loop > 0 ? saved.truncatingRemainder(dividingBy: loop) : saved
+                    let resumePosition = loop > 0 ? saved.truncatingRemainder(dividingBy: loop) : saved
+                    log.debug("Resuming playback - pos \(resumePosition)")
+                    seq.currentPositionInBeats = resumePosition
                 }
                 pausedAtBeat = nil
                 if !seq.isPlaying { try seq.start() }
@@ -237,7 +272,6 @@ final class AudioEngine {
                     state = .playing
                 }
             }
-            log.debug("play — state \(String(describing: self.state)), pos \(seq.currentPositionInBeats)")
         } catch(let error) {
             log.error("Failed to play audio: \(error.localizedDescription)")
             state = .failed("Failed to play audio: \(error.localizedDescription)")
@@ -304,6 +338,8 @@ final class AudioEngine {
     func stop() {
         guard state != .idle else { return }
         cancelCountIn()
+        // Otherwise a later interruption-ended would auto-resume what the user just stopped.
+        pausedForInterruption = false
         guard let seq = sequencer else { state = .idle; return }
 
         seq.stop()
@@ -358,8 +394,7 @@ final class AudioEngine {
     
     func teardown() {
         cancelCountIn()
-        interruptionListenTask?.cancel()
-        routeChangeListenTask?.cancel()
+        sessionController.stopObserving()
         sequencer?.stop()
         engine.stop()
         try? AVAudioSession.sharedInstance().setActive(
