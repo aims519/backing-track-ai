@@ -7,14 +7,40 @@ namespace BackingTrack.Generation.Tests.Steps.TrackGeneration;
 
 public class GenerateStepTests
 {
-    // Not exercised by any test here - GenerateChordProgressionStringForPrompt never calls it.
+    // Not exercised by the GenerateChordProgressionStringForPrompt tests - that method never calls it.
     private class NotUsedTrackGenerationClient : ITrackGenerationClient
     {
         public Task<CandidateTrack> GenerateTrackAsync(string prompt, CancellationToken token = default)
             => throw new NotSupportedException("Not expected to be called by these tests");
     }
 
+    private sealed class StubTrackGenerationClient(CandidateTrack track) : ITrackGenerationClient
+    {
+        public Task<CandidateTrack> GenerateTrackAsync(string prompt, CancellationToken token = default)
+            => Task.FromResult(track);
+    }
+
     private static GenerateStep CreateGenerateStep() => new(new NotUsedTrackGenerationClient(), new ScaleMatcher());
+
+    [Fact]
+    public async Task GenerateCandidateTrackAsync_OverwritesModelLengthInBeatsWithBeatsPerBarTimesChordCount()
+    {
+        // The prompt tells the model to send 0; the system owns track length, not the model.
+        CandidateTrack modelOutput = new(LengthInBeats: 999, Drums: [], Bass: [], ChordVoicings: []);
+        GenerateStep generateStep = new(new StubTrackGenerationClient(modelOutput), new ScaleMatcher());
+
+        ChordEntry majChordEntry = new() { Id = "maj", Intervals = [0, 4, 7], Description = "Major triad" };
+        MatchedChord[] chords =
+            [new(majChordEntry, "C"), new(majChordEntry, "G"), new(majChordEntry, "F"), new(majChordEntry, "G")];
+        MatchedStyle style = new(new StyleEntry { Id = "rock", Description = "Rock" });
+
+        CandidateTrack result = await generateStep.GenerateCandidateTrackAsync(
+            keyRoot: "C", tempo: 120, timeSignatureBeatCount: 4, timeSignatureBeatUnit: 4,
+            style: style, chords: chords, scales: [],
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(16, result.LengthInBeats);
+    }
 
     [Fact]
     public void GenerateChordProgressionStringForPrompt_SingleChordSingleScale_FormatsRootQualityAndScaleWithIntervals()

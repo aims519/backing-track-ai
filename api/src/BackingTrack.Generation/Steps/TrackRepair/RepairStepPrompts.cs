@@ -12,7 +12,7 @@ public static class RepairStepPrompts
         - Reason: a human-readable description of the issue
 
         ## Task
-        Propose exactly one correction per failure, using one of these three mechanisms:
+        Propose exactly one correction per failure, using one of these two mechanisms:
 
         1. NoteCorrection - for failures tied to a specific note.
            - Original: must match the offending NoteEvent exactly.
@@ -34,8 +34,6 @@ public static class RepairStepPrompts
         
         2. Whole-part replacement - for PartEmpty failures. Provide a full replacement list in
            whichever of NewDrumPart / NewBassPart / NewChordVoicingPart is empty.
-
-        3. NewLengthInBeats - for InvalidTrackLengthInBeats failures.
 
         ## Output
         Return all corrections in a single TrackRepairPatch object.

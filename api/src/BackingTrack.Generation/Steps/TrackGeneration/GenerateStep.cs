@@ -29,7 +29,8 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
 
         CandidateTrack track = await trackGenerationClient.GenerateTrackAsync(prompt, cancellationToken);
 
-        return track;
+        // Length is derived from the request, not generated - the prompt tells the model to send 0.
+        return track with { LengthInBeats = timeSignatureBeatCount * chords.Count };
     }
 
     internal string GenerateChordProgressionStringForPrompt(IReadOnlyList<MatchedChord> chords,

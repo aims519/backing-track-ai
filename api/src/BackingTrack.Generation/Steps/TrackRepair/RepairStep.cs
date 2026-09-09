@@ -73,8 +73,7 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
         ((patch.NoteCorrections is null || patch.NoteCorrections.Count == 0) &&
         patch.NewDrumPart is null &&
         patch.NewBassPart is null &&
-        patch.NewChordVoicingPart is null &&
-        patch.NewLengthInBeats is null);
+        patch.NewChordVoicingPart is null);
 
     private string GenerateRequestPrompt(CandidateTrack previousAttempt, IReadOnlyList<ValidationFailure> failures)
     {
@@ -169,7 +168,7 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
         bassNoteEvents = bassNoteEvents.OrderBy(e => e.BeatPosition).ToList();
         chordVoicingEvents = chordVoicingEvents.OrderBy(e => e.BeatPosition).ToList();
 
-        CandidateTrack updatedTrack = new(trackPatch.NewLengthInBeats ?? originalTrack.LengthInBeats, (IReadOnlyList<DrumNoteEvent>)drumNoteEvents,
+        CandidateTrack updatedTrack = new(originalTrack.LengthInBeats, (IReadOnlyList<DrumNoteEvent>)drumNoteEvents,
             (IReadOnlyList<BassNoteEvent>)bassNoteEvents,
             (IReadOnlyList<ChordVoicingEvent>)chordVoicingEvents);
 
