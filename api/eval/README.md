@@ -1,6 +1,3 @@
-<!-- SKELETON + factual scaffolding for the owner to turn into prose. Bullet stubs marked
-     TODO(prose) are notes, not finished copy. -->
-
 # Generation eval harness
 
 `BackingTrack.Generation.Eval` — a console app that runs the Precise-mode generation pipeline
@@ -8,9 +5,9 @@ end to end against a versioned golden set and reports whether it still behaves.
 
 ## Why this exists
 
-TODO(prose): the pipeline is agentic and LLM-backed, so unit tests can't tell you whether a
-prompt change made generation better or worse. This harness is the regression net for the
-*behaviour* — validation pass rate, repair attempts, fallback rate — not the code.
+The pipeline is agentic and LLM-backed, so unit tests can't tell you whether a prompt or model
+change made generation better or worse. This harness is the regression net for the *behaviour* —
+validation pass rate, repair attempts, fallback rate — not the code.
 
 See [ADR 0027](../../docs/adr/0027-generation-eval-harness.md) for the design decisions.
 
@@ -63,8 +60,8 @@ Model / token settings are in `appsettings.json` (`OpenAi:*`, `TrackGenerationWo
 
 ## Adding a case
 
-TODO(prose): distil it from a real failure; give it a stable `id` that's never reused; put the
-"why" in `rationale`. Keep the set small and representative — every case is an LLM call per run.
+Distil it from a real failure. Give it a stable `id` that's never reused, and put the "why" in
+`rationale`. Keep the set small and representative — every case is an LLM call per run.
 
 ## Known gaps / next steps
 
@@ -72,6 +69,6 @@ TODO(prose): distil it from a real failure; give it a stable `id` that's never r
   (odd meters, fast tempos) rather than *guaranteeing* one. Deterministic version: a fault-
   injecting `IGenerationRunner` / validator double that fails the first N attempts. See ADR 0027.
 - No record/replay of LLM responses yet, so every run is live and costs tokens — fine for a
-  manual/nightly job, not for per-PR CI. TODO(prose): decide replay vs. live-nightly.
+  manual/nightly job, not for per-PR CI. Replay vs. live-nightly is still to be decided.
 - No run-over-run diffing yet; `--json` output is the raw material for it.
 - Fallback stage not implemented (see table above); critic step and its category not built yet.
