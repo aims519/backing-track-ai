@@ -14,10 +14,13 @@ private extension GenerationProgressViewModel.Phase {
 @MainActor
 struct GenerationProgressViewModelTests {
 
-    /// Millisecond durations so the poll loop runs to completion near-instantly.
+    /// A 1 ms interval so the poll loop runs to completion near-instantly. The timeout is
+    /// generous — the tests that actually exercise the timeout path set their own short one; a
+    /// tight value here just flakes on a loaded CI runner (the store-failure test does three
+    /// `print`-on-catch cycles per run, which can blow a 50 ms budget).
     private let fastConfig = PollingConfiguration(
         interval: .milliseconds(1),
-        timeout: .milliseconds(50),
+        timeout: .seconds(5),
         maxConsecutiveFailures: 3
     )
 
