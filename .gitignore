@@ -4,6 +4,9 @@ api/**/obj/
 api/**/publish/
 *.user
 
+# Eval harness run output (generated tracks + JSON reports)
+api/eval/**/eval-output/
+
 # Test runner output (Microsoft.Testing.Platform --results-directory)
 TestResults/
 

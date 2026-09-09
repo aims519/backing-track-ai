@@ -1,0 +1,4 @@
+// Baseline: clean, idiomatic inputs the pipeline should satisfy on the first candidate.
+// A regression here means the core generate → validate path has drifted.
+{"id": "baseline-blues-a", "category": "Baseline", "description": "12-bar blues in A, standard swing feel", "rationale": "Simplest realistic request: three dominant chords, 4/4, a style the KB covers well.", "input": {"tempo": 100, "chords": ["A7", "A7", "A7", "A7", "D7", "D7", "A7", "A7", "E7", "D7", "A7", "E7"], "keyRoot": "A", "style": "blues"}, "expect": {"outcome": "Succeeds", "minAttempts": 1, "maxAttempts": 1}}
+{"id": "baseline-pop-c", "category": "Baseline", "description": "I–V–vi–IV in C, straight pop feel", "rationale": "The most common pop progression; diatonic triads, nothing to trip validation.", "input": {"tempo": 120, "chords": ["C", "G", "Am", "F"], "keyRoot": "C", "style": "pop"}, "expect": {"outcome": "Succeeds", "minAttempts": 1, "maxAttempts": 1}}

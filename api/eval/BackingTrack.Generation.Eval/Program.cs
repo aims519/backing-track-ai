@@ -1,0 +1,128 @@
+using BackingTrack.Generation;
+using BackingTrack.Generation.Eval;
+using BackingTrack.Generation.Eval.Model;
+using BackingTrack.Generation.Eval.Reporting;
+using BackingTrack.Generation.Eval.Running;
+using BackingTrack.Generation.KnowledgeBase;
+using BackingTrack.Generation.Steps.Retrieval;
+using BackingTrack.Generation.Steps.TrackGeneration;
+using BackingTrack.Generation.Steps.TrackPersistence;
+using BackingTrack.Generation.Steps.TrackRepair;
+using BackingTrack.Generation.Steps.TrackValidation;
+
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+EvalHarnessArgs harnessArgs;
+try
+{
+    harnessArgs = EvalHarnessArgs.Parse(args);
+}
+catch (ArgumentException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+    Console.Error.WriteLine();
+    Console.Error.WriteLine(EvalHarnessArgs.HelpText);
+    return 2;
+}
+
+if (harnessArgs.ShowHelp)
+{
+    Console.WriteLine(EvalHarnessArgs.HelpText);
+    return 0;
+}
+
+string goldenSetDir = harnessArgs.GoldenSetDirectory
+    ?? Path.Combine(AppContext.BaseDirectory, "GoldenSet");
+
+List<EvalCase> cases = GoldenSetLoader.Load(goldenSetDir).ToList();
+if (harnessArgs.Categories.Count > 0)
+    cases = cases.Where(c => harnessArgs.Categories.Contains(c.Category)).ToList();
+if (harnessArgs.CaseIds.Count > 0)
+    cases = cases.Where(c => harnessArgs.CaseIds.Contains(c.Id)).ToList();
+
+if (cases.Count == 0)
+{
+    Console.Error.WriteLine("No cases matched the given filters.");
+    return 2;
+}
+
+if (harnessArgs.DryRun)
+{
+    Console.WriteLine($"{cases.Count} case(s) from {goldenSetDir}:");
+    foreach (EvalCase c in cases)
+        Console.WriteLine($"  {c.Id,-30} {c.Category,-20} {c.Description}");
+    return 0;
+}
+
+HostApplicationBuilder builder = Host.CreateApplicationBuilder();
+// Resolve config relative to the binary, not the current directory, so `dotnet run` and a
+// direct invocation of the built exe behave the same.
+builder.Configuration.AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.json"), optional: true);
+builder.Configuration.AddUserSecrets<Program>(optional: true);
+
+builder.Logging.ClearProviders();
+builder.Logging.AddSimpleConsole(options =>
+{
+    options.SingleLine = true;
+    options.TimestampFormat = "HH:mm:ss ";
+});
+// The generation pipeline is chatty at Information; mute it below Warning unless -v is given.
+builder.Logging.AddFilter("BackingTrack.Generation", harnessArgs.Verbose ? LogLevel.Debug : LogLevel.Warning);
+
+// Generation pipeline — mirrors BackingTrack.Api/Program.cs, minus the web host, observability,
+// rate limiting and the background job worker. The harness runs the workflow directly through
+// WorkflowGenerationRunner, so AddJobProcessing() is deliberately not wired.
+builder.Services.AddOptions();
+builder.Services.AddKnowledgeBase(builder.Configuration);
+builder.Services.AddLlmChatClient(builder.Configuration);
+builder.Services.AddKnowledgeRetrieval();
+builder.Services.AddTrackGeneration(builder.Configuration);
+builder.Services.AddTrackValidation();
+builder.Services.AddTrackRepair(builder.Configuration);
+builder.Services.AddTrackPersistence(builder.Configuration);
+builder.Services.AddTrackGenerationWorkflow();
+
+builder.Services.AddSingleton<IGenerationRunner, WorkflowGenerationRunner>();
+builder.Services.AddSingleton<EvalRunner>();
+
+using IHost host = builder.Build();
+
+// Starts hosted services — notably VectorStoreWarmup, so the first case isn't billed for the
+// cold vector-store load.
+await host.StartAsync();
+
+try
+{
+    using CancellationTokenSource cts = new();
+    Console.CancelKeyPress += (_, eventArgs) =>
+    {
+        eventArgs.Cancel = true;
+        cts.Cancel();
+    };
+
+    EvalRunner runner = host.Services.GetRequiredService<EvalRunner>();
+    IReadOnlyList<CaseOutcome> outcomes = await runner.RunAsync(cases, cts.Token);
+
+    RunReport report = RunReport.From(outcomes);
+    ConsoleReporter.Print(report);
+
+    if (harnessArgs.JsonReportPath is { } jsonPath)
+    {
+        await JsonReportWriter.WriteAsync(jsonPath, report, cts.Token);
+        Console.WriteLine($"JSON report: {Path.GetFullPath(jsonPath)}");
+    }
+
+    return report.IsPass ? 0 : 1;
+}
+catch (OperationCanceledException)
+{
+    Console.Error.WriteLine("Cancelled.");
+    return 2;
+}
+finally
+{
+    await host.StopAsync();
+}

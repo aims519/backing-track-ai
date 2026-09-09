@@ -14,6 +14,12 @@ api/
     BackingTrack.Generation/   track generation logic (LLM prompting, validation, fallback, vibe mode)
   tests/
     BackingTrack.Generation.Tests/
+  tools/
+    BackingTrack.KnowledgeBase.Embedder/   offline: build the RAG vector store
+  benchmarks/
+    BackingTrack.Generation.Benchmarks/
+  eval/
+    BackingTrack.Generation.Eval/           end-to-end generation eval harness — see eval/README.md
 ```
 
 Currently a bare template — no generation logic yet.
