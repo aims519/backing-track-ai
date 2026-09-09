@@ -222,60 +222,78 @@ final class AudioEngine {
 
 
     func play() {
-        do {
-            setUp()
-
-            // Re-activate every time, not just in setUp(): once audio pauses in the background
-            // iOS suspends the app and deactivates the session, and a plain engine/sequencer
-            // restart then plays to nowhere (silent until the view is reloaded). setActive is
-            // cheap when the session is already active.
-            try AVAudioSession.sharedInstance().setActive(true)
-            if !engine.isRunning {
-                try engine.start()
-            }
-
-            // An interruption leaves the sequencer corrupt — swap in a fresh one.
-            if sequencerNeedsRebuild {
-                log.debug("Rebuilding sequencer after interruption...")
-                sequencer?.stop()
-                sequencer = nil
-                sequencer = buildSequencer()
-                sequencerNeedsRebuild = false
-            }
-            guard let seq = sequencer else { return }
-            pausedForInterruption = false
-
-            switch state {
-            case .playing, .countingIn:
-                return   // already going
-
-            case .paused:
-                // Resume. The play head climbs past the loop and never wraps, so reduce it back
-                // into the event range or the sequencer restarts in the dead zone past the last
-                // event. A rebuilt sequencer also starts from 0, so the same wrap applies.
-                if let saved = pausedAtBeat {
-                    let loop = playableTrack.track.lengthInBeats
-                    let resumePosition = loop > 0 ? saved.truncatingRemainder(dividingBy: loop) : saved
-                    log.debug("Resuming playback - pos \(resumePosition)")
-                    seq.currentPositionInBeats = resumePosition
-                }
-                pausedAtBeat = nil
-                if !seq.isPlaying { try seq.start() }
-                state = .playing
-
-            case .idle, .failed:
-                seq.currentPositionInBeats = 0
-                if isCountInEnabled {
-                    startCountIn(rate: seq.rate)
-                } else {
-                    try seq.start()
-                    state = .playing
-                }
-            }
-        } catch(let error) {
-            log.error("Failed to play audio: \(error.localizedDescription)")
-            state = .failed("Failed to play audio: \(error.localizedDescription)")
+        pausedForInterruption = false
+        switch state {
+        case .playing, .countingIn:
+            break   // already going
+        case .paused:
+            resumeFromPause()
+        case .idle, .failed:
+            startFromTop()
         }
+    }
+
+    /// Resume where the pause left off. The play head climbs past the loop and never wraps, so
+    /// it has to be reduced back into the event range or the sequencer restarts in the dead zone
+    /// past the last event (a rebuilt sequencer starts from 0, so the same wrap applies).
+    private func resumeFromPause() {
+        do {
+            guard let seq = try prepareForPlayback() else { return }
+            if let saved = pausedAtBeat {
+                let resumePosition = wrappedIntoLoop(saved)
+                log.debug("Resuming playback - pos \(resumePosition)")
+                seq.currentPositionInBeats = resumePosition
+            }
+            pausedAtBeat = nil
+            if !seq.isPlaying { try seq.start() }
+            state = .playing
+        } catch { failPlayback(error) }
+    }
+
+    /// Start from bar 1 — with a count-in first when enabled.
+    private func startFromTop() {
+        do {
+            guard let seq = try prepareForPlayback() else { return }
+            seq.currentPositionInBeats = 0
+            if isCountInEnabled {
+                startCountIn(rate: seq.rate)
+            } else {
+                try seq.start()
+                state = .playing
+            }
+        } catch { failPlayback(error) }
+    }
+
+    /// Session active, engine running, sequencer fresh — the shared prep for any start. `nil`
+    /// only if setup failed (which already set `state = .failed`).
+    private func prepareForPlayback() throws -> AVAudioSequencer? {
+        setUp()
+
+        // Re-activate every time, not just in setUp(): once audio pauses in the background iOS
+        // suspends the app and deactivates the session, so a plain restart plays to nowhere.
+        // setActive is cheap when it's already active.
+        try AVAudioSession.sharedInstance().setActive(true)
+        if !engine.isRunning { try engine.start() }
+
+        // An interruption leaves the sequencer corrupt — swap in a fresh one.
+        if sequencerNeedsRebuild {
+            log.debug("Rebuilding sequencer after interruption...")
+            sequencer?.stop()
+            sequencer = nil
+            sequencer = buildSequencer()
+            sequencerNeedsRebuild = false
+        }
+        return sequencer
+    }
+
+    private func wrappedIntoLoop(_ beat: Double) -> Double {
+        let loop = playableTrack.track.lengthInBeats
+        return loop > 0 ? beat.truncatingRemainder(dividingBy: loop) : beat
+    }
+
+    private func failPlayback(_ error: any Error) {
+        log.error("Failed to play audio: \(error.localizedDescription)")
+        state = .failed("Failed to play audio: \(error.localizedDescription)")
     }
 
     /// Two bars of woodblock clicks, then start the sequencer. Timed off an absolute clock so the
