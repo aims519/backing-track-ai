@@ -17,14 +17,18 @@ See [ADR 0027](../../docs/adr/0027-generation-eval-harness.md) for the design de
 ## What it does
 
 1. Loads the golden set from `GoldenSet/*.jsonl` (one `EvalCase` per line).
-2. Runs each case's input through the real in-process generation `Workflow` — the same one the
+2. Validates every case's input the way the API's `/generate` request validation would
+   (`GoldenSetInputValidator`) — the harness skips the endpoint, so without this a bad chord
+   symbol is silently dropped in retrieval instead of rejected. Malformed input aborts the run.
+3. Runs each case's input through the real in-process generation `Workflow` — the same one the
    API's background worker builds (`WorkflowGenerationRunner`).
-3. Compares the terminal outcome and attempt count against the case's `expect` block
+4. Compares the terminal outcome and attempt count against the case's `expect` block
    (`CaseEvaluator`).
-4. Prints a per-category pass/fail/pending summary and, with `--json`, writes a machine-readable
+5. Prints a per-category pass/fail/pending summary and, with `--json`, writes a machine-readable
    report for run-over-run comparison.
 
-Exit code: `0` pass, `1` one or more cases failed, `2` bad usage / no cases matched.
+Exit code: `0` pass, `1` one or more cases failed, `2` bad usage / no cases matched /
+malformed golden-set input.
 
 ## Golden set categories
 
@@ -48,7 +52,7 @@ cd eval/BackingTrack.Generation.Eval
 dotnet user-secrets set "OpenAi:ApiKey" "<key>"
 dotnet user-secrets set "VoyageAi:ApiKey" "<key>"
 
-dotnet run -- --list                       # show cases, no model calls
+dotnet run -- --list                       # list cases + run input validation, no model calls
 dotnet run -- --category Baseline           # run one category
 dotnet run -- --case baseline-blues-a       # run one case
 dotnet run -- --json ./eval-output/run.json # full run + machine-readable report

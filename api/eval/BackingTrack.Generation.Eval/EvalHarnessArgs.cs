@@ -28,11 +28,12 @@ public sealed record EvalHarnessArgs
           --case <id>         Only run this case id (repeatable).
           --golden-set <dir>  Override the golden-set directory (default: ./GoldenSet next to the binary).
           --json <path>       Also write a machine-readable JSON report to <path>.
-          --list              List matching cases and exit (no model calls).
+          --list              List matching cases, run input validation, and exit (no model calls).
           -v, --verbose       Show the generation pipeline's own logs.
           -h, --help          Show this help.
 
-        Exit codes: 0 = pass, 1 = one or more cases failed, 2 = bad usage / no cases matched.
+        Exit codes: 0 = pass, 1 = one or more cases failed,
+                    2 = bad usage / no cases matched / malformed golden-set input.
         """;
 
     public static EvalHarnessArgs Parse(string[] args)

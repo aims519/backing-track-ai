@@ -49,14 +49,6 @@ if (cases.Count == 0)
     return 2;
 }
 
-if (harnessArgs.DryRun)
-{
-    Console.WriteLine($"{cases.Count} case(s) from {goldenSetDir}:");
-    foreach (EvalCase c in cases)
-        Console.WriteLine($"  {c.Id,-30} {c.Category,-20} {c.Description}");
-    return 0;
-}
-
 HostApplicationBuilder builder = Host.CreateApplicationBuilder();
 // Resolve config relative to the binary, not the current directory, so `dotnet run` and a
 // direct invocation of the built exe behave the same.
@@ -96,6 +88,29 @@ await host.StartAsync();
 
 try
 {
+    // The harness bypasses the API's request validation, so check the golden set the way
+    // /generate would before spending any tokens on it.
+    ChordSymbolParser chordSymbolParser = host.Services.GetRequiredService<ChordSymbolParser>();
+    IReadOnlyList<string> inputErrors = GoldenSetInputValidator.Validate(cases, chordSymbolParser);
+
+    if (harnessArgs.DryRun)
+    {
+        Console.WriteLine($"{cases.Count} case(s) from {goldenSetDir}:");
+        foreach (EvalCase c in cases)
+            Console.WriteLine($"  {c.Id,-30} {c.Category,-20} {c.Description}");
+    }
+
+    if (inputErrors.Count > 0)
+    {
+        Console.Error.WriteLine($"{Environment.NewLine}Golden set has malformed inputs - fix these before running:");
+        foreach (string error in inputErrors)
+            Console.Error.WriteLine($"  {error}");
+        return 2;
+    }
+
+    if (harnessArgs.DryRun)
+        return 0;
+
     using CancellationTokenSource cts = new();
     Console.CancelKeyPress += (_, eventArgs) =>
     {
