@@ -71,27 +71,24 @@ final class AudioEngine {
                 self.pausedForInterruption = true
                 self.pausedAtBeat = self.sequencer?.currentPositionInBeats
                 self.state = .paused
-                self.log.debug("interruption began — paused at \(self.pausedAtBeat ?? -1)")
+                self.log.notice("interruption began — paused at \(self.pausedAtBeat ?? -1)")
             case .countingIn:
                 self.cancelCountIn()
                 self.state = .idle
-                self.log.debug("interruption began during count-in — cancelled")
+                self.log.notice("interruption began during count-in — cancelled")
             default:
                 break
             }
         }
         c.onShouldResume = { [weak self] in
             guard let self, self.pausedForInterruption else { return }
-            self.log.debug("interruption ended — resuming")
+            self.log.notice("interruption ended — resuming")
             self.play()
         }
         c.onRouteGone = { [weak self] in self?.pause() }
 
         return c
     }()
-    private var interruptionListenTask: Task<Void, Never>?
-    private var routeChangeListenTask: Task<Void, Never>?
-    
     init(playableTrack: PlayableTrack){
         self.playableTrack = playableTrack
         self.beatsInBar = max(1, Int(playableTrack.beatsPerBar.rounded()))
@@ -101,18 +98,15 @@ final class AudioEngine {
     
     private func setUp() {
         do {
-            guard !isSetUp else {
-                log.debug("Set up skipped")
-                return
-            }
+            guard !isSetUp else { return }
             
             // Session setup
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
             try AVAudioSession.sharedInstance().setActive(true)
             
             // Listen for audio session notifications
-            interruptionListenTask = Task { await sessionController.observeInterruptions() }
-            routeChangeListenTask = Task { await sessionController.observeRouteChanges() }
+            sessionController.startObserving()
+            log.notice("audio session observers started")
             
             // Load soundfont. A missing bundle resource is a build-config error, but surface it
             // as a failed state like every other setup error rather than trapping.
@@ -242,6 +236,7 @@ final class AudioEngine {
 
             // An interruption leaves the sequencer corrupt — swap in a fresh one.
             if sequencerNeedsRebuild {
+                log.debug("Rebuilding sequencer after interruption...")
                 sequencer?.stop()
                 sequencer = nil
                 sequencer = buildSequencer()
@@ -260,7 +255,9 @@ final class AudioEngine {
                 // event. A rebuilt sequencer also starts from 0, so the same wrap applies.
                 if let saved = pausedAtBeat {
                     let loop = playableTrack.track.lengthInBeats
-                    seq.currentPositionInBeats = loop > 0 ? saved.truncatingRemainder(dividingBy: loop) : saved
+                    let resumePosition = loop > 0 ? saved.truncatingRemainder(dividingBy: loop) : saved
+                    log.debug("Resuming playback - pos \(resumePosition)")
+                    seq.currentPositionInBeats = resumePosition
                 }
                 pausedAtBeat = nil
                 if !seq.isPlaying { try seq.start() }
@@ -397,8 +394,7 @@ final class AudioEngine {
     
     func teardown() {
         cancelCountIn()
-        interruptionListenTask?.cancel()
-        routeChangeListenTask?.cancel()
+        sessionController.stopObserving()
         sequencer?.stop()
         engine.stop()
         try? AVAudioSession.sharedInstance().setActive(
