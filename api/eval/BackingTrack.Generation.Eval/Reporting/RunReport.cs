@@ -7,6 +7,10 @@ namespace BackingTrack.Generation.Eval.Reporting;
 public sealed record RunReport
 {
     public required DateTimeOffset RunAtUtc { get; init; }
+
+    /// <summary>Absolute path where a case's persisted track lands, as <c>&lt;trackId&gt;.json</c>.</summary>
+    public string? TrackStorageDirectory { get; init; }
+
     public required IReadOnlyList<CategoryTally> ByCategory { get; init; }
     public required IReadOnlyList<CaseLine> Cases { get; init; }
 
@@ -17,7 +21,7 @@ public sealed record RunReport
     /// <summary>A run passes when nothing failed. Pending cases don't gate — they're not built yet.</summary>
     public bool IsPass => Failed == 0;
 
-    public static RunReport From(IReadOnlyList<CaseOutcome> outcomes)
+    public static RunReport From(IReadOnlyList<CaseOutcome> outcomes, string? trackStorageDirectory = null)
     {
         List<CategoryTally> byCategory = Enum.GetValues<EvalCategory>()
             .Select(category =>
@@ -39,12 +43,14 @@ public sealed record RunReport
                 o.Verdict,
                 o.Result?.Attempts,
                 o.Result?.Elapsed,
+                o.Result?.TrackId,
                 o.Notes))
             .ToList();
 
         return new RunReport
         {
             RunAtUtc = DateTimeOffset.UtcNow,
+            TrackStorageDirectory = trackStorageDirectory,
             ByCategory = byCategory,
             Cases = cases
         };
@@ -62,4 +68,5 @@ public sealed record CaseLine(
     CaseVerdict Verdict,
     int? Attempts,
     TimeSpan? Elapsed,
+    Guid? TrackId,
     IReadOnlyList<string> Notes);

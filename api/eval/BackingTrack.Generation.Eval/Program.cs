@@ -1,3 +1,5 @@
+using BackingTrack.Core.Config;
+
 using BackingTrack.Generation;
 using BackingTrack.Generation.Eval;
 using BackingTrack.Generation.Eval.Model;
@@ -14,6 +16,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 EvalHarnessArgs harnessArgs;
 try
@@ -121,7 +124,9 @@ try
     EvalRunner runner = host.Services.GetRequiredService<EvalRunner>();
     IReadOnlyList<CaseOutcome> outcomes = await runner.RunAsync(cases, cts.Token);
 
-    RunReport report = RunReport.From(outcomes);
+    string trackStorageDirectory = Path.GetFullPath(
+        host.Services.GetRequiredService<IOptions<TrackStorageSettings>>().Value.BaseFolderPath);
+    RunReport report = RunReport.From(outcomes, trackStorageDirectory);
     ConsoleReporter.Print(report);
 
     if (harnessArgs.JsonReportPath is { } jsonPath)
