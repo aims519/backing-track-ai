@@ -1,6 +1,6 @@
 # 0028. SilentBar repair via whole-part replacement, not a surgical bar-fill
 
-Status: Proposed
+Status: Accepted
 
 ## Context
 
