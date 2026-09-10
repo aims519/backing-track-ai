@@ -861,4 +861,154 @@ public class TrackValidatorTests
         Assert.Same(candidateTrack.Drums[0], failure.NoteEvent);
         Assert.Contains(nameof(DrumNoteEvent.DurationInBeats), failure.Reason);
     }
+
+    [Fact]
+    public void ValidateSilentBars_EveryBarHasAllThreeParts_ReturnsNoFailures()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(0, 1, 42, 100), new(4, 1, 42, 100), new(8, 1, 42, 100), new(12, 1, 42, 100)],
+            bass: [new(0, 1, 36, 100), new(4, 1, 43, 100), new(8, 1, 45, 100), new(12, 1, 41, 100)],
+            chordVoicings:
+            [
+                new(0, 4, [60, 64, 67], 90), new(4, 4, [62, 65, 69], 90),
+                new(8, 4, [60, 64, 69], 90), new(12, 4, [60, 65, 69], 90)
+            ]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateSilentBars(candidateTrack, generationJob);
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void ValidateSilentBars_FinalBarHasNoEvents_ReturnsOneFailurePerPartForThatBar()
+    {
+        // The dropped-final-bar case: LengthInBeats is fixed to 16 in code, so a track that only
+        // fills 3 of 4 bars would otherwise slip through validation with a silent bar 4.
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am", "F"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(16,
+            drums: [new(0, 1, 42, 100), new(4, 1, 42, 100), new(8, 1, 42, 100)],
+            bass: [new(0, 1, 36, 100), new(4, 1, 43, 100), new(8, 1, 45, 100)],
+            chordVoicings: [new(0, 4, [60, 64, 67], 90), new(4, 4, [62, 65, 69], 90), new(8, 4, [60, 64, 69], 90)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateSilentBars(candidateTrack, generationJob);
+
+        Assert.Equal(3, failures.Count);
+        Assert.All(failures, f => Assert.Equal(ValidationFailureType.SilentBar, f.Type));
+        Assert.All(failures, f => Assert.Null(f.NoteEvent));
+        Assert.All(failures, f => Assert.Contains("bar 4", f.Reason));
+        Assert.Contains(failures, f => f.Reason.Contains(nameof(DrumNoteEvent), StringComparison.Ordinal));
+        Assert.Contains(failures, f => f.Reason.Contains(nameof(BassNoteEvent), StringComparison.Ordinal));
+        Assert.Contains(failures, f => f.Reason.Contains(nameof(ChordVoicingEvent), StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ValidateSilentBars_BarMissingOnlyBass_ReturnsSingleFailureNamingBassAndBar()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(8,
+            drums: [new(0, 1, 42, 100), new(4, 1, 42, 100)],
+            bass: [new(0, 1, 36, 100)],
+            chordVoicings: [new(0, 4, [60, 64, 67], 90), new(4, 4, [62, 65, 69], 90)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateSilentBars(candidateTrack, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.SilentBar, failure.Type);
+        Assert.Contains(nameof(BassNoteEvent), failure.Reason);
+        Assert.Contains("bar 2", failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateSilentBars_BarMissingOnlyChordVoicings_ReturnsSingleFailureNamingChordVoicingAndBar()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(8,
+            drums: [new(0, 1, 42, 100), new(4, 1, 42, 100)],
+            bass: [new(0, 1, 36, 100), new(4, 1, 43, 100)],
+            chordVoicings: [new(0, 4, [60, 64, 67], 90)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateSilentBars(candidateTrack, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.SilentBar, failure.Type);
+        Assert.Contains(nameof(ChordVoicingEvent), failure.Reason);
+        Assert.Contains("bar 2", failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateSilentBars_BarMissingOnlyDrums_ReturnsSingleFailureNamingDrumAndBar()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(8,
+            drums: [new(0, 1, 42, 100)],
+            bass: [new(0, 1, 36, 100), new(4, 1, 43, 100)],
+            chordVoicings: [new(0, 4, [60, 64, 67], 90), new(4, 4, [62, 65, 69], 90)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateSilentBars(candidateTrack, generationJob);
+
+        ValidationFailure failure = Assert.Single(failures);
+        Assert.Equal(ValidationFailureType.SilentBar, failure.Type);
+        Assert.Contains(nameof(DrumNoteEvent), failure.Reason);
+        Assert.Contains("bar 2", failure.Reason);
+    }
+
+    [Fact]
+    public void ValidateSilentBars_NoteExactlyOnBarBoundary_CountsTowardsTheLaterBar()
+    {
+        // BeatPosition 4.0 in 4/4 is the downbeat of bar 2, so bar 1 has nothing.
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(8,
+            drums: [new(4, 1, 42, 100)],
+            bass: [new(4, 1, 36, 100)],
+            chordVoicings: [new(4, 4, [60, 64, 67], 90)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateSilentBars(candidateTrack, generationJob);
+
+        Assert.Equal(3, failures.Count);
+        Assert.All(failures, f => Assert.Contains("bar 1", f.Reason));
+    }
+
+    [Fact]
+    public void ValidateSilentBars_TrackWithNoEvents_ReturnsThreeFailuresPerBar()
+    {
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G", "Am"], timeSignatureBeatCount: 4);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(12);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateSilentBars(candidateTrack, generationJob);
+
+        Assert.Equal(9, failures.Count);
+        Assert.All(failures, f => Assert.Equal(ValidationFailureType.SilentBar, f.Type));
+    }
+
+    [Fact]
+    public void ValidateSilentBars_UsesTimeSignatureBeatCountForBarWindows()
+    {
+        // 3/4: bar 1 = [0,3), bar 2 = [3,6). Every part has a note in each 3-beat window.
+        TrackValidator validator = CreateTrackValidator();
+        GenerationJob generationJob = CreateGenerationJob(chords: ["C", "G"], timeSignatureBeatCount: 3);
+
+        CandidateTrack candidateTrack = CreateCandidateTrack(6,
+            drums: [new(0, 1, 42, 100), new(3, 1, 42, 100)],
+            bass: [new(0, 1, 36, 100), new(3, 1, 43, 100)],
+            chordVoicings: [new(0, 3, [60, 64, 67], 90), new(3, 3, [62, 65, 69], 90)]);
+
+        IReadOnlyList<ValidationFailure> failures = validator.ValidateSilentBars(candidateTrack, generationJob);
+
+        Assert.Empty(failures);
+    }
 }

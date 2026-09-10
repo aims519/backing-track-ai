@@ -26,4 +26,5 @@ public interface ITrackValidator
     IReadOnlyList<ValidationFailure> ValidateNoPartEmpty(CandidateTrack candidateTrack);
 
     IReadOnlyList<ValidationFailure> ValidateBeatPositionsAndDurations(CandidateTrack candidateTrack, GenerationJob generationJob);
+    IReadOnlyList<ValidationFailure> ValidateSilentBars(CandidateTrack candidateTrack, GenerationJob generationJob);
 }

@@ -41,8 +41,9 @@ public sealed class EvalRunner(IGenerationRunner generationRunner, ILogger<EvalR
                 };
             }
 
+            string track = outcome.Result?.TrackId is { } trackId ? $" track {trackId}" : "";
             string notes = outcome.Notes.Count > 0 ? " — " + string.Join("; ", outcome.Notes) : "";
-            logger.LogInformation("  {Verdict}{Notes}", outcome.Verdict, notes);
+            logger.LogInformation("  {Verdict}{Track}{Notes}", outcome.Verdict, track, notes);
             outcomes.Add(outcome);
         }
 

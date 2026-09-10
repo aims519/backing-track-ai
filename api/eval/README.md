@@ -21,8 +21,9 @@ See [ADR 0027](../../docs/adr/0027-generation-eval-harness.md) for the design de
    API's background worker builds (`WorkflowGenerationRunner`).
 4. Compares the terminal outcome and attempt count against the case's `expect` block
    (`CaseEvaluator`).
-5. Prints a per-category pass/fail/pending summary and, with `--json`, writes a machine-readable
-   report for run-over-run comparison.
+5. Prints a per-category summary and a per-case table (verdict, attempts, elapsed, and the
+   persisted `trackId` — inspect it at `<TrackStorage:BaseFolderPath>/<trackId>.json`). With
+   `--json`, writes the same as a machine-readable report for run-over-run comparison.
 
 Exit code: `0` pass, `1` one or more cases failed, `2` bad usage / no cases matched /
 malformed golden-set input.

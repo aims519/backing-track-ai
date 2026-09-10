@@ -15,5 +15,6 @@ public enum ValidationFailureType
     PartEmpty,
     BeatPositionOutOfRange,
     InvalidNoteDuration,
-    NoteBeyondTrackEnd
+    NoteBeyondTrackEnd,
+    SilentBar
 }
