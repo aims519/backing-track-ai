@@ -1,6 +1,6 @@
 # 0027. End-to-end eval harness as an in-process console app
 
-Status: Proposed
+Status: Accepted
 
 ## Context
 
