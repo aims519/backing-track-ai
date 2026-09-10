@@ -1,6 +1,6 @@
 # 0023. Client-derived generation progress copy and a client-side poll timeout
 
-Status: Proposed
+Status: Accepted
 
 ## Context
 
