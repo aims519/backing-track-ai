@@ -17,7 +17,8 @@ public class ValidateStep(ITrackValidator trackValidator) : IValidateStep
             ..trackValidator.ValidateChordVoicingNoteChoices(candidateTrack.ChordVoicings,  matchedChords, matchedScales, generationJob),
             ..trackValidator.ValidateMidiVelocities(candidateTrack),
             ..trackValidator.ValidateNoPartEmpty(candidateTrack),
-            ..trackValidator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob)
+            ..trackValidator.ValidateBeatPositionsAndDurations(candidateTrack, generationJob),
+            ..trackValidator.ValidateSilentBars(candidateTrack, generationJob)
         ];
 
         return new TrackValidationResult(failures.Count == 0, failures);

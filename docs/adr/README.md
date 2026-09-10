@@ -32,3 +32,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0025](0025-client-job-reconciler-over-jobtracker-extraction.md) | A standalone client-side JobReconciler, not the JobTracker extraction |
 | [0026](0026-bundled-soundfont-and-idempotent-audio-setup.md) | Bundled SoundFont and idempotent audio-engine setup |
 | [0027](0027-generation-eval-harness.md) | End-to-end generation eval harness as an in-process console app |
+| [0028](0028-silent-bar-repair-via-whole-part-replacement.md) | SilentBar repair via whole-part replacement, not a surgical bar-fill |

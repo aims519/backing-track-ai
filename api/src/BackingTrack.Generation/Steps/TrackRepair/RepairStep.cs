@@ -75,6 +75,16 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
         patch.NewBassPart is null &&
         patch.NewChordVoicingPart is null);
 
+    private void LogUnmatchedCorrection(string noteType, double beatPosition, bool partReplaced)
+    {
+        if (partReplaced)
+            logger.LogDebug("Dropping a {Type} correction at BeatPosition {Position}: its part was wholesale-replaced so the original note is gone",
+                noteType, beatPosition);
+        else
+            logger.LogWarning("Attempted to apply a patch for a {Type} that doesn't exist. BeatPosition: {Position}",
+                noteType, beatPosition);
+    }
+
     private string GenerateRequestPrompt(CandidateTrack previousAttempt, IReadOnlyList<ValidationFailure> failures)
     {
         return $"""
@@ -93,6 +103,14 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
         IList<BassNoteEvent> bassNoteEvents = (trackPatch.NewBassPart ?? originalTrack.Bass).ToList();
         IList<ChordVoicingEvent> chordVoicingEvents = (trackPatch.NewChordVoicingPart ?? originalTrack.ChordVoicings).ToList();
 
+        // Note corrections apply on top of that base. A correction whose Original is no longer
+        // present is dropped: expected (logged at debug) when its part was wholesale-replaced -
+        // a SilentBar repair often replaces a part and still emits corrections for the old notes
+        // despite the prompt - and a genuine miss (logged at warning) otherwise.
+        bool drumPartReplaced = trackPatch.NewDrumPart is not null;
+        bool bassPartReplaced = trackPatch.NewBassPart is not null;
+        bool chordPartReplaced = trackPatch.NewChordVoicingPart is not null;
+
         // Apply note corrections on top of that base
         IEnumerable<IGrouping<NoteEvent, NoteCorrection>> correctionsByOriginal = (trackPatch.NoteCorrections ?? []).GroupBy(c => c.Original);
         foreach (IGrouping<NoteEvent, NoteCorrection> group in correctionsByOriginal)
@@ -103,8 +121,7 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
                     {
                         if (!drumNoteEvents.Remove(drumOriginal))
                         {
-                            logger.LogWarning("Attempted to apply a patch for a {Type} that doesn't exist. BeatPosition: {Position}",
-                                nameof(DrumNoteEvent), drumOriginal.BeatPosition);
+                            LogUnmatchedCorrection(nameof(DrumNoteEvent), drumOriginal.BeatPosition, drumPartReplaced);
                             continue;
                         }
 
@@ -123,8 +140,7 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
                     {
                         if (!bassNoteEvents.Remove(bassOriginal))
                         {
-                            logger.LogWarning("Attempted to apply a patch for a {Type} that doesn't exist. BeatPosition: {Position}",
-                                nameof(BassNoteEvent), bassOriginal.BeatPosition);
+                            LogUnmatchedCorrection(nameof(BassNoteEvent), bassOriginal.BeatPosition, bassPartReplaced);
                             continue;
                         }
 
@@ -143,8 +159,7 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
                     {
                         if (!chordVoicingEvents.Remove(chordVoicingOriginal))
                         {
-                            logger.LogWarning("Attempted to apply a patch for a {Type} that doesn't exist. BeatPosition: {Position}",
-                                nameof(ChordVoicingEvent), chordVoicingOriginal.BeatPosition);
+                            LogUnmatchedCorrection(nameof(ChordVoicingEvent), chordVoicingOriginal.BeatPosition, chordPartReplaced);
                             continue;
                         }
 

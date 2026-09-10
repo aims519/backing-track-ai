@@ -204,6 +204,36 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
         return (IReadOnlyList<ValidationFailure>)failures;
     }
 
+    public IReadOnlyList<ValidationFailure> ValidateSilentBars(CandidateTrack candidateTrack, GenerationJob generationJob)
+    {
+        int barCount = generationJob.Chords.Count;
+        int beatsPerBar = generationJob.TimeSignatureBeatCount;
+        IList<ValidationFailure> failures = [];
+
+        for (int bar = 1; bar <= barCount; bar++)
+        {
+            int minBeatPosition = (bar - 1) * beatsPerBar;
+            int maxBeatPosition = minBeatPosition + beatsPerBar;
+
+            // Drums
+            IList<DrumNoteEvent> drumNotesForBar = candidateTrack.Drums.Where(n => n.BeatPosition >= minBeatPosition && n.BeatPosition < maxBeatPosition).ToList();
+            if (drumNotesForBar.Count == 0)
+                failures.Add(new ValidationFailure(Type: ValidationFailureType.SilentBar, null, $"Silent bar found. No {nameof(DrumNoteEvent)}s found in bar {bar}. Expected notes with beat position >= {minBeatPosition} and < {maxBeatPosition}"));
+
+            // Bass
+            IList<BassNoteEvent> bassNotesForBar = candidateTrack.Bass.Where(n => n.BeatPosition >= minBeatPosition && n.BeatPosition < maxBeatPosition).ToList();
+            if (bassNotesForBar.Count == 0)
+                failures.Add(new ValidationFailure(Type: ValidationFailureType.SilentBar, null, $"Silent bar found. No {nameof(BassNoteEvent)}s found in bar {bar}. Expected notes with beat position >= {minBeatPosition} and < {maxBeatPosition}"));
+
+            // Chords
+            IList<ChordVoicingEvent> chordNotesForBar = candidateTrack.ChordVoicings.Where(n => n.BeatPosition >= minBeatPosition && n.BeatPosition < maxBeatPosition).ToList();
+            if (chordNotesForBar.Count == 0)
+                failures.Add(new ValidationFailure(Type: ValidationFailureType.SilentBar, null, $"Silent bar found. No {nameof(ChordVoicingEvent)}s found in bar {bar}. Expected notes with beat position >= {minBeatPosition} and < {maxBeatPosition}"));
+        }
+
+        return (IReadOnlyList<ValidationFailure>)failures;
+    }
+
     private const int MidiVelocityMin = 1;
     private const int MidiVelocityMax = 127;
 
