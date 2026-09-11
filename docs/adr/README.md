@@ -34,3 +34,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0027](0027-generation-eval-harness.md) | End-to-end generation eval harness as an in-process console app |
 | [0028](0028-silent-bar-repair-via-whole-part-replacement.md) | SilentBar repair via whole-part replacement, not a surgical bar-fill |
 | [0029](0029-critic-tool-call-over-per-criterion-structured-output.md) | Tool-forced single verdict over per-criterion structured output for the Theory Critic |
+| [0030](0030-critic-eval-as-a-separate-code-based-project.md) | Critic judge eval as a separate, code-based project |
