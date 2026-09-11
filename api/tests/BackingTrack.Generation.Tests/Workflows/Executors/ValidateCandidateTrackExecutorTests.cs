@@ -22,7 +22,7 @@ public class ValidateCandidateTrackExecutorTests
             NullLogger<ValidateCandidateTrackExecutor>.Instance);
 
     private static ValidateCandidateTrackInput CreateInput(CandidateTrack track, GenerationJob job, int attempts) =>
-        new(track, job, [], [], attempts);
+        new(track, job, WorkflowTestFixtures.CreateMatchedStyle(), [], [], attempts);
 
     [Fact]
     public async Task HandleAsync_TrackIsValid_SendsPersistCandidateTrackInputCarryingAttemptsAndSendsNothingElse()

@@ -19,7 +19,7 @@ public class RepairCandidateTrackExecutorTests
         new(repairStepMock, NullLogger<RepairCandidateTrackExecutor>.Instance);
 
     private static RepairCandidateTrackInput CreateInput(CandidateTrack track, GenerationJob job, IReadOnlyList<ValidationFailure> failures, int attempts) =>
-        new(track, new TrackValidationResult(false, failures), job, [], [], attempts);
+        new(track, new TrackValidationResult(false, failures), job, WorkflowTestFixtures.CreateMatchedStyle(), [], [], attempts);
 
     [Fact]
     public async Task HandleAsync_RepairSucceeds_SendsValidateCandidateTrackInputWithIncrementedAttempts()
