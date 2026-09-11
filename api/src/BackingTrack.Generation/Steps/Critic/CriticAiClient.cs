@@ -15,7 +15,13 @@ public class CriticAiClient([FromKeyedServices("critic")] IChatClient chatClient
     CriticProviderInfo providerInfo) : ICriticAiClient
 {
     private const string SubmitVerdictFunctionName = "submit_verdict";
-    public async Task<CriticVerdictSubmission> GenerateCriticVertictSubmissionAsync(CandidateTrack candidateTrack,
+
+    private static readonly JsonElement CriticVerdictSubmissionSchema = AIJsonUtilities.CreateJsonSchema(
+        typeof(CriticVerdictSubmission),
+        description: "The critic's per-dimension verdict for this candidate track.",
+        serializerOptions: new JsonSerializerOptions { TypeInfoResolver = CriticStepJsonContext.Default });
+    
+    public async Task<CriticVerdictSubmission> GenerateCriticVerdictSubmissionAsync(CandidateTrack candidateTrack,
         GenerationJob generationJob, 
         MatchedStyle matchedStyle,
         IReadOnlyList<MatchedChord> matchedChords, 
@@ -60,28 +66,31 @@ public class CriticAiClient([FromKeyedServices("critic")] IChatClient chatClient
     {
         JsonObject node = new();
         foreach ((string key, object? value) in functionCallArguments)
-            node[key] = value is JsonElement element ? JsonNode.Parse(element.GetRawText()) : null; 
+        {
+            if(value is not JsonElement element)
+                throw new InvalidOperationException("Failed to parse the submit_verdict tool call arguments.");
+            
+            node[key] = JsonNode.Parse(element.GetRawText());
+        }
         
         CriticVerdictSubmission verdictSubmission = JsonSerializer.Deserialize(node.ToJsonString(), CriticStepJsonContext.Default.CriticVerdictSubmission)
-                                                    ?? throw new InvalidOperationException("Could not parse the submit_verdict tool call arguments.");
+                                                    ?? throw new InvalidOperationException("Failed to parse the submit_verdict tool call arguments.");
+        
+        if(verdictSubmission.DimensionAssessments is null)
+            throw new InvalidOperationException("Failed to parse the submit_verdict tool call arguments.");
         
         return verdictSubmission;
     }
 
     private ChatOptions BuildChatOptions()
     {
-        JsonElement schema = AIJsonUtilities.CreateJsonSchema(
-            typeof(CriticVerdictSubmission),
-            description: "The critic's per-dimension verdict for this candidate track.",
-            serializerOptions: new JsonSerializerOptions { TypeInfoResolver = CriticStepJsonContext.Default });
-        
         ChatOptions options = new()
         {
             Tools =
             [
                 AIFunctionFactory.CreateDeclaration(SubmitVerdictFunctionName,
                     "Submit your review findings. Call exactly once, once every dimension has been assessed.", 
-                    schema)
+                    CriticVerdictSubmissionSchema)
             ],
             ToolMode = ChatToolMode.RequireSpecific(SubmitVerdictFunctionName),
             MaxOutputTokens = providerInfo.MaxOutputTokens,

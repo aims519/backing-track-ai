@@ -6,7 +6,7 @@ namespace BackingTrack.Generation.Steps.Critic;
 
 public interface ICriticAiClient
 {
-    Task<CriticVerdictSubmission> GenerateCriticVertictSubmissionAsync(CandidateTrack candidateTrack,
+    Task<CriticVerdictSubmission> GenerateCriticVerdictSubmissionAsync(CandidateTrack candidateTrack,
         GenerationJob generationJob, 
         MatchedStyle matchedStyle,
         IReadOnlyList<MatchedChord> matchedChords, 

@@ -10,6 +10,8 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddCritic(this IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<CriticSettings>(configuration.GetSection("Critic"));
+        
         string? llmProvider = configuration.GetValue<string>("Llm:Provider");
         if (string.IsNullOrEmpty(llmProvider))
             throw new InvalidOperationException("llmProvider must be set.");
