@@ -1,7 +1,5 @@
 using BackingTrack.Core.Config;
 
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -15,9 +13,6 @@ public static class ServiceCollectionExtensions
         string? llmProvider = configuration.GetValue<string>("Llm:Provider");
         if (string.IsNullOrEmpty(llmProvider))
             throw new InvalidOperationException("llmProvider must be set.");
-
-        services.AddKeyedSingleton<AIAgent>("critic", (sp, _) =>
-            sp.GetRequiredKeyedService<IChatClient>("critic").AsAIAgent(instructions:  CriticStepPrompts.SystemInstructions));
         
         services.AddSingleton(sp =>
         {
@@ -25,6 +20,7 @@ public static class ServiceCollectionExtensions
             return new CriticProviderInfo(llmProvider, settings.CriticModel, settings.CriticMaxOutputTokens);
         });
         
+        services.AddTransient<ICriticAiClient, CriticAiClient>();
         services.AddTransient<ICriticStep, CriticStep>();
 
         return services;

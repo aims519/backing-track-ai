@@ -8,6 +8,9 @@ namespace BackingTrack.Generation.KnowledgeBase.Embedding;
 [JsonSerializable(typeof(ChordEntry))]
 [JsonSerializable(typeof(ScaleEntry))]
 [JsonSerializable(typeof(StyleEntry))]
+[JsonSerializable(typeof(MatchedStyle))]
+[JsonSerializable(typeof(IReadOnlyList<MatchedChord>))]
+[JsonSerializable(typeof(IReadOnlyList<MatchedScale>))]
 public partial class KnowledgeBaseJsonContext : JsonSerializerContext
 {
 }

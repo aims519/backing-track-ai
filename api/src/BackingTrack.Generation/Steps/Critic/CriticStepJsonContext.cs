@@ -2,6 +2,5 @@ using System.Text.Json.Serialization;
 
 namespace BackingTrack.Generation.Steps.Critic;
 
-[JsonSerializable(typeof(CriticCitation))]
-[JsonSerializable(typeof(CriticCriterionResult))]
+[JsonSerializable(typeof(CriticVerdictSubmission))]
 public partial class CriticStepJsonContext : JsonSerializerContext { }

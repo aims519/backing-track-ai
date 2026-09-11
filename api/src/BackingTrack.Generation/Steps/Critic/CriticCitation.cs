@@ -1,3 +1,3 @@
 namespace BackingTrack.Generation.Steps.Critic;
 
-public record CriticCitation(CriticCriterion Criterion, string Details);
+public record CriticCitation(CriticDimension Dimension, string Violation, string CitedKnowledgeBaseItemId);
