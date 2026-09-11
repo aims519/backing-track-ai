@@ -33,3 +33,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0026](0026-bundled-soundfont-and-idempotent-audio-setup.md) | Bundled SoundFont and idempotent audio-engine setup |
 | [0027](0027-generation-eval-harness.md) | End-to-end generation eval harness as an in-process console app |
 | [0028](0028-silent-bar-repair-via-whole-part-replacement.md) | SilentBar repair via whole-part replacement, not a surgical bar-fill |
+| [0029](0029-critic-tool-call-over-per-criterion-structured-output.md) | Tool-forced single verdict over per-criterion structured output for the Theory Critic |
