@@ -45,6 +45,16 @@ public static class ServiceCollectionExtensions
                 });
                 return client.AsIChatClient();
             });
+            
+            services.AddKeyedSingleton<IChatClient>("critic", (sp, _) =>
+            {
+                OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
+                ChatClient client = new(settings.CriticModel, new ApiKeyCredential(settings.ApiKey), new OpenAIClientOptions()
+                {
+                    Endpoint = new Uri(settings.BaseUrl),
+                });
+                return client.AsIChatClient();
+            });
         }
         else
         {
