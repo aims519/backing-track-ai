@@ -35,7 +35,7 @@ internal sealed class RepairCandidateTrackExecutor(
 
         int attemptCount = input.Attempts + 1;
         await context.SendMessageAsync(new ValidateCandidateTrackInput(repairedTrack, input.GenerationJob,
-            input.MatchedChords, input.MatchedScales, attemptCount), cancellationToken);
+            input.MatchedStyle, input.MatchedChords, input.MatchedScales, attemptCount), cancellationToken);
     }
 
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>

@@ -45,7 +45,7 @@ internal sealed class GenerateCandidateTrackExecutor(
 
         logger.LogInformation("Job {Id} generated a candidate track\nLengthInBeats: {BeatCount}\nDrumEventCount: {DrumEventCount}\nBassEventCount: {BassEventCount}\nChordVoicingEventCount: {ChordVoicingEventCount}",
             jobId, candidateTrack.LengthInBeats, candidateTrack.Drums.Count, candidateTrack.Bass.Count, candidateTrack.ChordVoicings.Count);
-        await context.SendMessageAsync(new ValidateCandidateTrackInput(candidateTrack, generationJob, input.MatchedChords, input.MatchedScales, 1), cancellationToken);
+        await context.SendMessageAsync(new ValidateCandidateTrackInput(candidateTrack, generationJob, input.MatchedStyle, input.MatchedChords, input.MatchedScales, 1), cancellationToken);
     }
 
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>

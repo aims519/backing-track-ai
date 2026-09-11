@@ -44,7 +44,7 @@ internal sealed class ValidateCandidateTrackExecutor(
             }
 
             // Failed with retry, send Repair Message
-            await context.SendMessageAsync(new RepairCandidateTrackInput(input.CandidateTrack, trackValidationResult, input.GenerationJob, input.MatchedChords, input.MatchedScales, input.Attempts), cancellationToken);
+            await context.SendMessageAsync(new RepairCandidateTrackInput(input.CandidateTrack, trackValidationResult, input.GenerationJob, input.MatchedStyle, input.MatchedChords, input.MatchedScales, input.Attempts), cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

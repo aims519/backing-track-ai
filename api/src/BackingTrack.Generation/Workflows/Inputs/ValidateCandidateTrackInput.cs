@@ -4,4 +4,5 @@ using BackingTrack.Generation.Steps.Types;
 
 namespace BackingTrack.Generation.Workflows.Inputs;
 
-public record ValidateCandidateTrackInput(CandidateTrack CandidateTrack, GenerationJob GenerationJob, IReadOnlyList<MatchedChord> MatchedChords, IReadOnlyList<MatchedScale> MatchedScales, int Attempts);
+public record ValidateCandidateTrackInput(CandidateTrack CandidateTrack, GenerationJob GenerationJob, MatchedStyle MatchedStyle,
+    IReadOnlyList<MatchedChord> MatchedChords, IReadOnlyList<MatchedScale> MatchedScales, int Attempts);

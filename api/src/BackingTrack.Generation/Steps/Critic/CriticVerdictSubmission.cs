@@ -1,0 +1,3 @@
+namespace BackingTrack.Generation.Steps.Critic;
+
+public record CriticVerdictSubmission(IReadOnlyList<CriticDimensionAssessment> DimensionAssessments);
