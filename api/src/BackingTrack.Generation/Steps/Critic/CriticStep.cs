@@ -17,9 +17,9 @@ public class CriticStep(ICriticAiClient criticAiClient, IOptions<CriticSettings>
         CriticFinalReview finalReview = ScoreVerdictSubmission(verdictSubmission);
         return finalReview;
     }
-    
+
     private CriticFinalReview ScoreVerdictSubmission(CriticVerdictSubmission verdictSubmission)
-    {       
+    {
         // Check all dimensions have been assessed
         List<CriticCitation> citations = [];
         foreach (CriticDimension criticDimension in Enum.GetValues<CriticDimension>()
@@ -29,7 +29,7 @@ public class CriticStep(ICriticAiClient criticAiClient, IOptions<CriticSettings>
                 $"Critic did not asssess the {criticDimension} dimension",
                 string.Empty));
         }
-        
+
         // Compile list of citations
         foreach (IGrouping<CriticDimension, CriticDimensionAssessment> dimensionAssessmentGroup in verdictSubmission.DimensionAssessments
                      .Where(a => !a.Pass)
@@ -40,14 +40,14 @@ public class CriticStep(ICriticAiClient criticAiClient, IOptions<CriticSettings>
                 string violation = dimensionAssessment.Violation
                                    ?? $"Critic marked {dimensionAssessment.Dimension} as failed but did not provide a violation description";
                 string citedItemId = dimensionAssessment.CitedKnowledgeBaseItemId ?? string.Empty;
-                
+
                 CriticCitation citation = new(dimensionAssessment.Dimension,
                     violation,
                     citedItemId);
                 citations.Add(citation);
             }
         }
-        
+
         // Compute Score
         double sumOfPassingWeights = verdictSubmission.DimensionAssessments
             .GroupBy(a => a.Dimension)
@@ -56,13 +56,13 @@ public class CriticStep(ICriticAiClient criticAiClient, IOptions<CriticSettings>
             .Sum(GetDimensionScoringWeight);
 
         double score = sumOfPassingWeights * (100d / TotalScoringWeights);
-        
+
         bool isPass = score >= criticSettings.Value.PassingScoreThreshold;
         return new(isPass, score, citations);
     }
 
     private double TotalScoringWeights => Enum.GetValues<CriticDimension>().Sum(GetDimensionScoringWeight);
-    
+
     private double GetDimensionScoringWeight(CriticDimension dimension)
     {
         return dimension switch

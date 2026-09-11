@@ -45,7 +45,7 @@ public static class ServiceCollectionExtensions
                 });
                 return client.AsIChatClient();
             });
-            
+
             services.AddKeyedSingleton<IChatClient>("critic", (sp, _) =>
             {
                 OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;

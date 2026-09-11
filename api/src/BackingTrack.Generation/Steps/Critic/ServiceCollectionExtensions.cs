@@ -11,17 +11,17 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddCritic(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<CriticSettings>(configuration.GetSection("Critic"));
-        
+
         string? llmProvider = configuration.GetValue<string>("Llm:Provider");
         if (string.IsNullOrEmpty(llmProvider))
             throw new InvalidOperationException("llmProvider must be set.");
-        
+
         services.AddSingleton(sp =>
         {
             OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
             return new CriticProviderInfo(llmProvider, settings.CriticModel, settings.CriticMaxOutputTokens);
         });
-        
+
         services.AddTransient<ICriticAiClient, CriticAiClient>();
         services.AddTransient<ICriticStep, CriticStep>();
 

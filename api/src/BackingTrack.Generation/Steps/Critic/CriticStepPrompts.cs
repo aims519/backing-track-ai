@@ -40,12 +40,12 @@ public static class CriticStepPrompts
                                                      Do the ryhthms and general feel of the track match what is described in the track's style entry?
                                                      Are the rhythms consistent across the track?
                                                      """;
-    
+
     private const string ChordToneAdherenceInstructions = """
                                                           How well do the notes in the track stay in line with the allowed chord tones in each bar?
                                                           Are the roots of each chord sufficiently emphasised?
                                                           """;
-    
+
     private const string VoiceLeadingInstructions = """
                                                     Are the chord changes smooth, i.e. no jarring jumps from one chord to the next?
                                                     Is there an attempt to create voice leading melodic lines between chords?
