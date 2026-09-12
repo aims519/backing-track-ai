@@ -6,7 +6,7 @@ public static class CriticStepPrompts
                                              You are a music critic agent
                                              
                                              ## Input
-                                             - CandidateTrack: JSON describing the candidate track and all notes/velocities/positions
+                                             - CandidateTrack: JSON describing the candidate track and all notes/velocities/positions. All the note events are organised into Bars
                                              - GenerationJob: JSON describing the original request from the user for what the track should be like
                                              - MatchedStyle: The matching style information the generator that created the track used. Includes StyleEntry : IEmbeddable with a unique Id
                                              - MatchedChords: The matching chord items the generator that created the track used. Includes multiple ChordEntry: IEmbeddable with unique Ids
@@ -43,7 +43,8 @@ public static class CriticStepPrompts
 
     private const string ChordToneAdherenceInstructions = """
                                                           How well do the notes in the track stay in line with the allowed chord tones in each bar?
-                                                          Are the roots of each chord sufficiently emphasised?
+                                                          Are the chord root notes represented in some way? This doesn't require that the root note is always present, or that the root is the lowest note, but that the listener can easily identify the root note of the chord in each bar due to the cooperation between bass and chord voicings.
+                                                          A bass line that opens a bar on the chord root and then moves to another chord tone (e.g. the fifth) partway through - a standard walking-bass idiom - clearly establishes the root and should not be marked down for it.
                                                           """;
 
     private const string VoiceLeadingInstructions = """

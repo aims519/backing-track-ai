@@ -54,7 +54,7 @@ public class CriticAiClient([FromKeyedServices("critic")] IChatClient chatClient
         IReadOnlyList<MatchedChord> matchedChords, IReadOnlyList<MatchedScale> matchedScales)
     {
         return $"""
-                - CandidateTrack: {JsonSerializer.Serialize(candidateTrack, CandidateTrackJsonContext.Default.CandidateTrack)}
+                - CandidateTrack: {JsonSerializer.Serialize(new CriticCandidateTrack(candidateTrack, generationJob.TimeSignatureBeatCount), CriticStepJsonContext.Default.CriticCandidateTrack)}
                 - GenerationJob: {JsonSerializer.Serialize(generationJob, GenerationJobJsonContext.Default.GenerationJob)}
                 - MatchedStyle: {JsonSerializer.Serialize(matchedStyle, KnowledgeBaseJsonContext.Default.MatchedStyle)}
                 - MatchedChords: {JsonSerializer.Serialize(matchedChords, KnowledgeBaseJsonContext.Default.IReadOnlyListMatchedChord)}
