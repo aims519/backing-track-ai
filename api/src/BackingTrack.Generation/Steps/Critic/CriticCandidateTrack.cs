@@ -35,4 +35,4 @@ public sealed class CriticCandidateTrack(CandidateTrack candidateTrack, int beat
     }
 }
 
-public record Bar(IReadOnlyList<DrumNoteEvent> Drums, IReadOnlyList<BassNoteEvent> Bass, IReadOnlyList<ChordVoicingEvent> ChordVoicings) {}
+public record Bar(IReadOnlyList<DrumNoteEvent> Drums, IReadOnlyList<BassNoteEvent> Bass, IReadOnlyList<ChordVoicingEvent> ChordVoicings) { }
