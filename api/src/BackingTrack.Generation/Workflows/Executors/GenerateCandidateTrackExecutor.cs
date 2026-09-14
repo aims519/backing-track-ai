@@ -19,18 +19,34 @@ internal sealed class GenerateCandidateTrackExecutor(
         GenerationJob generationJob = input.GenerationJob;
         Guid jobId = input.GenerationJob.Id;
 
-        logger.LogInformation("Job {Id} generating a candidate track...", jobId);
         CandidateTrack candidateTrack;
         try
         {
-            candidateTrack = await generateStep.GenerateCandidateTrackAsync(generationJob.KeyRoot,
-                generationJob.Tempo,
-                generationJob.TimeSignatureBeatCount,
-                generationJob.TimeSignatureBeatUnit,
-                input.MatchedStyle, input.MatchedChords, input.MatchedScales,
-                previousAttempt: null,
-                previousAttemptFailures: null,
-                cancellationToken);
+            if (input.CriticReview is null && input.PreviousAttempt is null)
+            {
+                logger.LogInformation("Job {Id} generating a candidate track...", jobId);
+                candidateTrack = await generateStep.GenerateCandidateTrackAsync(generationJob.KeyRoot,
+                    generationJob.Tempo,
+                    generationJob.TimeSignatureBeatCount,
+                    generationJob.TimeSignatureBeatUnit,
+                    input.MatchedStyle, input.MatchedChords, input.MatchedScales,
+                    previousAttempt: null,
+                    previousAttemptFailures: null,
+                    cancellationToken);
+            }
+            else
+            {
+                logger.LogInformation("Job {Id} generating a candidate track after failed critic review...", jobId);
+                candidateTrack = await generateStep.GenerateCandidateTrackWithCriticReviewAsync(generationJob.KeyRoot,
+                    generationJob.Tempo,
+                    generationJob.TimeSignatureBeatCount,
+                    generationJob.TimeSignatureBeatUnit,
+                    input.MatchedStyle, input.MatchedChords, input.MatchedScales,
+                    previousAttempt: input.PreviousAttempt!,
+                    criticReview: input.CriticReview!,
+                    cancellationToken);
+            }
+
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -45,7 +61,7 @@ internal sealed class GenerateCandidateTrackExecutor(
 
         logger.LogInformation("Job {Id} generated a candidate track\nLengthInBeats: {BeatCount}\nDrumEventCount: {DrumEventCount}\nBassEventCount: {BassEventCount}\nChordVoicingEventCount: {ChordVoicingEventCount}",
             jobId, candidateTrack.LengthInBeats, candidateTrack.Drums.Count, candidateTrack.Bass.Count, candidateTrack.ChordVoicings.Count);
-        await context.SendMessageAsync(new ValidateCandidateTrackInput(candidateTrack, generationJob, input.MatchedStyle, input.MatchedChords, input.MatchedScales, 1), cancellationToken);
+        await context.SendMessageAsync(new ValidateCandidateTrackInput(candidateTrack, generationJob, input.MatchedStyle, input.MatchedChords, input.MatchedScales, 1, input.CriticAttempts), cancellationToken);
     }
 
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>

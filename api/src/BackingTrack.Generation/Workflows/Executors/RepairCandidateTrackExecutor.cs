@@ -28,14 +28,14 @@ internal sealed class RepairCandidateTrackExecutor(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Job {Id} failed during candidate track repair during attempt {Attempt}", input.GenerationJob.Id, input.Attempts);
-            await context.YieldOutputAsync(new GenerationFailed(ex.Message, input.Attempts), cancellationToken);
+            logger.LogError(ex, "Job {Id} failed during candidate track repair during attempt {Attempt}", input.GenerationJob.Id, input.ValidationAttempts);
+            await context.YieldOutputAsync(new GenerationFailed(ex.Message, input.ValidationAttempts), cancellationToken);
             return;
         }
 
-        int attemptCount = input.Attempts + 1;
+        int attemptCount = input.ValidationAttempts + 1;
         await context.SendMessageAsync(new ValidateCandidateTrackInput(repairedTrack, input.GenerationJob,
-            input.MatchedStyle, input.MatchedChords, input.MatchedScales, attemptCount), cancellationToken);
+            input.MatchedStyle, input.MatchedChords, input.MatchedScales, attemptCount, input.CriticAttempts), cancellationToken);
     }
 
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>

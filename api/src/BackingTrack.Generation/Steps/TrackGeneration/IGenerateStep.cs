@@ -1,4 +1,5 @@
 using BackingTrack.Generation.KnowledgeBase.Types;
+using BackingTrack.Generation.Steps.Critic;
 using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
 
@@ -15,5 +16,16 @@ public interface IGenerateStep
         IReadOnlyList<MatchedScale> scales,
         CandidateTrack? previousAttempt = null,
         IReadOnlyList<ValidationFailure>? previousAttemptFailures = null,
+        CancellationToken cancellationToken = default);
+
+    Task<CandidateTrack> GenerateCandidateTrackWithCriticReviewAsync(string keyRoot,
+        int tempo,
+        int timeSignatureBeatCount,
+        int timeSignatureBeatUnit,
+        MatchedStyle style,
+        IReadOnlyList<MatchedChord> chords,
+        IReadOnlyList<MatchedScale> scales,
+        CandidateTrack previousAttempt,
+        CriticFinalReview criticReview,
         CancellationToken cancellationToken = default);
 }

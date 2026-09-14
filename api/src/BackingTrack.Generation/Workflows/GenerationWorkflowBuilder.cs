@@ -15,6 +15,7 @@ public static class GenerationWorkflowBuilder
         GenerateCandidateTrackExecutor generate = scopedProvider.GetRequiredService<GenerateCandidateTrackExecutor>();
         ValidateCandidateTrackExecutor validate = scopedProvider.GetRequiredService<ValidateCandidateTrackExecutor>();
         RepairCandidateTrackExecutor repair = scopedProvider.GetRequiredService<RepairCandidateTrackExecutor>();
+        CriticExecutor critic = scopedProvider.GetRequiredService<CriticExecutor>();
         PersistCandidateTrackExecutor persist = scopedProvider.GetRequiredService<PersistCandidateTrackExecutor>();
 
         return new WorkflowBuilder(style)
@@ -24,8 +25,10 @@ public static class GenerationWorkflowBuilder
             .AddEdge(generate, validate)
             .AddEdge(validate, repair)
             .AddEdge(repair, validate)
-            .AddEdge(validate, persist)
-            .WithOutputFrom(style, chords, scales, generate, validate, repair, persist)
+            .AddEdge(validate, critic)
+            .AddEdge(critic, persist)
+            .AddEdge(critic, generate)
+            .WithOutputFrom(style, chords, scales, generate, validate, repair, critic, persist)
             .Build();
     }
 }

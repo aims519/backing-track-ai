@@ -10,11 +10,11 @@ namespace BackingTrack.Generation.Tests.Steps.Critic;
 
 public class CriticStepTests
 {
-    // Dimension weights are fixed in CriticStep.GetDimensionScoringWeight: ChordToneAdherence = 2,
-    // VoiceLeading = 1.5, RhythmAndFeel = 1, total = 4.5. Every expected score below is derived from
+    // Dimension weights are fixed in CriticStep.GetDimensionScoringWeight: ChordToneAdherence = 1,
+    // VoiceLeading = 1, RhythmAndFeel = 1, total = 3. Every expected score below is derived from
     // that weighting, not just re-asserting whatever the implementation currently computes.
-    private const double ChordToneAdherenceWeight = 2d;
-    private const double VoiceLeadingWeight = 1.5d;
+    private const double ChordToneAdherenceWeight = 1d;
+    private const double VoiceLeadingWeight = 1d;
     private const double RhythmAndFeelWeight = 1d;
     private const double TotalWeight = ChordToneAdherenceWeight + VoiceLeadingWeight + RhythmAndFeelWeight;
 
@@ -43,7 +43,7 @@ public class CriticStepTests
     }
 
     private static CriticStep CreateCriticStep(CriticVerdictSubmission submission, double passingScoreThreshold = 50d) =>
-        new(new StubCriticAiClient(submission), Options.Create(new CriticSettings { PassingScoreThreshold = passingScoreThreshold }));
+        new(new StubCriticAiClient(submission), Options.Create(new CriticSettings { PassingScoreThreshold = passingScoreThreshold, MaxAttempts = 3 }));
 
     private static Task<CriticFinalReview> ReviewAsync(CriticStep criticStep) =>
         criticStep.ReviewCandidateTrackAsync(DummyTrack, DummyJob, DummyStyle, [], [], TestContext.Current.CancellationToken);
@@ -85,7 +85,7 @@ public class CriticStepTests
     [Fact]
     public async Task ReviewCandidateTrackAsync_MixedPassFail_WeightsScoreByPassingDimensionsOnly()
     {
-        // ChordToneAdherence (weight 2) fails; VoiceLeading (1.5) and RhythmAndFeel (1) pass.
+        // ChordToneAdherence fails; VoiceLeading and RhythmAndFeel pass.
         double expectedScore = (VoiceLeadingWeight + RhythmAndFeelWeight) * (100d / TotalWeight);
         CriticVerdictSubmission submission = new([
             new(CriticDimension.ChordToneAdherence, false, "root notes buried in the voicing", "maj"),
@@ -138,7 +138,7 @@ public class CriticStepTests
     [Fact]
     public async Task ReviewCandidateTrackAsync_ScoreAtOrAboveThreshold_ReviewPasses()
     {
-        // ChordToneAdherence (2) and RhythmAndFeel (1) pass, VoiceLeading (1.5) fails: score ~= 66.7, threshold 50.
+        // ChordToneAdherence and RhythmAndFeel pass, VoiceLeading fails: score ~= 66.7, threshold 50.
         CriticVerdictSubmission submission = new([
             new(CriticDimension.ChordToneAdherence, true, null, null),
             new(CriticDimension.RhythmAndFeel, true, null, null),
@@ -153,7 +153,7 @@ public class CriticStepTests
     [Fact]
     public async Task ReviewCandidateTrackAsync_ScoreBelowThreshold_ReviewFails()
     {
-        // Only RhythmAndFeel (1) passes, the rest fail: score ~= 22.2, threshold 50.
+        // Only RhythmAndFeel passes, the rest fail: score ~= 33.3, threshold 50.
         CriticVerdictSubmission submission = new([
             new(CriticDimension.RhythmAndFeel, true, null, null),
             new(CriticDimension.ChordToneAdherence, false, "chord tones ignored", "maj"),

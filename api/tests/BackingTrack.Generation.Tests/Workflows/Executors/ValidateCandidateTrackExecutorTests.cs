@@ -21,11 +21,11 @@ public class ValidateCandidateTrackExecutorTests
         new(validateStepMock, Options.Create(new TrackGenerationWorkflowSettings { GenerationMaxAttempts = maxAttempts }),
             NullLogger<ValidateCandidateTrackExecutor>.Instance);
 
-    private static ValidateCandidateTrackInput CreateInput(CandidateTrack track, GenerationJob job, int attempts) =>
-        new(track, job, WorkflowTestFixtures.CreateMatchedStyle(), [], [], attempts);
+    private static ValidateCandidateTrackInput CreateInput(CandidateTrack track, GenerationJob job, int attempts, int criticAttempts = 1) =>
+        new(track, job, WorkflowTestFixtures.CreateMatchedStyle(), [], [], attempts, criticAttempts);
 
     [Fact]
-    public async Task HandleAsync_TrackIsValid_SendsPersistCandidateTrackInputCarryingAttemptsAndSendsNothingElse()
+    public async Task HandleAsync_TrackIsValid_SendsCriticInputCarryingAttemptsAndSendsNothingElse()
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         CandidateTrack track = new(16, [], [], []);
@@ -34,12 +34,13 @@ public class ValidateCandidateTrackExecutorTests
             .Returns(new TrackValidationResult(true, []));
         FakeWorkflowContext context = new();
 
-        await CreateExecutor(validateStepMock, maxAttempts: 5).HandleAsync(CreateInput(track, job, attempts: 2), context, CancellationToken.None);
+        await CreateExecutor(validateStepMock, maxAttempts: 5).HandleAsync(CreateInput(track, job, attempts: 2, criticAttempts: 1), context, CancellationToken.None);
 
-        PersistCandidateTrackInput sent = Assert.IsType<PersistCandidateTrackInput>(Assert.Single(context.SentMessages));
+        CriticInput sent = Assert.IsType<CriticInput>(Assert.Single(context.SentMessages));
         Assert.Same(track, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
-        Assert.Equal(2, sent.Attempts);
+        Assert.Equal(2, sent.ValidationAttempts);
+        Assert.Equal(1, sent.CriticAttempts);
         Assert.Empty(context.YieldedOutputs);
     }
 
@@ -60,7 +61,7 @@ public class ValidateCandidateTrackExecutorTests
         Assert.Same(track, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal([failure], sent.ValidationResult.Failures);
-        Assert.Equal(2, sent.Attempts);
+        Assert.Equal(2, sent.ValidationAttempts);
         Assert.Empty(context.YieldedOutputs);
     }
 
