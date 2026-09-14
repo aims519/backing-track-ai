@@ -41,9 +41,9 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
         string chordProgressionString = GenerateChordProgressionStringForPrompt(chords, scales);
         string prompt = GenerateRequestPrompt(keyRoot, tempo, timeSignatureBeatCount, timeSignatureBeatUnit, style, chordProgressionString);
         string criticReviewString = GenerateCriticReviewPrompt(previousAttempt, criticReview);
-        
+
         prompt += ("\n" + criticReviewString);
-        
+
         CandidateTrack track = await trackGenerationClient.GenerateTrackAsync(prompt, cancellationToken);
 
         // Length is derived from the request, not generated - the prompt tells the model to send 0.
@@ -97,7 +97,7 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
                {JsonSerializer.Serialize(previousAttempt, CandidateTrackJsonContext.Default.CandidateTrack)}
                """;
     }
-    
+
     private string GenerateCriticReviewPrompt(CandidateTrack previousAttempt,
         CriticFinalReview criticReview)
     {

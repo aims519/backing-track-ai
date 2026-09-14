@@ -27,8 +27,8 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
             {
                 logger.LogInformation("Critic review failed with score of {Score} and {Citations} citations. " +
                                       "Triggering new candidate track generation",
-                    review.Score,  review.Citations.Count);
-                logger.LogDebug("Citations:\n{Citations}",  string.Join('\n',  review.Citations.Select(c => $"{c.Dimension}: {c.Violation}")));
+                    review.Score, review.Citations.Count);
+                logger.LogDebug("Citations:\n{Citations}", string.Join('\n', review.Citations.Select(c => $"{c.Dimension}: {c.Violation}")));
 
                 int criticAttemptsUpdated = input.CriticAttempts + 1;
 
@@ -50,12 +50,12 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
                     CriticAttempts: criticAttemptsUpdated), cancellationToken);
                 return;
             }
-            
+
             // Critic review passed, persist the track
             logger.LogInformation("Critic review passed with score of {Score}", review.Score);
-            logger.LogDebug("Citations:\n{Citations}",  string.Join('\n',  review.Citations.Select(c => $"{c.Dimension}: {c.Violation}")));
-            
-            await context.SendMessageAsync(new PersistCandidateTrackInput(input.CandidateTrack,input.GenerationJob, input.ValidationAttempts, input.CriticAttempts), cancellationToken);
+            logger.LogDebug("Citations:\n{Citations}", string.Join('\n', review.Citations.Select(c => $"{c.Dimension}: {c.Violation}")));
+
+            await context.SendMessageAsync(new PersistCandidateTrackInput(input.CandidateTrack, input.GenerationJob, input.ValidationAttempts, input.CriticAttempts), cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -67,7 +67,7 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
             await context.YieldOutputAsync(new GenerationFailed(ex.Message), cancellationToken);
         }
     }
-    
+
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<CriticInput>(HandleAsync))

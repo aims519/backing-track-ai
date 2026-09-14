@@ -4,10 +4,11 @@ using BackingTrack.Generation.Steps.Types;
 
 namespace BackingTrack.Generation.Workflows.Inputs;
 
-public record CriticInput(CandidateTrack CandidateTrack, 
-    GenerationJob GenerationJob, 
-    MatchedStyle MatchedStyle, 
-    IReadOnlyList<MatchedChord> MatchedChords, 
+public record CriticInput(CandidateTrack CandidateTrack,
+    GenerationJob GenerationJob,
+    MatchedStyle MatchedStyle,
+    IReadOnlyList<MatchedChord> MatchedChords,
     IReadOnlyList<MatchedScale> MatchedScales,
     int ValidationAttempts,
-    int CriticAttempts) { }
+    int CriticAttempts)
+{ }

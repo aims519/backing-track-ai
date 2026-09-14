@@ -43,7 +43,7 @@ public class CriticStepTests
     }
 
     private static CriticStep CreateCriticStep(CriticVerdictSubmission submission, double passingScoreThreshold = 50d) =>
-        new(new StubCriticAiClient(submission), Options.Create(new CriticSettings { PassingScoreThreshold = passingScoreThreshold, MaxAttempts = 3}));
+        new(new StubCriticAiClient(submission), Options.Create(new CriticSettings { PassingScoreThreshold = passingScoreThreshold, MaxAttempts = 3 }));
 
     private static Task<CriticFinalReview> ReviewAsync(CriticStep criticStep) =>
         criticStep.ReviewCandidateTrackAsync(DummyTrack, DummyJob, DummyStyle, [], [], TestContext.Current.CancellationToken);

@@ -27,8 +27,8 @@ internal sealed class ValidateCandidateTrackExecutor(
 
             if (trackValidationResult.IsValid)
             {
-                await context.SendMessageAsync(new CriticInput(input.CandidateTrack, 
-                    input.GenerationJob, 
+                await context.SendMessageAsync(new CriticInput(input.CandidateTrack,
+                    input.GenerationJob,
                     input.MatchedStyle,
                     input.MatchedChords,
                     input.MatchedScales,

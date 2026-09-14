@@ -18,10 +18,11 @@ internal sealed class GenerateCandidateTrackExecutor(
     {
         GenerationJob generationJob = input.GenerationJob;
         Guid jobId = input.GenerationJob.Id;
-        
+
         CandidateTrack candidateTrack;
         try
-        { if (input.CriticReview is null && input.PreviousAttempt is null)
+        {
+            if (input.CriticReview is null && input.PreviousAttempt is null)
             {
                 logger.LogInformation("Job {Id} generating a candidate track...", jobId);
                 candidateTrack = await generateStep.GenerateCandidateTrackAsync(generationJob.KeyRoot,

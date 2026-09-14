@@ -17,7 +17,7 @@ public interface IGenerateStep
         CandidateTrack? previousAttempt = null,
         IReadOnlyList<ValidationFailure>? previousAttemptFailures = null,
         CancellationToken cancellationToken = default);
-    
+
     Task<CandidateTrack> GenerateCandidateTrackWithCriticReviewAsync(string keyRoot,
         int tempo,
         int timeSignatureBeatCount,
