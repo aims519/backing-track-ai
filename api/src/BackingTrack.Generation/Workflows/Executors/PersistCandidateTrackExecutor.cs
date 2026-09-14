@@ -43,12 +43,12 @@ internal sealed class PersistCandidateTrackExecutor(
         catch (Exception ex)
         {
             logger.LogError(ex, "Job {Id} failed to persist the candidate track", input.GenerationJob.Id);
-            await context.YieldOutputAsync(new GenerationFailed(ex.Message, input.Attempts), cancellationToken);
+            await context.YieldOutputAsync(new GenerationFailed(ex.Message, input.ValidationAttempts), cancellationToken);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             return;
         }
 
-        await context.YieldOutputAsync(new GenerationSucceeded(trackId, input.CandidateTrack, input.Attempts), cancellationToken);
+        await context.YieldOutputAsync(new GenerationSucceeded(trackId, input.CandidateTrack, input.ValidationAttempts), cancellationToken);
     }
 
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>

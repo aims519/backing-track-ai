@@ -6,4 +6,5 @@ using BackingTrack.Generation.Steps.Types;
 namespace BackingTrack.Generation.Workflows.Inputs;
 
 public record RepairCandidateTrackInput(CandidateTrack CandidateTrack, TrackValidationResult ValidationResult, GenerationJob GenerationJob,
-    MatchedStyle MatchedStyle, IReadOnlyList<MatchedChord> MatchedChords, IReadOnlyList<MatchedScale> MatchedScales, int Attempts);
+    MatchedStyle MatchedStyle, IReadOnlyList<MatchedChord> MatchedChords, IReadOnlyList<MatchedScale> MatchedScales, int ValidationAttempts,
+    int CriticAttempts);

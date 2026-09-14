@@ -67,9 +67,9 @@ public class CriticStep(ICriticAiClient criticAiClient, IOptions<CriticSettings>
     {
         return dimension switch
         {
-            CriticDimension.ChordToneAdherence => 2d,
+            CriticDimension.ChordToneAdherence => 1d,
             CriticDimension.RhythmAndFeel => 1d,
-            CriticDimension.VoiceLeading => 1.5d,
+            CriticDimension.VoiceLeading => 1d,
             _ => throw new ArgumentOutOfRangeException(nameof(dimension), dimension, $"No scoring weight defined for {dimension}")
         };
     }

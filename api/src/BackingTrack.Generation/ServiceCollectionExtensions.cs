@@ -72,6 +72,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<GenerateCandidateTrackExecutor>();
         services.AddScoped<ValidateCandidateTrackExecutor>();
         services.AddScoped<RepairCandidateTrackExecutor>();
+        services.AddScoped<CriticExecutor>();
         services.AddScoped<PersistCandidateTrackExecutor>();
 
         return services;

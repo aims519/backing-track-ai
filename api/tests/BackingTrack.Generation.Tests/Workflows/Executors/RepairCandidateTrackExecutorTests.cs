@@ -18,8 +18,8 @@ public class RepairCandidateTrackExecutorTests
     private static RepairCandidateTrackExecutor CreateExecutor(IRepairStep repairStepMock) =>
         new(repairStepMock, NullLogger<RepairCandidateTrackExecutor>.Instance);
 
-    private static RepairCandidateTrackInput CreateInput(CandidateTrack track, GenerationJob job, IReadOnlyList<ValidationFailure> failures, int attempts) =>
-        new(track, new TrackValidationResult(false, failures), job, WorkflowTestFixtures.CreateMatchedStyle(), [], [], attempts);
+    private static RepairCandidateTrackInput CreateInput(CandidateTrack track, GenerationJob job, IReadOnlyList<ValidationFailure> failures, int attempts, int criticAttempts = 1) =>
+        new(track, new TrackValidationResult(false, failures), job, WorkflowTestFixtures.CreateMatchedStyle(), [], [], attempts, criticAttempts);
 
     [Fact]
     public async Task HandleAsync_RepairSucceeds_SendsValidateCandidateTrackInputWithIncrementedAttempts()
@@ -37,7 +37,7 @@ public class RepairCandidateTrackExecutorTests
         ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(repairedTrack, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
-        Assert.Equal(3, sent.Attempts);
+        Assert.Equal(3, sent.ValidationAttempts);
         Assert.Empty(context.YieldedOutputs);
     }
 

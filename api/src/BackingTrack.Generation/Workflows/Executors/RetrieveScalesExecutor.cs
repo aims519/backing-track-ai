@@ -41,7 +41,7 @@ internal sealed class RetrieveScalesExecutor(
             logger.LogInformation("Job {Id} found matching scales: {ScalesString}", input.GenerationJob.Id,
                 string.Join(',', matchingScaleEntries.Select(s => $"{s.Chord.Root}{s.ScaleEntry.Id}/{s.Chord.Root}{s.Chord.ChordEntry.Id}")));
 
-        await context.SendMessageAsync(new GenerateCandidateTrackInput(input.GenerationJob, input.MatchedStyle, input.MatchedChords, matchingScaleEntries), cancellationToken);
+        await context.SendMessageAsync(new GenerateCandidateTrackInput(input.GenerationJob, input.MatchedStyle, input.MatchedChords, matchingScaleEntries, CriticAttempts: 1), cancellationToken);
     }
 
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>

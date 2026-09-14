@@ -26,7 +26,7 @@ public class PersistCandidateTrackExecutorTests
             CandidateTrack track = new(16, [], [], []);
             FakeWorkflowContext context = new();
 
-            await CreateExecutor(baseFolderPath).HandleAsync(new PersistCandidateTrackInput(track, job, 3), context, CancellationToken.None);
+            await CreateExecutor(baseFolderPath).HandleAsync(new PersistCandidateTrackInput(track, job, 3, 1), context, CancellationToken.None);
 
             GenerationSucceeded succeeded = Assert.IsType<GenerationSucceeded>(Assert.Single(context.YieldedOutputs));
             Assert.Same(track, succeeded.CandidateTrack);
@@ -56,7 +56,7 @@ public class PersistCandidateTrackExecutorTests
             CandidateTrack track = new(16, [], [], []);
             FakeWorkflowContext context = new();
 
-            await CreateExecutor(blockingFilePath).HandleAsync(new PersistCandidateTrackInput(track, job, 4), context, CancellationToken.None);
+            await CreateExecutor(blockingFilePath).HandleAsync(new PersistCandidateTrackInput(track, job, 4, 1), context, CancellationToken.None);
 
             GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
             Assert.Equal(4, failed.Attempts);

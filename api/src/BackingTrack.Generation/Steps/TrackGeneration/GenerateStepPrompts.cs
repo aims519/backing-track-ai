@@ -30,6 +30,10 @@ public static class GenerateStepPrompts
         Generate a set of MIDI instructions that can then be used by a playback client.
         The result should only use notes/rhythms as allowed by the user's request, i.e. using
         chord tones and notes in the allowed scales provided for each chord in the progression.
+        
+        If a previous attempt to generate a track failed a critic review, details of why the review failed will be 
+        provided after the main inputs. These issues should be taken into account when building the track to prevent
+        further failures.
 
         ## Output
         The output CandidateTrack should consist of:
