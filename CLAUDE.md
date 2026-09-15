@@ -46,6 +46,11 @@ documented once, deliberately, in this file.
 
 If applicable, link the PR to its Notion task. Match based on task name as order numbers can shift.
 
+Before opening a PR that touches API code, run `dotnet format api/BackingTrack.sln` and commit
+any changes it makes. CI runs `dotnet format whitespace api/BackingTrack.sln --verify-no-changes`
+(see `.github/workflows/verify.yml`) and fails the build on drift — catch it locally first rather
+than round-tripping through a failed CI run.
+
 ## Swift conventions
 
 Assume the reader knows SwiftUI. Comment the *why*, never the *what*:
