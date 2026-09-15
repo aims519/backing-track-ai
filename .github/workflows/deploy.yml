@@ -63,9 +63,11 @@ jobs:
 
   deploy:
     needs: publish
-    # Runs directly on the Mac host (not the ubuntu container publish used): Tailscale
-    # needs real network device access a plain container doesn't have, and SSH/curl
-    # here don't care what OS they're running on.
+    # Runs directly on the Mac host (not the ubuntu container publish used): SSH/curl
+    # here don't care what OS they're running on. No Tailscale connect step needed —
+    # unlike the old ephemeral GitHub-hosted runner, this Mac is itself a persistent
+    # tailnet node (see the launchd-installed self-hosted runner setup), so it can
+    # already reach the Pi directly.
     runs-on: [self-hosted, macOS]
     steps:
       - name: Download publish output
@@ -73,13 +75,6 @@ jobs:
         with:
           name: api-publish-${{ github.sha }}
           path: ${{ env.PUBLISH_DIR }}
-
-      - name: Connect to Tailscale
-        uses: tailscale/github-action@v4
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
 
       - name: Write deploy key
         run: |
