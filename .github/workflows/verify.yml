@@ -9,7 +9,10 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-24.04
+    # Self-hosted (see ios-ci.yml for why) on an ubuntu container, so this job keeps
+    # behaving like a Linux CI runner regardless of the host Mac underneath it.
+    runs-on: [self-hosted, macOS]
+    container: ubuntu:24.04
     steps:
       - uses: actions/checkout@v7
 
@@ -19,13 +22,11 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: Install AOT prerequisites
-        # check-aot.sh publishes for the host RID (linux-x64), so it needs only the
-        # native linker (clang) — not the aarch64 cross toolchain that deploy.yml
-        # installs for its linux-arm64 publish. clang matches deploy.yml; zlib1g-dev
-        # is already on the ubuntu-24.04 image.
+        # check-aot.sh publishes for the host RID, so it needs only the native linker
+        # (clang) — not a cross toolchain. Container steps run as root, so no sudo.
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang
+          apt-get update
+          apt-get install -y clang
 
       - name: Restore
         run: dotnet restore api/BackingTrack.sln
@@ -72,4 +73,6 @@ jobs:
         run: dotnet format whitespace api/BackingTrack.sln --verify-no-changes --no-restore
 
       - name: Native AOT publish check
-        run: scripts/check-aot.sh linux-x64
+        # No explicit RID: auto-detects the container's host RID (currently
+        # linux-arm64, since the self-hosted Mac is Apple Silicon).
+        run: scripts/check-aot.sh

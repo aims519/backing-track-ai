@@ -1,9 +1,9 @@
 name: iOS CI
 
-# Build/test gate for app/. Kept as a separate workflow from api-ci.yml (the api/ pipeline):
-# this needs a macOS runner, which GitHub bills at a 10x minute multiplier on private
-# repos (vs. the ubuntu-24.04 runner api-ci.yml uses) — worth keeping isolated and
-# path-filtered so it only runs when app/ actually changes.
+# Build/test gate for app/. Kept as a separate workflow from api-ci.yml (the api/ pipeline)
+# since it needs a macOS runner. Runs on a self-hosted runner: GitHub-hosted macOS runners
+# bill at a 10x minute multiplier on private repos, which exhausted the free tier.
+# Path-filtered so it only runs when app/ actually changes.
 
 on:
   pull_request:
@@ -23,12 +23,10 @@ concurrency:
 
 jobs:
   verify:
-    # Pinned rather than macos-latest: GitHub's hosted macOS images bundle specific
-    # Xcode + simulator runtime versions, and an unpinned runner can silently change
-    # which iOS simulator versions are available out from under this workflow.
-    # Revisit this pin's Xcode version against project.yml's deploymentTarget (18.0)
-    # periodically — see https://github.com/actions/runner-images for what's bundled.
-    runs-on: macos-15
+    # Self-hosted: whatever Xcode + simulators are installed on this Mac. Unlike a
+    # GitHub-hosted image, that's under our own control — keep it updated deliberately
+    # rather than having it change out from under this workflow on GitHub's schedule.
+    runs-on: [self-hosted, macOS]
 
     steps:
       - uses: actions/checkout@v7
