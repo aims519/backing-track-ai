@@ -21,33 +21,38 @@ jobs:
 
   publish:
     needs: verify
-    # Same self-hosted-on-ubuntu-container approach as verify.yml. The self-hosted Mac
-    # is Apple Silicon, so this is now a *native* linux-arm64 build (matches the Pi) —
-    # no arm64 cross toolchain or ObjCopyName override needed, unlike the old x64
+    # Same self-hosted + docker-exec approach as verify.yml (GitHub's `container:` key
+    # isn't supported on macOS runners). The self-hosted Mac is Apple Silicon, so
+    # linux/arm64 is a *native* container target here, matching the Pi — no arm64
+    # cross toolchain or ObjCopyName override needed, unlike the old x64
     # GitHub-hosted runner this replaced.
     runs-on: [self-hosted, macOS]
-    container: ubuntu:24.04
+    env:
+      CI_CONTAINER: publish-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup .NET 10 SDK
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
+      - name: Start Linux build container
+        run: |
+          docker run -d --name "$CI_CONTAINER" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            mcr.microsoft.com/dotnet/sdk:10.0 sleep infinity
 
       - name: Install AOT prerequisites
-        run: |
-          apt-get update
-          apt-get install -y clang
+        run: docker exec "$CI_CONTAINER" bash -c "apt-get update && apt-get install -y clang"
 
       - name: Publish Native AOT (linux-arm64)
         run: |
-          dotnet publish api/src/BackingTrack.Api \
+          docker exec "$CI_CONTAINER" dotnet publish api/src/BackingTrack.Api \
             -c Release \
             -r linux-arm64 \
             -p:PublishAot=true \
             --self-contained \
-            -o "./$PUBLISH_DIR"
+            -o "/workspace/$PUBLISH_DIR"
+
+      - name: Stop Linux build container
+        if: always()
+        run: docker rm -f "$CI_CONTAINER" || true
 
       - name: Upload publish output
         uses: actions/upload-artifact@v7

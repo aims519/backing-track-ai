@@ -9,50 +9,58 @@ on:
 
 jobs:
   verify:
-    # Self-hosted (see ios-ci.yml for why) on an ubuntu container, so this job keeps
-    # behaving like a Linux CI runner regardless of the host Mac underneath it.
+    # Self-hosted (see ios-ci.yml for why). GitHub's job-level `container:` key needs a
+    # Linux *runner OS* and errors out on a macOS self-hosted runner even with Docker
+    # installed ("Container operations are only supported on Linux runners") — so this
+    # drives a Linux container by hand via `docker exec` instead, to keep behaving like
+    # the Linux CI environment the rest of this file assumes.
     runs-on: [self-hosted, macOS]
-    container: ubuntu:24.04
+    env:
+      # mcr.microsoft.com/dotnet/sdk:10.0 already bundles the SDK, so no separate
+      # actions/setup-dotnet step is needed (that action targets the runner OS
+      # directly, not a container we're driving manually).
+      CI_CONTAINER: verify-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup .NET 10 SDK
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
+      - name: Start Linux build container
+        run: |
+          docker run -d --name "$CI_CONTAINER" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            mcr.microsoft.com/dotnet/sdk:10.0 sleep infinity
 
       - name: Install AOT prerequisites
         # check-aot.sh publishes for the host RID, so it needs only the native linker
-        # (clang) — not a cross toolchain. Container steps run as root, so no sudo.
-        run: |
-          apt-get update
-          apt-get install -y clang
+        # (clang) — not a cross toolchain.
+        run: docker exec "$CI_CONTAINER" bash -c "apt-get update && apt-get install -y clang"
 
       - name: Restore
-        run: dotnet restore api/BackingTrack.sln
+        run: docker exec "$CI_CONTAINER" dotnet restore api/BackingTrack.sln
 
       - name: Build
         # Directory.Build.props sets TreatWarningsAsErrors + EnforceCodeStyleInBuild,
         # so analyzer and code-style violations fail here.
-        run: dotnet build api/BackingTrack.sln -c Release --no-restore
+        run: docker exec "$CI_CONTAINER" dotnet build api/BackingTrack.sln -c Release --no-restore
 
       - name: Test
         run: >
-          dotnet test --solution api/BackingTrack.sln -c Release --no-build
+          docker exec "$CI_CONTAINER" dotnet test --solution api/BackingTrack.sln -c Release --no-build
           --report-trx --coverage --coverage-output-format cobertura
-          --results-directory "$GITHUB_WORKSPACE/TestResults"
+          --results-directory /workspace/TestResults
 
       - name: Coverage report
         if: always()
-        # Collector emits one XML file per project, e.g. /TestResults/<guid>.cobertura.xml. 
-        # The report generator merges them and creates a summaryPush 
+        # Collector emits one XML file per project, e.g. /TestResults/<guid>.cobertura.xml.
+        # The report generator merges them and creates a summary.
         run: |
-          dotnet tool install --global dotnet-reportgenerator-globaltool
-          export PATH="$PATH:$HOME/.dotnet/tools"
-          reportgenerator \
-            -reports:"$GITHUB_WORKSPACE/TestResults/*.cobertura.xml" \
-            -targetdir:"$GITHUB_WORKSPACE/TestResults/CoverageReport" \
-            -reporttypes:"MarkdownSummaryGithub;HtmlInline_AzurePipelines"
+          docker exec "$CI_CONTAINER" bash -c '
+            dotnet tool install --global dotnet-reportgenerator-globaltool
+            export PATH="$PATH:$HOME/.dotnet/tools"
+            reportgenerator \
+              -reports:/workspace/TestResults/*.cobertura.xml \
+              -targetdir:/workspace/TestResults/CoverageReport \
+              -reporttypes:"MarkdownSummaryGithub;HtmlInline_AzurePipelines"
+          '
           cat "$GITHUB_WORKSPACE/TestResults/CoverageReport/SummaryGithub.md" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload test results
@@ -70,9 +78,13 @@ jobs:
         # Whitespace only — style and analyzer rules are already build errors here
         # (EnforceCodeStyleInBuild + TreatWarningsAsErrors), and AOT is covered by
         # the publish check below. `dotnet build` never inspects whitespace.
-        run: dotnet format whitespace api/BackingTrack.sln --verify-no-changes --no-restore
+        run: docker exec "$CI_CONTAINER" dotnet format whitespace api/BackingTrack.sln --verify-no-changes --no-restore
 
       - name: Native AOT publish check
         # No explicit RID: auto-detects the container's host RID (currently
         # linux-arm64, since the self-hosted Mac is Apple Silicon).
-        run: scripts/check-aot.sh
+        run: docker exec "$CI_CONTAINER" scripts/check-aot.sh
+
+      - name: Stop Linux build container
+        if: always()
+        run: docker rm -f "$CI_CONTAINER" || true
