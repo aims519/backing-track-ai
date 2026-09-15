@@ -1,10 +1,6 @@
-using Anthropic.Models.Beta.Deployments;
-
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Types;
-
-using Microsoft.Agents.AI;
 
 namespace BackingTrack.Generation.Steps.TrackValidation;
 
