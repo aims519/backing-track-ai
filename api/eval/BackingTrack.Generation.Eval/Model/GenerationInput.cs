@@ -10,6 +10,7 @@ public sealed record GenerationInput
     public required int Tempo { get; init; }
     public required IReadOnlyList<string> Chords { get; init; }
     public required string KeyRoot { get; init; }
+    public string KeyMode { get; init; } = "Ionian";
     public required string Style { get; init; }
     public int TimeSignatureBeatCount { get; init; } = 4;
     public int TimeSignatureBeatUnit { get; init; } = 4;

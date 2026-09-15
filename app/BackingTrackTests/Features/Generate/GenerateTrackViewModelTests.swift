@@ -82,6 +82,7 @@ struct GenerateTrackViewModelTests {
     @Test func buildRequestMapsFormStateOntoTheApiContract() {
         let model = GenerateTrackViewModel()
         model.keyRoot = .g
+        model.keyMode = .dorian
         model.tempo = 132.6
         model.timeSignature = TimeSignature(beatCount: 6, beatUnit: 8)
         model.selectedStyle = .jazz
@@ -95,6 +96,7 @@ struct GenerateTrackViewModelTests {
         #expect(request.mode == "Precise")
         #expect(request.tempo == 133) // slider Double rounded to whole BPM
         #expect(request.keyRoot == "G")
+        #expect(request.keyMode == "Dorian")
         #expect(request.chords == ["G", "Emin7", "Amin", "D7"])
         #expect(request.timeSignatureBeatCount == 6)
         #expect(request.timeSignatureBeatUnit == 8)
@@ -269,6 +271,7 @@ struct GenerateTrackViewModelTests {
             tempo: 96,
             chordSymbols: ["G", "Emin7", "Amin", "D7"],
             keyRoot: "G",
+            keyMode: "Dorian",
             timeSignatureBeatCount: 6,
             timeSignatureBeatUnit: 8,
             style: "Jazz - laid back"
@@ -278,6 +281,7 @@ struct GenerateTrackViewModelTests {
 
         #expect(model.mode == .precise)
         #expect(model.keyRoot == .g)
+        #expect(model.keyMode == .dorian)
         #expect(model.tempo == 96)
         #expect(model.timeSignature == TimeSignature(beatCount: 6, beatUnit: 8))
         #expect(model.chords.map(\.apiSymbol) == ["G", "Emin7", "Amin", "D7"])
@@ -290,6 +294,7 @@ struct GenerateTrackViewModelTests {
     @Test func applyReproducesTheOriginalRequestForACleanRow() {
         let original = GenerateTrackViewModel()
         original.keyRoot = .d
+        original.keyMode = .mixolydian
         original.tempo = 140
         original.timeSignature = .fourFour
         original.selectedStyle = .funk
@@ -301,6 +306,7 @@ struct GenerateTrackViewModelTests {
             tempo: request.tempo,
             chordSymbols: request.chords,
             keyRoot: request.keyRoot,
+            keyMode: request.keyMode,
             timeSignatureBeatCount: request.timeSignatureBeatCount,
             timeSignatureBeatUnit: request.timeSignatureBeatUnit,
             style: request.style

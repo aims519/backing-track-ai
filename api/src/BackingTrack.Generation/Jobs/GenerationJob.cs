@@ -12,6 +12,8 @@ public sealed record GenerationJob
     public required int Tempo { get; init; }
     public required IReadOnlyList<string> Chords { get; init; }
     public required string KeyRoot { get; init; }
+    public required KeyMode KeyMode { get; init; }
+    public IReadOnlyList<string> KeyModeWarnings { get; init; } = [];
     public required string Style { get; init; }
 
     public required int TimeSignatureBeatCount { get; init; }
@@ -22,4 +24,15 @@ public enum GenerationMode
 {
     Precise,
     Vibe
+}
+
+public enum KeyMode
+{
+    Ionian,
+    Dorian,
+    Phrygian,
+    Lydian,
+    Mixolydian,
+    Aeolian,
+    Locrian
 }

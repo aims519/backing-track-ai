@@ -40,6 +40,9 @@ final class JobHistoryEntry {
     var tempo: Int
     var chordSymbols: [String]
     var keyRoot: String
+    /// Defaulted for the SwiftData lightweight migration — rows written before `KeyMode` existed
+    /// have no value on disk, and every job before it existed was implicitly major.
+    var keyMode: String = "Ionian"
     var timeSignatureBeatCount: Int
     var timeSignatureBeatUnit: Int
     var style: String
@@ -77,6 +80,7 @@ final class JobHistoryEntry {
         tempo: Int,
         chordSymbols: [String],
         keyRoot: String,
+        keyMode: String = "Ionian",
         timeSignatureBeatCount: Int,
         timeSignatureBeatUnit: Int,
         style: String,
@@ -92,6 +96,7 @@ final class JobHistoryEntry {
         self.tempo = tempo
         self.chordSymbols = chordSymbols
         self.keyRoot = keyRoot
+        self.keyMode = keyMode
         self.timeSignatureBeatCount = timeSignatureBeatCount
         self.timeSignatureBeatUnit = timeSignatureBeatUnit
         self.style = style
@@ -151,6 +156,7 @@ extension JobHistoryEntry {
         tempo: Int = 120,
         chordSymbols: [String] = ["C", "Amin", "F", "G7"],
         keyRoot: String = "C",
+        keyMode: String = "Ionian",
         timeSignatureBeatCount: Int = 4,
         timeSignatureBeatUnit: Int = 4,
         style: String = "Blues - slow, brushes",
@@ -167,6 +173,7 @@ extension JobHistoryEntry {
             tempo: tempo,
             chordSymbols: chordSymbols,
             keyRoot: keyRoot,
+            keyMode: keyMode,
             timeSignatureBeatCount: timeSignatureBeatCount,
             timeSignatureBeatUnit: timeSignatureBeatUnit,
             style: style,

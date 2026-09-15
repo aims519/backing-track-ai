@@ -178,17 +178,31 @@ struct GenerateTrackView: View {
 
     private var keyCard: some View {
         SectionCard(
-            "Key Root",
-            footer: Text("The tonal centre. Major or minor isn't sent separately — your chords imply it.")
+            "Key",
+            footer: Text("The tonal centre your chords and scales are validated against.")
         ) {
-            CardRow("Key Root") {
-                Picker("Key Root", selection: $model.keyRoot) {
-                    ForEach(NoteName.allCases) { note in
-                        Text(note.displayName).tag(note)
+            VStack(spacing: 0) {
+                CardRow("Key Root") {
+                    Picker("Key Root", selection: $model.keyRoot) {
+                        ForEach(NoteName.allCases) { note in
+                            Text(note.displayName).tag(note)
+                        }
                     }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
                 }
-                .labelsHidden()
-                .pickerStyle(.menu)
+
+                Divider().padding(.leading, 16)
+
+                CardRow("Key Mode") {
+                    Picker("Key Mode", selection: $model.keyMode) {
+                        ForEach(KeyMode.allCases) { mode in
+                            Text(mode.displayName).tag(mode)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                }
             }
         }
     }

@@ -28,7 +28,7 @@ struct HistoryDetailView: View {
     private var trackSummaryCard: some View {
         SectionCard("Request") {
             VStack(spacing: 0) {
-                summaryRow("Key Root", entry.keyRoot)
+                summaryRow("Key", "\(entry.keyRoot) \(entry.keyMode)")
                 rowDivider
                 summaryRow("Tempo", "\(entry.tempo) BPM")
                 rowDivider

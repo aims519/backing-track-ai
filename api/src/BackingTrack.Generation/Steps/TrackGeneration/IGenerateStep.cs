@@ -1,3 +1,4 @@
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Critic;
 using BackingTrack.Generation.Steps.TrackValidation;
@@ -8,6 +9,7 @@ namespace BackingTrack.Generation.Steps.TrackGeneration;
 public interface IGenerateStep
 {
     Task<CandidateTrack> GenerateCandidateTrackAsync(string keyRoot,
+        KeyMode keyMode,
         int tempo,
         int timeSignatureBeatCount,
         int timeSignatureBeatUnit,
@@ -19,6 +21,7 @@ public interface IGenerateStep
         CancellationToken cancellationToken = default);
 
     Task<CandidateTrack> GenerateCandidateTrackWithCriticReviewAsync(string keyRoot,
+        KeyMode keyMode,
         int tempo,
         int timeSignatureBeatCount,
         int timeSignatureBeatUnit,

@@ -26,6 +26,7 @@ public class CriticAiClientTests
         Tempo = 120,
         Chords = ["C"],
         KeyRoot = "C",
+        KeyMode = KeyMode.Ionian,
         Style = "rock",
         TimeSignatureBeatCount = 4,
         TimeSignatureBeatUnit = 4

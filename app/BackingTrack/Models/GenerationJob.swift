@@ -24,6 +24,10 @@ struct GenerationJob: Decodable, Hashable, Sendable {
     let tempo: Int
     let chords: [String]
     let keyRoot: String
+    let keyMode: String
+    /// Chords whose own notes fall outside the declared key/mode — advisory only, generation
+    /// still proceeds (`ScaleMatcher.GetChordsOutsideKey`). Empty when everything fits.
+    let keyModeWarnings: [String]
     let timeSignatureBeatCount: Int
     let timeSignatureBeatUnit: Int
 }
@@ -48,6 +52,8 @@ extension GenerationJob {
             tempo: 120,
             chords: ["C", "Amin", "F", "G"],
             keyRoot: "C",
+            keyMode: "Ionian",
+            keyModeWarnings: [],
             timeSignatureBeatCount: 4,
             timeSignatureBeatUnit: 4
         )

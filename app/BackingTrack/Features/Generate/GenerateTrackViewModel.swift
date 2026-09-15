@@ -25,6 +25,7 @@ final class GenerateTrackViewModel {
 
     var mode: GenerationMode = .precise
     var keyRoot: NoteName = .c
+    var keyMode: KeyMode = .ionian
     var chords: [Chord] = []
     /// Slider-friendly `Double`; rounded to a whole BPM when the request is built.
     var tempo: Double = 120
@@ -91,6 +92,7 @@ final class GenerateTrackViewModel {
             tempo: Int(tempo.rounded()),
             chords: chords.map(\.apiSymbol),
             keyRoot: keyRoot.rawValue,
+            keyMode: keyMode.apiValue,
             style: composedStyle,
             timeSignatureBeatCount: timeSignature.beatCount,
             timeSignatureBeatUnit: timeSignature.beatUnit
@@ -153,6 +155,7 @@ final class GenerateTrackViewModel {
     func apply(entry: JobHistoryEntry) {
         mode = GenerationMode(rawValue: entry.mode.lowercased()) ?? .precise
         keyRoot = NoteName(rawValue: entry.keyRoot) ?? .c
+        keyMode = KeyMode(rawValue: entry.keyMode.lowercased()) ?? .ionian
         tempo = Double(entry.tempo)
         timeSignature = TimeSignature(
             beatCount: entry.timeSignatureBeatCount,

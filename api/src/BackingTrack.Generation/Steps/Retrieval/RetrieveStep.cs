@@ -1,3 +1,4 @@
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Types;
@@ -16,13 +17,13 @@ public class RetrieveStep(InMemoryVectorStore vectorStore, IQueryEmbeddingServic
         return new(results.FirstOrDefault().Entry);
     }
 
-    public IReadOnlyList<MatchedScale> RetrieveMatchingScales(string keyRoot, IReadOnlyList<MatchedChord> chords, CancellationToken cancellationToken = default)
+    public IReadOnlyList<MatchedScale> RetrieveMatchingScales(string keyRoot, KeyMode keyMode, IReadOnlyList<MatchedChord> chords, CancellationToken cancellationToken = default)
     {
         IReadOnlyList<ScaleEntry> allScaleEntries = vectorStore.Items.Where(i => i.Entry is ScaleEntry)
             .Select(i => (ScaleEntry)i.Entry)
             .ToList();
 
-        IReadOnlyList<MatchedScale> matchingScaleEntries = scaleMatcher.FindMatchingScalesForChords(keyRoot, chords, allScaleEntries);
+        IReadOnlyList<MatchedScale> matchingScaleEntries = scaleMatcher.FindMatchingScalesForChords(keyRoot, keyMode, chords, allScaleEntries);
 
         return matchingScaleEntries;
     }

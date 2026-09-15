@@ -1,3 +1,4 @@
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.TrackGeneration;
@@ -35,7 +36,7 @@ public class GenerateStepTests
         MatchedStyle style = new(new StyleEntry { Id = "rock", Description = "Rock" });
 
         CandidateTrack result = await generateStep.GenerateCandidateTrackAsync(
-            keyRoot: "C", tempo: 120, timeSignatureBeatCount: 4, timeSignatureBeatUnit: 4,
+            keyRoot: "C", keyMode: KeyMode.Ionian, tempo: 120, timeSignatureBeatCount: 4, timeSignatureBeatUnit: 4,
             style: style, chords: chords, scales: [],
             cancellationToken: TestContext.Current.CancellationToken);
 

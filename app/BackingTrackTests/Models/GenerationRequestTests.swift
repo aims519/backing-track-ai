@@ -13,6 +13,7 @@ struct GenerationRequestTests {
             tempo: 120,
             chords: ["C", "Amin", "F", "G7"],
             keyRoot: "C",
+            keyMode: "Ionian",
             style: "rock",
             timeSignatureBeatCount: 4,
             timeSignatureBeatUnit: 4
@@ -23,7 +24,7 @@ struct GenerationRequestTests {
 
         #expect(
             Set(json.keys) == [
-                "Mode", "Tempo", "Chords", "KeyRoot", "Style",
+                "Mode", "Tempo", "Chords", "KeyRoot", "KeyMode", "Style",
                 "TimeSignatureBeatCount", "TimeSignatureBeatUnit",
             ]
         )

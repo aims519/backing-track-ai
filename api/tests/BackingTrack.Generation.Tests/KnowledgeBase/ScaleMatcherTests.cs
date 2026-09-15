@@ -1,3 +1,4 @@
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Types;
 
@@ -149,7 +150,7 @@ public class ScaleMatcherTests
         ScaleMatcher scaleMatcher = new();
 
         IReadOnlyList<MatchedScale> results = scaleMatcher.FindMatchingScalesForChords(
-            "C", [new MatchedChord(Min7ChordEntry, "D")], AllScales);
+            "C", KeyMode.Ionian, [new MatchedChord(Min7ChordEntry, "D")], AllScales);
 
         List<string> ids = results.Select(s => s.ScaleEntry.Id).ToList();
         Assert.Contains("dorian", ids);
@@ -168,7 +169,7 @@ public class ScaleMatcherTests
         ScaleMatcher scaleMatcher = new();
 
         IReadOnlyList<MatchedScale> results = scaleMatcher.FindMatchingScalesForChords(
-            "C", [new MatchedChord(Dom7ChordEntry, "G")], AllScales);
+            "C", KeyMode.Ionian, [new MatchedChord(Dom7ChordEntry, "G")], AllScales);
 
         List<string> ids = results.Select(s => s.ScaleEntry.Id).ToList();
         Assert.Contains("mixolydian", ids);
@@ -184,7 +185,7 @@ public class ScaleMatcherTests
         ScaleMatcher scaleMatcher = new();
 
         IReadOnlyList<MatchedScale> results = scaleMatcher.FindMatchingScalesForChords(
-            "C", [new MatchedChord(Maj7ChordEntry, "C")], AllScales);
+            "C", KeyMode.Ionian, [new MatchedChord(Maj7ChordEntry, "C")], AllScales);
 
         List<string> ids = results.Select(s => s.ScaleEntry.Id).ToList();
         Assert.Contains("major", ids);
@@ -205,7 +206,7 @@ public class ScaleMatcherTests
         MatchedChord cMaj7 = new(Maj7ChordEntry, "C");
 
         IReadOnlyList<MatchedScale> results = scaleMatcher.FindMatchingScalesForChords(
-            "C", [dMin7, gDom7, cMaj7], AllScales);
+            "C", KeyMode.Ionian, [dMin7, gDom7, cMaj7], AllScales);
 
         List<(string ScaleId, string ChordRoot)> matches = results
             .Select(m => (m.ScaleEntry.Id, m.Chord.Root))
@@ -227,7 +228,7 @@ public class ScaleMatcherTests
         ScaleMatcher scaleMatcher = new();
 
         IReadOnlyList<MatchedScale> results = scaleMatcher.FindMatchingScalesForChords(
-            "C", [new MatchedChord(MajChordEntry, "F#")], AllScales);
+            "C", KeyMode.Ionian, [new MatchedChord(MajChordEntry, "F#")], AllScales);
 
         Assert.Empty(results);
     }
@@ -238,7 +239,7 @@ public class ScaleMatcherTests
         ScaleMatcher scaleMatcher = new();
 
         Assert.Throws<ArgumentException>(() =>
-            scaleMatcher.FindMatchingScalesForChords("C", [new MatchedChord(MajChordEntry, "H")], AllScales));
+            scaleMatcher.FindMatchingScalesForChords("C", KeyMode.Ionian, [new MatchedChord(MajChordEntry, "H")], AllScales));
     }
 
     [Fact]
@@ -247,7 +248,7 @@ public class ScaleMatcherTests
         ScaleMatcher scaleMatcher = new();
 
         Assert.Throws<ArgumentException>(() =>
-            scaleMatcher.FindMatchingScalesForChords("H", [new MatchedChord(MajChordEntry, "C")], AllScales));
+            scaleMatcher.FindMatchingScalesForChords("H", KeyMode.Ionian, [new MatchedChord(MajChordEntry, "C")], AllScales));
     }
 
     [Fact]
@@ -261,7 +262,7 @@ public class ScaleMatcherTests
         MatchedChord dMin7Second = new(Min7ChordEntry, "D");
 
         IReadOnlyList<MatchedScale> results = scaleMatcher.FindMatchingScalesForChords(
-            "C", [dMin7First, dMin7Second], AllScales);
+            "C", KeyMode.Ionian, [dMin7First, dMin7Second], AllScales);
 
         Assert.Single(results, m => m.ScaleEntry.Id == "dorian" && m.Chord.Root == "D");
     }

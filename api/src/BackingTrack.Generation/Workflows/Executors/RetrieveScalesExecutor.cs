@@ -19,6 +19,7 @@ internal sealed class RetrieveScalesExecutor(
         try
         {
             matchingScaleEntries = retrieveStep.RetrieveMatchingScales(input.GenerationJob.KeyRoot,
+                    input.GenerationJob.KeyMode,
                     input.MatchedChords,
                     cancellationToken)
                 .ToList();

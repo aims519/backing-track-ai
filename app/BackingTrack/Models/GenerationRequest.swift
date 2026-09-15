@@ -12,6 +12,7 @@ struct GenerationRequest: Codable, Hashable, Sendable {
     var tempo: Int
     var chords: [String]
     var keyRoot: String
+    var keyMode: String
     var style: String
     var timeSignatureBeatCount: Int
     var timeSignatureBeatUnit: Int
@@ -21,6 +22,7 @@ struct GenerationRequest: Codable, Hashable, Sendable {
         case tempo = "Tempo"
         case chords = "Chords"
         case keyRoot = "KeyRoot"
+        case keyMode = "KeyMode"
         case style = "Style"
         case timeSignatureBeatCount = "TimeSignatureBeatCount"
         case timeSignatureBeatUnit = "TimeSignatureBeatUnit"
