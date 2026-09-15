@@ -27,7 +27,7 @@ internal static class TrackEndpoints
         ValidationProblemDetails? validationProblemDetails = requestDto.Validate(chordSymbolParser);
         if (validationProblemDetails != null)
             return Results.BadRequest(validationProblemDetails);
-        
+
         // Validate chord choices up-front to warn the user
         KeyMode parsedKeyMode = Enum.Parse<KeyMode>(requestDto.KeyMode!);
         IReadOnlyList<MatchedChord> matchingChordsList = retrieveStep.RetrieveMatchingChords(requestDto.Chords!);

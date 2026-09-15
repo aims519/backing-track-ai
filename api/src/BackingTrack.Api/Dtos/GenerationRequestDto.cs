@@ -31,7 +31,7 @@ internal static class GenerationRequestDtoExtensions
 
         if (!Enum.TryParse<KeyMode>(request.KeyMode, out _))
             validationProblemDetails.Errors.Add(nameof(request.KeyMode), [$"Invalid KeyMode: {request.KeyMode}. Accepted values are {string.Join(',', Enum.GetNames<KeyMode>())}"]);
-        
+
         if (request.Tempo is < 40 or > 240)
             validationProblemDetails.Errors.Add(nameof(request.Tempo), [$"Tempo must be between 40 and 240 BPM, but was {request.Tempo}"
             ]);

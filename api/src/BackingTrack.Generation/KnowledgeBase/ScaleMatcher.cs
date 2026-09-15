@@ -38,13 +38,13 @@ public class ScaleMatcher
 
     private static readonly Dictionary<KeyMode, int[]> ModeIntervals = new()
     {
-        [KeyMode.Ionian]     = [0, 2, 4, 5, 7, 9, 11],
-        [KeyMode.Dorian]     = [0, 2, 3, 5, 7, 9, 10],
-        [KeyMode.Phrygian]   = [0, 1, 3, 5, 7, 8, 10],
-        [KeyMode.Lydian]     = [0, 2, 4, 6, 7, 9, 11],
+        [KeyMode.Ionian] = [0, 2, 4, 5, 7, 9, 11],
+        [KeyMode.Dorian] = [0, 2, 3, 5, 7, 9, 10],
+        [KeyMode.Phrygian] = [0, 1, 3, 5, 7, 8, 10],
+        [KeyMode.Lydian] = [0, 2, 4, 6, 7, 9, 11],
         [KeyMode.Mixolydian] = [0, 2, 4, 5, 7, 9, 10],
-        [KeyMode.Aeolian]    = [0, 2, 3, 5, 7, 8, 10],
-        [KeyMode.Locrian]    = [0, 1, 3, 5, 6, 8, 10],
+        [KeyMode.Aeolian] = [0, 2, 3, 5, 7, 8, 10],
+        [KeyMode.Locrian] = [0, 1, 3, 5, 6, 8, 10],
     };
 
     public int RootToPitchClass(string root) => PitchClasses.GetValueOrDefault(root, -1);
@@ -135,11 +135,11 @@ public class ScaleMatcher
             int chordPitchClass = RootToPitchClass(chord.Root);
             if (chordPitchClass == -1)
                 throw new ArgumentException("Pitch class not found", nameof(chord.Root));
-            
-            if(!IsScaleValidForChord(TransposeIntervalsByPitchClass(chordPitchClass, chord.ChordEntry.Intervals), keyDiatonicTones))
+
+            if (!IsScaleValidForChord(TransposeIntervalsByPitchClass(chordPitchClass, chord.ChordEntry.Intervals), keyDiatonicTones))
                 chordsOutsideKey.Add(chord);
         }
-        
+
         return chordsOutsideKey.ToList();
     }
 
