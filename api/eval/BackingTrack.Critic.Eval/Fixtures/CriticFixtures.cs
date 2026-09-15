@@ -1,3 +1,4 @@
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Critic;
 using BackingTrack.Generation.Steps.Types;
@@ -31,12 +32,30 @@ internal static class CriticFixtures
 
     private static readonly IReadOnlyList<int> BassRoots = [48, 45, 41, 43]; // C3, A2, F2, G2
 
+    // Amin7 - Dmin7 - Emin7 - Amin7, the modal progression from the production bug this KB
+    // context mirrors (job afceac62-9df3-41ae-850e-f47b8cecd615). Each chord gets the mode a
+    // correctly-modeled A Aeolian key implies: A=aeolian, D=dorian, E=phrygian (all modes of the
+    // same parent scale as A natural minor).
+    private static readonly MatchedChord AMin7 = Chord("min7", "A", [0, 3, 7, 10], "Minor 7th");
+    private static readonly MatchedChord DMin7 = Chord("min7", "D", [0, 3, 7, 10], "Minor 7th");
+    private static readonly MatchedChord EMin7 = Chord("min7", "E", [0, 3, 7, 10], "Minor 7th");
+    private static readonly IReadOnlyList<MatchedChord> ModalProgressionChords = [AMin7, DMin7, EMin7, AMin7];
+    private static readonly IReadOnlyList<MatchedScale> ModalProgressionScales =
+    [
+        Scale("aeolian", [0, 2, 3, 5, 7, 8, 10], "Natural minor scale", AMin7),
+        Scale("dorian", [0, 2, 3, 5, 7, 9, 10], "Dorian mode", DMin7),
+        Scale("phrygian", [0, 1, 3, 5, 7, 8, 10], "Phrygian mode", EMin7),
+        Scale("aeolian", [0, 2, 3, 5, 7, 8, 10], "Natural minor scale", AMin7)
+    ];
+    private static readonly IReadOnlyList<int> ModalBassRoots = [45, 38, 40, 45]; // A2, D2, E2, A2
+
     internal static IReadOnlyList<CriticFixture> All { get; } =
     [
         GoodBasicRockComping(),
         GoodVoiceLedTriads(),
+        GoodModalColorTonesFromMatchedScale(),
         FlawedStaticVoicingIgnoresProgression(),
-        FlawedChordVoicingsUseForeignTones(),
+        FlawedRootNeverEstablished(),
         FlawedMetronomicRhythm()
     ];
 
@@ -88,6 +107,34 @@ internal static class CriticFixtures
             ExpectedFailingDimensions: []);
     }
 
+    // Reproduces a false positive seen in manual testing after the KeyMode fix landed: each
+    // voicing adds one legitimate color tone from that bar's own MatchedScale (Dorian's raised
+    // 6th over Dmin7, the 9th over Amin7, the b9 over Emin7 - all drawn from the same parent-scale
+    // pool the modes share) on top of a correct min7 arpeggio. Before the ChordToneAdherence
+    // instructions mentioned MatchedScales, the critic cited these as tones "outside" the chord
+    // even though they're allowed by the scale matched to that exact chord.
+    private static CriticFixture GoodModalColorTonesFromMatchedScale()
+    {
+        IReadOnlyList<IReadOnlyList<int>> voicings =
+        [
+            [57, 60, 64, 67, 71], // Amin7 + 9th (B):        A3 C4 E4 G4 B4
+            [50, 53, 57, 60, 71], // Dmin7 + Dorian 6th (B): D3 F3 A3 C4 B4
+            [52, 55, 59, 62, 65], // Emin7 + Phrygian b9 (F): E3 G3 B3 D4 F4
+            [57, 60, 64, 67, 71]  // Amin7 + 9th (B):        A3 C4 E4 G4 B4
+        ];
+
+        return new CriticFixture(
+            Id: "good-modal-color-tones-from-matched-scale",
+            Description: "Amin7/Dmin7/Emin7/Amin7 voicings each add one color tone from that bar's own MatchedScale beyond the plain min7 arpeggio.",
+            CandidateTrack: new CandidateTrack(LengthInBeats, StraightRockDrums(), WalkingBass(ModalBassRoots), ChordVoicingsPerBar(voicings)),
+            GenerationJob: Job(["Amin7", "Dmin7", "Emin7", "Amin7"], keyRoot: "A", style: "rock", keyMode: KeyMode.Aeolian),
+            MatchedStyle: RockStyle,
+            MatchedChords: ModalProgressionChords,
+            MatchedScales: ModalProgressionScales,
+            ExpectedPass: true,
+            ExpectedFailingDimensions: []);
+    }
+
     // The bug that originally motivated the critic step (see project notes): every note is a
     // legal chord/scale tone for *some* bar, but the same three-note cluster repeats across all
     // four bars regardless of the chord changing underneath it. Isolates VoiceLeading — chord
@@ -115,23 +162,29 @@ internal static class CriticFixtures
             ExpectedFailingDimensions: [CriticDimension.VoiceLeading]);
     }
 
-    // Every bar after the first plays pitches a semitone off every chord tone of the underlying
-    // chord — small, smooth steps (so voice leading itself is fine), but consistently the wrong
-    // notes. Isolates ChordToneAdherence.
-    private static CriticFixture FlawedChordVoicingsUseForeignTones()
+    // Every bar's bass and voicing use only the chord's 3rd, 5th, and 9th - the root pitch class
+    // never sounds anywhere in the bar, in any instrument. Pitch-legal throughout (every note is a
+    // real chord/scale tone for its bar, so ValidateStep would pass this), which is the point:
+    // ChordToneAdherence is no longer about pitch legality (guaranteed by validation before the
+    // critic ever sees a track) but about whether the root is actually audible. Isolates
+    // ChordToneAdherence on root representation specifically, replacing the old
+    // flawed-chord-tones-off-by-a-semitone fixture, whose premise (wrong pitches reaching the
+    // critic) can't occur post-validation in the real pipeline.
+    private static CriticFixture FlawedRootNeverEstablished()
     {
+        IReadOnlyList<int> fifths = [55, 52, 60, 62]; // C's 5th (G3), Am's 5th (E3), F's 5th (C4), G's 5th (D4)
         IReadOnlyList<IReadOnlyList<int>> voicings =
         [
-            [60, 64, 67], // C:  C4 E4 G4 - correct, establishes the bar is otherwise normal
-            [61, 65, 68], // Am (A/C/E): C#4 F4 G#4 - none are chord tones
-            [54, 58, 61], // F (F/A/C):  F#3 A#3 C#4 - none are chord tones
-            [56, 60, 63]  // G (G/B/D):  G#3 C4 D#4 - none are chord tones
+            [64, 67, 74], // C:  3rd/5th/9th - E4 G4 D5, no C
+            [60, 64, 71], // Am: 3rd/5th/9th - C4 E4 B4, no A
+            [57, 60, 67], // F:  3rd/5th/9th - A3 C4 G4, no F
+            [59, 62, 69]  // G:  3rd/5th/9th - B3 D4 A4, no G
         ];
 
         return new CriticFixture(
-            Id: "flawed-chord-tones-off-by-a-semitone",
-            Description: "Voicings for bars 2-4 sit a semitone off every chord tone of the underlying chord.",
-            CandidateTrack: new CandidateTrack(LengthInBeats, StraightRockDrums(), WalkingBass(BassRoots), ChordVoicingsPerBar(voicings)),
+            Id: "flawed-root-never-established",
+            Description: "Bass and voicing use only the 3rd/5th/9th of each chord - never the root - in every bar.",
+            CandidateTrack: new CandidateTrack(LengthInBeats, StraightRockDrums(), RoboticWholeNoteBass(fifths), ChordVoicingsPerBar(voicings)),
             GenerationJob: Job(["C", "Am", "F", "G"], keyRoot: "C", style: "rock"),
             MatchedStyle: RockStyle,
             MatchedChords: ProgressionChords,

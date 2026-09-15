@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 using BackingTrack.Generation.Jobs;
+using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Critic;
 using BackingTrack.Generation.Steps.Types;
@@ -52,7 +53,7 @@ public class CriticAiClientTests
     }
 
     private static Task<CriticVerdictSubmission> GenerateAsync(IChatClient chatClient) =>
-        new CriticAiClient(chatClient, new CriticProviderInfo("OpenAi", "test-model", 4096))
+        new CriticAiClient(chatClient, new CriticProviderInfo("OpenAi", "test-model", 4096), new ScaleMatcher())
             .GenerateCriticVerdictSubmissionAsync(DummyTrack, DummyJob, DummyStyle, [], [], TestContext.Current.CancellationToken);
 
     [Fact]
