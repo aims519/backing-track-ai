@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Critic;
@@ -12,6 +13,7 @@ namespace BackingTrack.Generation.Steps.TrackGeneration;
 public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMatcher scaleMatcher) : IGenerateStep
 {
     public async Task<CandidateTrack> GenerateCandidateTrackAsync(string keyRoot,
+        KeyMode keyMode,
         int tempo,
         int timeSignatureBeatCount,
         int timeSignatureBeatUnit,
@@ -23,7 +25,7 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
         CancellationToken cancellationToken = default)
     {
         string chordProgressionString = GenerateChordProgressionStringForPrompt(chords, scales);
-        string prompt = GenerateRequestPrompt(keyRoot, tempo, timeSignatureBeatCount, timeSignatureBeatUnit, style, chordProgressionString);
+        string prompt = GenerateRequestPrompt(keyRoot, keyMode, tempo, timeSignatureBeatCount, timeSignatureBeatUnit, style, chordProgressionString);
 
         if (previousAttempt != null && previousAttemptFailures != null)
             prompt += ("\n" + GeneratePreviousFailurePrompt(previousAttempt, previousAttemptFailures));
@@ -34,12 +36,12 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
         return track with { LengthInBeats = timeSignatureBeatCount * chords.Count };
     }
 
-    public async Task<CandidateTrack> GenerateCandidateTrackWithCriticReviewAsync(string keyRoot, int tempo, int timeSignatureBeatCount,
+    public async Task<CandidateTrack> GenerateCandidateTrackWithCriticReviewAsync(string keyRoot, KeyMode keyMode, int tempo, int timeSignatureBeatCount,
         int timeSignatureBeatUnit, MatchedStyle style, IReadOnlyList<MatchedChord> chords, IReadOnlyList<MatchedScale> scales,
         CandidateTrack previousAttempt, CriticFinalReview criticReview, CancellationToken cancellationToken = default)
     {
         string chordProgressionString = GenerateChordProgressionStringForPrompt(chords, scales);
-        string prompt = GenerateRequestPrompt(keyRoot, tempo, timeSignatureBeatCount, timeSignatureBeatUnit, style, chordProgressionString);
+        string prompt = GenerateRequestPrompt(keyRoot, keyMode, tempo, timeSignatureBeatCount, timeSignatureBeatUnit, style, chordProgressionString);
         string criticReviewString = GenerateCriticReviewPrompt(previousAttempt, criticReview);
 
         prompt += ("\n" + criticReviewString);
@@ -69,6 +71,7 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
     }
 
     private string GenerateRequestPrompt(string keyRoot,
+        KeyMode keyMode,
         int tempo,
         int timeSignatureBeatCount,
         int timeSignatureBeatUnit,
@@ -79,6 +82,7 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
                Tempo: {tempo}
                Time Signature: {timeSignatureBeatCount}/{timeSignatureBeatUnit}
                Key Root: {keyRoot}
+               Key Mode: {keyMode}
                Style: {style.StyleEntry.Id} - {style.StyleEntry.Description}
                Chord Progression:
                {chordProgression}

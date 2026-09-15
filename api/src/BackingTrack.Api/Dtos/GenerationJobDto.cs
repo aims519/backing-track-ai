@@ -14,6 +14,8 @@ public sealed record GenerationJobDto
     public required int Tempo { get; init; }
     public required IReadOnlyList<string> Chords { get; init; }
     public required string KeyRoot { get; init; }
+    public required string KeyMode { get; init; }
+    public IReadOnlyList<string> KeyModeWarnings { get; init; } = [];
     public required int TimeSignatureBeatCount { get; init; }
     public required int TimeSignatureBeatUnit { get; init; }
 }
@@ -32,6 +34,8 @@ internal static class GenerationJobDtoExtensions
         Tempo = job.Tempo,
         Chords = job.Chords,
         KeyRoot = job.KeyRoot,
+        KeyMode = job.KeyMode.ToString(),
+        KeyModeWarnings = job.KeyModeWarnings,
         TimeSignatureBeatCount = job.TimeSignatureBeatCount,
         TimeSignatureBeatUnit = job.TimeSignatureBeatUnit,
     };

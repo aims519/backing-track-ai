@@ -18,6 +18,7 @@ public class TrackValidatorTests
         Mode = GenerationMode.Precise,
         Tempo = 120,
         Chords = chords ?? ["C", "G", "Am", "F"],
+        KeyMode = KeyMode.Ionian,
         KeyRoot = "C",
         Style = "rock",
         TimeSignatureBeatCount = timeSignatureBeatCount,

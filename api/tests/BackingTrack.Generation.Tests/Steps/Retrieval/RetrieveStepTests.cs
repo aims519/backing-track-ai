@@ -1,3 +1,4 @@
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Types;
@@ -45,7 +46,7 @@ public class RetrieveStepTests
         // C major chord as the tonic in the key of C: mixolydian's flattened 7th (Bb) isn't
         // diatonic to C major, so only "major" should survive the key filter.
         IEnumerable<MatchedScale> results = retrieveStep.RetrieveMatchingScales(
-            "C", [new MatchedChord(MajChordEntry, "C")], TestContext.Current.CancellationToken);
+            "C", KeyMode.Ionian, [new MatchedChord(MajChordEntry, "C")], TestContext.Current.CancellationToken);
 
         List<string> ids = results.Select(s => s.ScaleEntry.Id).ToList();
         Assert.Contains("major", ids);
@@ -59,7 +60,7 @@ public class RetrieveStepTests
         RetrieveStep retrieveStep = CreateRetrieveStep();
 
         Assert.Throws<ArgumentException>(() =>
-            retrieveStep.RetrieveMatchingScales("C", [new MatchedChord(MajChordEntry, "H")], TestContext.Current.CancellationToken));
+            retrieveStep.RetrieveMatchingScales("C", KeyMode.Ionian, [new MatchedChord(MajChordEntry, "H")], TestContext.Current.CancellationToken));
     }
 
     [Fact]

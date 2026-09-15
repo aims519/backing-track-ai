@@ -26,6 +26,7 @@ internal sealed class GenerateCandidateTrackExecutor(
             {
                 logger.LogInformation("Job {Id} generating a candidate track...", jobId);
                 candidateTrack = await generateStep.GenerateCandidateTrackAsync(generationJob.KeyRoot,
+                    generationJob.KeyMode,
                     generationJob.Tempo,
                     generationJob.TimeSignatureBeatCount,
                     generationJob.TimeSignatureBeatUnit,
@@ -38,6 +39,7 @@ internal sealed class GenerateCandidateTrackExecutor(
             {
                 logger.LogInformation("Job {Id} generating a candidate track after failed critic review...", jobId);
                 candidateTrack = await generateStep.GenerateCandidateTrackWithCriticReviewAsync(generationJob.KeyRoot,
+                    generationJob.KeyMode,
                     generationJob.Tempo,
                     generationJob.TimeSignatureBeatCount,
                     generationJob.TimeSignatureBeatUnit,

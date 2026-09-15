@@ -1,3 +1,4 @@
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase.Types;
 
 namespace BackingTrack.Generation.KnowledgeBase;
@@ -35,11 +36,31 @@ public class ScaleMatcher
     private static readonly string[] FlatPitchClassNames =
         ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
 
-    private static readonly int[] MajorScaleIntervals = [0, 2, 4, 5, 7, 9, 11];
+    private static readonly Dictionary<KeyMode, int[]> ModeIntervals = new()
+    {
+        [KeyMode.Ionian]     = [0, 2, 4, 5, 7, 9, 11],
+        [KeyMode.Dorian]     = [0, 2, 3, 5, 7, 9, 10],
+        [KeyMode.Phrygian]   = [0, 1, 3, 5, 7, 8, 10],
+        [KeyMode.Lydian]     = [0, 2, 4, 6, 7, 9, 11],
+        [KeyMode.Mixolydian] = [0, 2, 4, 5, 7, 9, 10],
+        [KeyMode.Aeolian]    = [0, 2, 3, 5, 7, 8, 10],
+        [KeyMode.Locrian]    = [0, 1, 3, 5, 6, 8, 10],
+    };
 
     public int RootToPitchClass(string root) => PitchClasses.GetValueOrDefault(root, -1);
 
+    /// <summary>
+    /// For each chord, finds the knowledge-base scales that both contain the chord's own tones
+    /// and are themselves diatonic to the track's key (root &amp; mode).
+    /// </summary>
+    /// <param name="keyRoot"></param>
+    /// <param name="keyMode"></param>
+    /// <param name="chords"></param>
+    /// <param name="possibleScaleEntries"></param>
+    /// <returns>List of matching scales</returns>
+    /// <exception cref="ArgumentException"></exception>
     public IReadOnlyList<MatchedScale> FindMatchingScalesForChords(string keyRoot,
+        KeyMode keyMode,
         IReadOnlyList<MatchedChord> chords,
         IReadOnlyList<ScaleEntry> possibleScaleEntries)
     {
@@ -47,7 +68,7 @@ public class ScaleMatcher
         if (keyPitchClass == -1)
             throw new ArgumentException($"KeyRoot pitch class not found for '{keyRoot}'", nameof(keyRoot));
 
-        int[] keyDiatonicTones = TransposeIntervalsByPitchClass(keyPitchClass, MajorScaleIntervals);
+        int[] keyDiatonicTones = TransposeIntervalsByPitchClass(keyPitchClass, ModeIntervals[keyMode]);
 
         HashSet<MatchedScale> matchedScalesSet = new(new MatchedScaleComparer());
         foreach (MatchedChord chord in chords)
@@ -88,6 +109,38 @@ public class ScaleMatcher
         return TransposeIntervalsByPitchClass(pitchClass, intervals)
             .Select(pc => pitchClassNames[((pc % 12) + 12) % 12])
             .ToList();
+    }
+
+    /// <summary>
+    /// Given a list of chords and a key, returns a list of any chords whose
+    /// notes don't fit
+    /// </summary>
+    /// <param name="keyRoot"></param>
+    /// <param name="keyMode"></param>
+    /// <param name="chordsToCheck"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public IReadOnlyList<MatchedChord> GetChordsOutsideKey(string keyRoot, KeyMode keyMode,
+        IReadOnlyList<MatchedChord> chordsToCheck)
+    {
+        HashSet<MatchedChord> chordsOutsideKey = new(chordsToCheck.Count);
+        int keyPitchClass = RootToPitchClass(keyRoot);
+        if (keyPitchClass == -1)
+            throw new ArgumentException($"KeyRoot pitch class not found for '{keyRoot}'", nameof(keyRoot));
+
+        int[] keyDiatonicTones = TransposeIntervalsByPitchClass(keyPitchClass, ModeIntervals[keyMode]);
+
+        foreach (MatchedChord chord in chordsToCheck)
+        {
+            int chordPitchClass = RootToPitchClass(chord.Root);
+            if (chordPitchClass == -1)
+                throw new ArgumentException("Pitch class not found", nameof(chord.Root));
+            
+            if(!IsScaleValidForChord(TransposeIntervalsByPitchClass(chordPitchClass, chord.ChordEntry.Intervals), keyDiatonicTones))
+                chordsOutsideKey.Add(chord);
+        }
+        
+        return chordsOutsideKey.ToList();
     }
 
     private sealed class MatchedScaleComparer : IEqualityComparer<MatchedScale>

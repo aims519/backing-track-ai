@@ -10,6 +10,7 @@ public static class GenerateStepPrompts
         - Tempo, given in BPM
         - Time Signature, given in two parts: beat count and beat unit. E.g. 4/4
         - Key Root, e.g. C
+        - Key Mode (Ionian/Dorian/Phrygian/Lydian/Mixolydian/Aeolian/Locrian)
         - Style, a free-text string describing the musical style of the backing track required.
           This can be interpreted to inform what the MIDI tracks should look like
         - Chords, given as a list of chords in order as a progression. Each entry in the chord
@@ -21,6 +22,7 @@ public static class GenerateStepPrompts
         Tempo: 120
         Time Signature: 4/4
         Key Root: C
+        Key Mode: Ionian
         Style: Rock - [Style Description]
         Chord Progression:
         C [C, E, G]. Scales: Major [0,2,4,5,7,9,11], Mixolydian [0,2,4,5,7,9,10]

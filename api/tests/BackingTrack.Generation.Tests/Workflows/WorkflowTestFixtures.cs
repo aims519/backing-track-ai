@@ -18,6 +18,7 @@ internal static class WorkflowTestFixtures
         Tempo = 120,
         Chords = ["C", "G", "Am", "F"],
         KeyRoot = "C",
+        KeyMode = KeyMode.Ionian,
         Style = "rock",
         TimeSignatureBeatCount = 4,
         TimeSignatureBeatUnit = 4,

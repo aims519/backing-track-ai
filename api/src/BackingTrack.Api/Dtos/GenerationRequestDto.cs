@@ -10,6 +10,7 @@ public sealed record GenerationRequestDto
     public int Tempo { get; init; }
     public IReadOnlyList<string>? Chords { get; init; }
     public string? KeyRoot { get; init; }
+    public string? KeyMode { get; init; } = nameof(BackingTrack.Generation.Jobs.KeyMode.Ionian);
     public string? Style { get; init; }
     public int TimeSignatureBeatCount { get; init; }
     public int TimeSignatureBeatUnit { get; init; }
@@ -28,6 +29,9 @@ internal static class GenerationRequestDtoExtensions
         if (!Enum.TryParse<GenerationMode>(request.Mode, out _))
             validationProblemDetails.Errors.Add(nameof(request.Mode), [$"Invalid generation mode: {request.Mode}. Accepted values are {string.Join(',', Enum.GetNames<GenerationMode>())}"]);
 
+        if (!Enum.TryParse<KeyMode>(request.KeyMode, out _))
+            validationProblemDetails.Errors.Add(nameof(request.KeyMode), [$"Invalid KeyMode: {request.KeyMode}. Accepted values are {string.Join(',', Enum.GetNames<KeyMode>())}"]);
+        
         if (request.Tempo is < 40 or > 240)
             validationProblemDetails.Errors.Add(nameof(request.Tempo), [$"Tempo must be between 40 and 240 BPM, but was {request.Tempo}"
             ]);

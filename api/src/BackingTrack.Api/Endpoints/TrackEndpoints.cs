@@ -2,6 +2,8 @@ using BackingTrack.Api.Dtos;
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase;
+using BackingTrack.Generation.KnowledgeBase.Types;
+using BackingTrack.Generation.Steps.Retrieval;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -18,13 +20,19 @@ internal static class TrackEndpoints
         return group;
     }
 
-    private static IResult Generate(GenerationRequestDto requestDto, JobStore jobStore, GenerationJobQueue jobQueue, ChordSymbolParser chordSymbolParser, ILoggerFactory loggerFactory)
+    private static IResult Generate(GenerationRequestDto requestDto, JobStore jobStore, GenerationJobQueue jobQueue, ChordSymbolParser chordSymbolParser, IRetrieveStep retrieveStep, ScaleMatcher scaleMatcher, ILoggerFactory loggerFactory)
     {
         ILogger logger = loggerFactory.CreateLogger(nameof(TrackEndpoints));
 
         ValidationProblemDetails? validationProblemDetails = requestDto.Validate(chordSymbolParser);
         if (validationProblemDetails != null)
             return Results.BadRequest(validationProblemDetails);
+        
+        // Validate chord choices up-front to warn the user
+        KeyMode parsedKeyMode = Enum.Parse<KeyMode>(requestDto.KeyMode!);
+        IReadOnlyList<MatchedChord> matchingChordsList = retrieveStep.RetrieveMatchingChords(requestDto.Chords!);
+        IReadOnlyList<MatchedChord> chordsOutsideKey =
+            scaleMatcher.GetChordsOutsideKey(requestDto.KeyRoot!, parsedKeyMode, matchingChordsList);
 
         GenerationJob job = new()
         {
@@ -35,6 +43,8 @@ internal static class TrackEndpoints
             Tempo = requestDto.Tempo,
             Chords = requestDto.Chords!,
             KeyRoot = requestDto.KeyRoot!,
+            KeyMode = parsedKeyMode,
+            KeyModeWarnings = chordsOutsideKey.Select(c => $"{c.Root}{c.ChordEntry.Id} has notes that fall outside of the chosen key").ToList(),
             Style = requestDto.Style!,
             TimeSignatureBeatCount = requestDto.TimeSignatureBeatCount,
             TimeSignatureBeatUnit = requestDto.TimeSignatureBeatUnit,

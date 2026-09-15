@@ -71,6 +71,7 @@ public sealed class WorkflowGenerationRunner(IServiceScopeFactory scopeFactory) 
         Tempo = input.Tempo,
         Chords = input.Chords,
         KeyRoot = input.KeyRoot,
+        KeyMode = Enum.Parse<KeyMode>(input.KeyMode),
         Style = input.Style,
         TimeSignatureBeatCount = input.TimeSignatureBeatCount,
         TimeSignatureBeatUnit = input.TimeSignatureBeatUnit

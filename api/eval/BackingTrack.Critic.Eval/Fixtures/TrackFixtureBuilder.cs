@@ -61,7 +61,7 @@ internal static class TrackFixtureBuilder
     internal static IReadOnlyList<ChordVoicingEvent> ChordVoicingsPerBar(IReadOnlyList<IReadOnlyList<int>> voicingsPerBar) =>
         voicingsPerBar.Select((notes, bar) => new ChordVoicingEvent(bar * 4, 4, notes, Velocity)).ToList();
 
-    internal static GenerationJob Job(IReadOnlyList<string> chords, string keyRoot, string style, int tempo = 100) => new()
+    internal static GenerationJob Job(IReadOnlyList<string> chords, string keyRoot, string style, int tempo = 100, KeyMode keyMode = KeyMode.Ionian) => new()
     {
         Id = Guid.NewGuid(),
         State = JobStates.InProgress,
@@ -70,6 +70,7 @@ internal static class TrackFixtureBuilder
         Tempo = tempo,
         Chords = chords,
         KeyRoot = keyRoot,
+        KeyMode = keyMode,
         Style = style,
         TimeSignatureBeatCount = 4,
         TimeSignatureBeatUnit = 4
