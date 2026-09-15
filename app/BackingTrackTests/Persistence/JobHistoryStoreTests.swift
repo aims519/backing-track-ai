@@ -86,6 +86,7 @@ struct JobHistoryStoreTests {
         let submitted = GenerationJob(
             id: id, status: .pending, startTime: nil, endTime: nil, trackId: nil,
             audioLocation: nil, mode: "Precise", tempo: 120, chords: ["C"], keyRoot: "C",
+            keyMode: "Ionian", keyModeWarnings: [],
             timeSignatureBeatCount: 4, timeSignatureBeatUnit: 4
         )
         try store.upsertOnSubmit(job: submitted, style: "Rock")

@@ -100,6 +100,7 @@ struct GenerationProgressView: View {
             .accessibilityHidden(true)
 
             trackSummaryCard
+            keyModeWarningsNote
         }
     }
 
@@ -128,6 +129,7 @@ struct GenerationProgressView: View {
             }
 
             trackSummaryCard
+            keyModeWarningsNote
 
             if let input = PlayerInput.from(job: job, style: model.styleSummary), input.isPrecise {
                 NavigationLink(value: PlayerRoute.player(input)) {
@@ -183,7 +185,7 @@ struct GenerationProgressView: View {
     private var trackSummaryCard: some View {
         SectionCard("Track") {
             VStack(spacing: 0) {
-                summaryRow("Key Root", model.initialJob.keyRoot)
+                summaryRow("Key", "\(model.initialJob.keyRoot) \(model.initialJob.keyMode)")
                 rowDivider
                 summaryRow("Tempo", "\(model.initialJob.tempo) BPM")
                 rowDivider
@@ -203,6 +205,22 @@ struct GenerationProgressView: View {
 
     private var rowDivider: some View {
         Divider().padding(.leading, 16)
+    }
+
+    /// Chords that don't fit the declared key/mode (`GenerationJob.keyModeWarnings`) — advisory
+    /// only, generation already proceeded, so this is a note rather than an alert.
+    @ViewBuilder
+    private var keyModeWarningsNote: some View {
+        if !model.initialJob.keyModeWarnings.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(model.initialJob.keyModeWarnings, id: \.self) { warning in
+                    Label(warning, systemImage: "info.circle")
+                }
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 16)
+        }
     }
 
     private func summaryRow(_ label: String, _ value: String) -> some View {

@@ -20,6 +20,8 @@ extension GenerationJob {
             tempo: entry.tempo,
             chords: entry.chordSymbols,
             keyRoot: entry.keyRoot,
+            keyMode: entry.keyMode,
+            keyModeWarnings: [],
             timeSignatureBeatCount: entry.timeSignatureBeatCount,
             timeSignatureBeatUnit: entry.timeSignatureBeatUnit
         )

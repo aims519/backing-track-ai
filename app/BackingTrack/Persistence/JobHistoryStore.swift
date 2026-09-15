@@ -68,6 +68,7 @@ struct SwiftDataJobHistoryStore: JobHistoryStore {
             existing.tempo = job.tempo
             existing.chordSymbols = job.chords
             existing.keyRoot = job.keyRoot
+            existing.keyMode = job.keyMode
             existing.timeSignatureBeatCount = job.timeSignatureBeatCount
             existing.timeSignatureBeatUnit = job.timeSignatureBeatUnit
             existing.style = style
@@ -83,6 +84,7 @@ struct SwiftDataJobHistoryStore: JobHistoryStore {
                 tempo: job.tempo,
                 chordSymbols: job.chords,
                 keyRoot: job.keyRoot,
+                keyMode: job.keyMode,
                 timeSignatureBeatCount: job.timeSignatureBeatCount,
                 timeSignatureBeatUnit: job.timeSignatureBeatUnit,
                 style: style,
