@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using BackingTrack.Generation.Jobs;
+using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Types;
@@ -12,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace BackingTrack.Generation.Steps.Critic;
 
 public class CriticAiClient([FromKeyedServices("critic")] IChatClient chatClient,
-    CriticProviderInfo providerInfo) : ICriticAiClient
+    CriticProviderInfo providerInfo, ScaleMatcher scaleMatcher) : ICriticAiClient
 {
     private const string SubmitVerdictFunctionName = "submit_verdict";
 
@@ -53,12 +54,16 @@ public class CriticAiClient([FromKeyedServices("critic")] IChatClient chatClient
         GenerationJob generationJob, MatchedStyle matchedStyle,
         IReadOnlyList<MatchedChord> matchedChords, IReadOnlyList<MatchedScale> matchedScales)
     {
+        IReadOnlyList<CriticMatchedScale> criticMatchedScales = matchedScales
+            .Select(matchedScale => new CriticMatchedScale(matchedScale, scaleMatcher))
+            .ToList();
+
         return $"""
                 - CandidateTrack: {JsonSerializer.Serialize(new CriticCandidateTrack(candidateTrack, generationJob.TimeSignatureBeatCount), CriticStepJsonContext.Default.CriticCandidateTrack)}
                 - GenerationJob: {JsonSerializer.Serialize(generationJob, GenerationJobJsonContext.Default.GenerationJob)}
                 - MatchedStyle: {JsonSerializer.Serialize(matchedStyle, KnowledgeBaseJsonContext.Default.MatchedStyle)}
                 - MatchedChords: {JsonSerializer.Serialize(matchedChords, KnowledgeBaseJsonContext.Default.IReadOnlyListMatchedChord)}
-                - MatchedScales: {JsonSerializer.Serialize(matchedScales, KnowledgeBaseJsonContext.Default.IReadOnlyListMatchedScale)}
+                - MatchedScales: {JsonSerializer.Serialize(criticMatchedScales, CriticStepJsonContext.Default.IReadOnlyListCriticMatchedScale)}
                 """;
     }
 

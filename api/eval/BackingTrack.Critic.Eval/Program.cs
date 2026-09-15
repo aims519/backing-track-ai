@@ -4,6 +4,7 @@ using BackingTrack.Critic.Eval.Reporting;
 using BackingTrack.Critic.Eval.Running;
 
 using BackingTrack.Generation;
+using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.Steps.Critic;
 
 using Microsoft.Extensions.Configuration;
@@ -55,10 +56,14 @@ builder.Logging.SetMinimumLevel(LogLevel.Information);
 // below Information unless -v is given.
 builder.Logging.AddFilter("BackingTrack.Generation", evalArgs.Verbose ? LogLevel.Debug : LogLevel.Information);
 
-// Just enough of the generation pipeline's DI to construct ICriticStep - no knowledge base,
-// retrieval, generation or persistence wiring, since fixtures supply their own matched
-// style/chords/scales directly rather than going through retrieval.
+// Just enough of the generation pipeline's DI to construct ICriticStep - no retrieval,
+// generation or persistence wiring, since fixtures supply their own matched style/chords/scales
+// directly rather than going through retrieval. ScaleMatcher is a pure, dependency-free utility
+// (CriticAiClient uses it to resolve MatchedScales to note names for the prompt), so it's
+// registered directly rather than pulling in the rest of AddKnowledgeBase's embedding/vector-store
+// wiring for it alone.
 builder.Services.AddOptions();
+builder.Services.AddSingleton<ScaleMatcher>();
 builder.Services.AddLlmChatClient(builder.Configuration);
 builder.Services.AddCritic(builder.Configuration);
 builder.Services.AddSingleton<CriticEvalRunner>();
