@@ -13,23 +13,20 @@ public class FallbackGenerationStep(ScaleMatcher scaleMatcher) : IFallbackGenera
     private const int DrumClosedHiHatMidiNote = 42;
     private const int DrumBassDrumMidiNote = 36;
     private const int DrumSnareMidiNote = 40;
-    
-    public Task<CandidateTrack> GenerateFallbackCandidateTrackAsync(string keyRoot, 
-        KeyMode keyMode, 
-        int tempo, 
+
+    public Task<CandidateTrack> GenerateFallbackCandidateTrackAsync(
         int timeSignatureBeatCount,
-        int timeSignatureBeatUnit, 
-        MatchedStyle style, 
-        IReadOnlyList<MatchedChord> chords, 
-        IReadOnlyList<MatchedScale> scales,
+        int timeSignatureBeatUnit,
+        MatchedStyle style,
+        IReadOnlyList<MatchedChord> chords,
         CancellationToken cancellationToken = default)
     {
         // Bass: chord root notes on the beat pulse
         IReadOnlyList<BassNoteEvent> bassNotes = ConstructBassNoteEvents(chords, timeSignatureBeatCount);
-        
+
         // Drums: Kick on beat 1/ Snare on last beat/ hi-hat every beat
         IReadOnlyList<DrumNoteEvent> drumNotes = ConstructDrumNoteEvents(chords.Count, timeSignatureBeatCount);
-        
+
         // Chords: one chord per bar, sustained for the bar duration, every note in chord
         IReadOnlyList<ChordVoicingEvent> chordNotes = ConstructChordVoicingEvents(chords, timeSignatureBeatCount);
 
@@ -38,7 +35,7 @@ public class FallbackGenerationStep(ScaleMatcher scaleMatcher) : IFallbackGenera
             drumNotes,
             bassNotes,
             chordNotes);
-        
+
         return Task.FromResult(track);
     }
 
@@ -57,7 +54,7 @@ public class FallbackGenerationStep(ScaleMatcher scaleMatcher) : IFallbackGenera
             MatchedChord chord = chords[chordIndex];
             int rootPitchClass = scaleMatcher.RootToPitchClass(chord.Root);
             int midiNote = PitchClassToBassMidiNote(rootPitchClass);
-            
+
             int startingBeat = beatsPerBar * chordIndex;
             for (int beat = startingBeat; beat < (startingBeat + beatsPerBar); beat++)
             {
@@ -65,11 +62,11 @@ public class FallbackGenerationStep(ScaleMatcher scaleMatcher) : IFallbackGenera
                 bassNoteEvents.Add(note);
             }
         }
-        
+
         return bassNoteEvents;
     }
 
-    
+
     /// <summary>
     /// Example:
     /// C (pitch class 0)
@@ -83,16 +80,16 @@ public class FallbackGenerationStep(ScaleMatcher scaleMatcher) : IFallbackGenera
     private int PitchClassToBassMidiNote(int pitchClass)
     {
         const int octave = 2;
-        int note =  pitchClass + ((octave + 1) * 12);
+        int note = pitchClass + ((octave + 1) * 12);
 
-        if(note < Constants.BassMidiNoteMin)
+        if (note < Constants.BassMidiNoteMin)
             note = pitchClass + ((octave + 1 + 1) * 12);
-        else if(note > Constants.BassMidiNoteMax)
+        else if (note > Constants.BassMidiNoteMax)
             note = pitchClass + ((octave + 1 - 1) * 12);
-        
+
         return note;
     }
-    
+
     private IReadOnlyList<DrumNoteEvent> ConstructDrumNoteEvents(int numberOfBars, int beatsPerBar)
     {
         List<DrumNoteEvent> drumNoteEvents = [];
@@ -100,7 +97,7 @@ public class FallbackGenerationStep(ScaleMatcher scaleMatcher) : IFallbackGenera
         for (int bar = 1; bar <= numberOfBars; bar++)
         {
             int startingBeat = beatsPerBar * (bar - 1);
-            
+
             // Bass Drum
             DrumNoteEvent bassDrumNote = new(startingBeat, 1, DrumBassDrumMidiNote, DefaultDrumNoteVelocity);
             drumNoteEvents.Add(bassDrumNote);
@@ -111,16 +108,16 @@ public class FallbackGenerationStep(ScaleMatcher scaleMatcher) : IFallbackGenera
                 DrumNoteEvent hiHatNote = new(beat, 1, DrumClosedHiHatMidiNote, DefaultDrumNoteVelocity);
                 drumNoteEvents.Add(hiHatNote);
             }
-            
+
             // Snare
             int lastBeat = startingBeat + beatsPerBar - 1;
-            DrumNoteEvent snareNote =  new(lastBeat, 1, DrumSnareMidiNote, DefaultDrumNoteVelocity);
+            DrumNoteEvent snareNote = new(lastBeat, 1, DrumSnareMidiNote, DefaultDrumNoteVelocity);
             drumNoteEvents.Add(snareNote);
         }
-        
+
         return drumNoteEvents;
     }
-    
+
     private IReadOnlyList<ChordVoicingEvent> ConstructChordVoicingEvents(IReadOnlyList<MatchedChord> chords, int beatsPerBar)
     {
         List<ChordVoicingEvent> chordVoicingEvents = [];
@@ -131,7 +128,7 @@ public class FallbackGenerationStep(ScaleMatcher scaleMatcher) : IFallbackGenera
             int rootPitchClass = scaleMatcher.RootToPitchClass(chord.Root);
             int[] transposedChordIntervals = scaleMatcher.TransposeIntervalsByPitchClass(rootPitchClass, chord.ChordEntry.Intervals);
             int[] chordNotes = transposedChordIntervals.Select(PitchClassToChordMidiNote).ToArray();
-            
+
             int beatPosition = beatsPerBar * chordIndex;
             ChordVoicingEvent chordVoicingEvent = new(beatPosition,
                 beatsPerBar,
@@ -139,7 +136,7 @@ public class FallbackGenerationStep(ScaleMatcher scaleMatcher) : IFallbackGenera
                 DefaultChordVelocity);
             chordVoicingEvents.Add(chordVoicingEvent);
         }
-        
+
         return chordVoicingEvents;
     }
 
@@ -156,13 +153,13 @@ public class FallbackGenerationStep(ScaleMatcher scaleMatcher) : IFallbackGenera
     private int PitchClassToChordMidiNote(int pitchClass)
     {
         const int octave = 4;
-        int note =  pitchClass + ((octave + 1) * 12);
+        int note = pitchClass + ((octave + 1) * 12);
 
-        if(note < Constants.ChordVoicingNoteMin)
+        if (note < Constants.ChordVoicingNoteMin)
             note = pitchClass + ((octave + 1 + 1) * 12);
-        else if(note > Constants.ChordVoicingNoteMax)
+        else if (note > Constants.ChordVoicingNoteMax)
             note = pitchClass + ((octave + 1 - 1) * 12);
-        
+
         return note;
     }
 }

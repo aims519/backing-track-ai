@@ -25,7 +25,8 @@ internal sealed class ValidateCandidateTrackExecutor(
             TrackValidationResult trackValidationResult = validateStep.ValidateCandidateTrack(input.CandidateTrack,
                 input.GenerationJob, input.MatchedChords, input.MatchedScales);
 
-            if (trackValidationResult.IsValid)
+            // Pass validation on a regular, non-fallback track
+            if (trackValidationResult.IsValid && !input.IsFallbackTrack)
             {
                 await context.SendMessageAsync(new CriticInput(input.CandidateTrack,
                     input.GenerationJob,
@@ -37,15 +38,36 @@ internal sealed class ValidateCandidateTrackExecutor(
                 return;
             }
 
+            // Pass validation of a fallback track, straight to persistence
+            if (trackValidationResult.IsValid && input.IsFallbackTrack)
+            {
+                await context.SendMessageAsync(new PersistCandidateTrackInput(input.CandidateTrack,
+                    input.GenerationJob,
+                    input.ValidationAttempts,
+                    input.CriticAttempts), cancellationToken);
+                return;
+            }
+
+            // Failed validation of a fallback track
+            if (!trackValidationResult.IsValid && input.IsFallbackTrack)
+            {
+                logger.LogError("Job {Id} failed validation of a fallback candidate track", input.GenerationJob.Id);
+                await context.YieldOutputAsync(new GenerationFailed($"Job {input.GenerationJob.Id} failed validation of a fallback candidate track"), cancellationToken);
+                return;
+            }
+
             logger.LogDebug("Job {Id} attempt {Attempt} candidate track: {Track}", input.GenerationJob.Id, input.ValidationAttempts,
                 JsonSerializer.Serialize(input.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
             logger.LogWarning("Job {Id} attempt {Attempt} failed validation: {Errors}", input.GenerationJob.Id, input.ValidationAttempts, string.Join('\n', trackValidationResult.Failures.Select(f => f.Reason)));
 
-            // Failed with max attempts reached
+            // Failed with max attempts reached, fallback to rule-based generation
             if (input.ValidationAttempts >= trackGenerationWorkflowSettings.Value.GenerationMaxAttempts)
             {
-                logger.LogError("Job {Id} track generation exhausted all {Attempts} attempts and failed validation.\n{Errors}", input.GenerationJob.Id, trackGenerationWorkflowSettings.Value.GenerationMaxAttempts, string.Join('\n', trackValidationResult?.Failures.Select(f => f.Reason) ?? Array.Empty<string>()));
-                await context.YieldOutputAsync(new GenerationFailed($"Max {trackGenerationWorkflowSettings.Value.GenerationMaxAttempts} track generation attempts reached with failed validation", input.ValidationAttempts), cancellationToken);
+                logger.LogWarning("Job {Id} track generation exhausted all {Attempts} attempts and failed validation.\n{Errors}", input.GenerationJob.Id, trackGenerationWorkflowSettings.Value.GenerationMaxAttempts, string.Join('\n', trackValidationResult?.Failures.Select(f => f.Reason) ?? Array.Empty<string>()));
+                await context.SendMessageAsync(new FallbackGenerateCandidateTrackInput(input.GenerationJob,
+                    input.MatchedStyle,
+                    input.MatchedChords,
+                    input.MatchedScales), cancellationToken);
                 return;
             }
 
@@ -68,5 +90,7 @@ internal sealed class ValidateCandidateTrackExecutor(
             .ConfigureRoutes(routes => routes.AddHandler<ValidateCandidateTrackInput>(HandleAsync))
             .SendsMessage<RepairCandidateTrackInput>()
             .SendsMessage<CriticInput>()
+            .SendsMessage<FallbackGenerateCandidateTrackInput>()
+            .SendsMessage<PersistCandidateTrackInput>()
             .YieldsOutput<GenerationOutcome>();
 }
