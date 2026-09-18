@@ -44,6 +44,28 @@ public class PersistCandidateTrackExecutorTests
     }
 
     [Fact]
+    public async Task HandleAsync_WasFallbackTrue_YieldsGenerationSucceededCarryingWasFallback()
+    {
+        string baseFolderPath = Path.Combine(Path.GetTempPath(), $"backing-track-tests-{Guid.NewGuid()}");
+        try
+        {
+            GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+            CandidateTrack track = new(16, [], [], []);
+            FakeWorkflowContext context = new();
+
+            await CreateExecutor(baseFolderPath).HandleAsync(new PersistCandidateTrackInput(track, job, 3, 1, WasFallback: true), context, CancellationToken.None);
+
+            GenerationSucceeded succeeded = Assert.IsType<GenerationSucceeded>(Assert.Single(context.YieldedOutputs));
+            Assert.True(succeeded.WasFallback);
+        }
+        finally
+        {
+            if (Directory.Exists(baseFolderPath))
+                Directory.Delete(baseFolderPath, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task HandleAsync_WriteFails_YieldsGenerationFailedWithAttemptsAndSendsNothing()
     {
         // A regular file sitting at the target path makes Directory.CreateDirectory throw,

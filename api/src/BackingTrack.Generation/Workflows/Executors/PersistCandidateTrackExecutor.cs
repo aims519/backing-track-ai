@@ -48,7 +48,7 @@ internal sealed class PersistCandidateTrackExecutor(
             return;
         }
 
-        await context.YieldOutputAsync(new GenerationSucceeded(trackId, input.CandidateTrack, input.ValidationAttempts), cancellationToken);
+        await context.YieldOutputAsync(new GenerationSucceeded(trackId, input.CandidateTrack, input.ValidationAttempts, input.WasFallback), cancellationToken);
     }
 
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>

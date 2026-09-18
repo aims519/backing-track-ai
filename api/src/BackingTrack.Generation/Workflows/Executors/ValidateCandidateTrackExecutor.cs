@@ -44,7 +44,8 @@ internal sealed class ValidateCandidateTrackExecutor(
                 await context.SendMessageAsync(new PersistCandidateTrackInput(input.CandidateTrack,
                     input.GenerationJob,
                     input.ValidationAttempts,
-                    input.CriticAttempts), cancellationToken);
+                    input.CriticAttempts,
+                    WasFallback: true), cancellationToken);
                 return;
             }
 

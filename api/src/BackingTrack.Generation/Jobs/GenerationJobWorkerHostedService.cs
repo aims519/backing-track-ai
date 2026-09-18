@@ -64,7 +64,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
             case GenerationSucceeded succeeded:
                 GenerationJob completedJob = updatedJob with
                 {
-                    State = JobStates.Complete,
+                    State = succeeded.WasFallback ? JobStates.CompletedViaFallback : JobStates.Complete,
                     EndTime = DateTimeOffset.UtcNow,
                     TrackId = succeeded.TrackId
                 };

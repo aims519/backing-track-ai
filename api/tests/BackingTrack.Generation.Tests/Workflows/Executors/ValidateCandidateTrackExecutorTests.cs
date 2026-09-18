@@ -117,6 +117,7 @@ public class ValidateCandidateTrackExecutorTests
         Assert.Same(track, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal(1, sent.ValidationAttempts);
+        Assert.True(sent.WasFallback);
         Assert.Empty(context.YieldedOutputs);
     }
 
