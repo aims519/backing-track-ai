@@ -27,9 +27,9 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
     public IReadOnlyList<ValidationFailure> ValidateDrumNoteChoices(IReadOnlyList<DrumNoteEvent> drumNoteEvents)
     {
         IList<ValidationFailure> failures = [];
-        foreach (DrumNoteEvent drumNoteEvent in drumNoteEvents.Where(n => n.MidiNote is < GeneralMidiDrumNoteMin or > GeneralMidiDrumNoteMax))
+        foreach (DrumNoteEvent drumNoteEvent in drumNoteEvents.Where(n => n.MidiNote is < Constants.GeneralMidiDrumNoteMin or > Constants.GeneralMidiDrumNoteMax))
         {
-            failures.Add(new(Type: ValidationFailureType.InvalidDrumNoteChoice, drumNoteEvent, $"Unexpected MIDI note in {nameof(DrumNoteEvent)}, {drumNoteEvent.MidiNote}, at position {drumNoteEvent.BeatPosition}. Expected {GeneralMidiDrumNoteMin} <= Note <= {GeneralMidiDrumNoteMax}"));
+            failures.Add(new(Type: ValidationFailureType.InvalidDrumNoteChoice, drumNoteEvent, $"Unexpected MIDI note in {nameof(DrumNoteEvent)}, {drumNoteEvent.MidiNote}, at position {drumNoteEvent.BeatPosition}. Expected {Constants.GeneralMidiDrumNoteMin} <= Note <= {Constants.GeneralMidiDrumNoteMax}"));
         }
 
         return (IReadOnlyList<ValidationFailure>)failures;
@@ -73,8 +73,8 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
         }
 
         // Also Check no bass notes fall outside expected range
-        foreach (BassNoteEvent bassNoteEvent in bassNoteEvents.Where(b => b.MidiNote is < BassMidiNoteMin or > BassMidiNoteMax))
-            failures.Add(new ValidationFailure(Type: ValidationFailureType.BassNoteOutOfExpectedRange, bassNoteEvent, $"Unexpected {nameof(BassNoteEvent)} MIDI note, {bassNoteEvent.MidiNote}. Expected range Expected {BassMidiNoteMin} <= Note <= {BassMidiNoteMax}"));
+        foreach (BassNoteEvent bassNoteEvent in bassNoteEvents.Where(b => b.MidiNote is < Constants.BassMidiNoteMin or > Constants.BassMidiNoteMax))
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.BassNoteOutOfExpectedRange, bassNoteEvent, $"Unexpected {nameof(BassNoteEvent)} MIDI note, {bassNoteEvent.MidiNote}. Expected range Expected {Constants.BassMidiNoteMin} <= Note <= {Constants.BassMidiNoteMax}"));
 
         return (IReadOnlyList<ValidationFailure>)failures;
     }
@@ -121,9 +121,9 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
         // Also Check no chord voicing notes fall outside expected range
         foreach (ChordVoicingEvent chordVoicingEvent in chordVoicingEvents)
         {
-            foreach (int midiNote in chordVoicingEvent.MidiNotes.Where(n => n is < ChordVoicingNoteMin or > ChordVoicingNoteMax))
+            foreach (int midiNote in chordVoicingEvent.MidiNotes.Where(n => n is < Constants.ChordVoicingNoteMin or > Constants.ChordVoicingNoteMax))
             {
-                failures.Add(new ValidationFailure(Type: ValidationFailureType.ChordVoicingNoteOutOfExpectedRange, chordVoicingEvent, $"Unexpected {nameof(ChordVoicingEvent)} MIDI note, {midiNote}. Expected range Expected {ChordVoicingNoteMin} <= Note <= {ChordVoicingNoteMax}"));
+                failures.Add(new ValidationFailure(Type: ValidationFailureType.ChordVoicingNoteOutOfExpectedRange, chordVoicingEvent, $"Unexpected {nameof(ChordVoicingEvent)} MIDI note, {midiNote}. Expected range Expected {Constants.ChordVoicingNoteMin} <= Note <= {Constants.ChordVoicingNoteMax}"));
             }
         }
 
@@ -134,14 +134,14 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
     {
         IList<ValidationFailure> failures = [];
 
-        foreach (DrumNoteEvent drumNoteEvent in candidateTrack.Drums.Where(n => n.Velocity is < MidiVelocityMin or > MidiVelocityMax))
-            failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidMidiVelocity, drumNoteEvent, $"Unexpected {nameof(DrumNoteEvent)} velocity, {drumNoteEvent.Velocity}. Expected {MidiVelocityMin} <= Velocity <= {MidiVelocityMax}"));
+        foreach (DrumNoteEvent drumNoteEvent in candidateTrack.Drums.Where(n => n.Velocity is < Constants.MidiVelocityMin or > Constants.MidiVelocityMax))
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidMidiVelocity, drumNoteEvent, $"Unexpected {nameof(DrumNoteEvent)} velocity, {drumNoteEvent.Velocity}. Expected {Constants.MidiVelocityMin} <= Velocity <= {Constants.MidiVelocityMax}"));
 
-        foreach (BassNoteEvent bassNoteEvent in candidateTrack.Bass.Where(n => n.Velocity is < MidiVelocityMin or > MidiVelocityMax))
-            failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidMidiVelocity, bassNoteEvent, $"Unexpected {nameof(BassNoteEvent)} velocity, {bassNoteEvent.Velocity}. Expected {MidiVelocityMin} <= Velocity <= {MidiVelocityMax}"));
+        foreach (BassNoteEvent bassNoteEvent in candidateTrack.Bass.Where(n => n.Velocity is < Constants.MidiVelocityMin or > Constants.MidiVelocityMax))
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidMidiVelocity, bassNoteEvent, $"Unexpected {nameof(BassNoteEvent)} velocity, {bassNoteEvent.Velocity}. Expected {Constants.MidiVelocityMin} <= Velocity <= {Constants.MidiVelocityMax}"));
 
-        foreach (ChordVoicingEvent chordVoicingEvent in candidateTrack.ChordVoicings.Where(n => n.Velocity is < MidiVelocityMin or > MidiVelocityMax))
-            failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidMidiVelocity, chordVoicingEvent, $"Unexpected {nameof(ChordVoicingEvent)} velocity, {chordVoicingEvent.Velocity}. Expected {MidiVelocityMin} <= Velocity <= {MidiVelocityMax}"));
+        foreach (ChordVoicingEvent chordVoicingEvent in candidateTrack.ChordVoicings.Where(n => n.Velocity is < Constants.MidiVelocityMin or > Constants.MidiVelocityMax))
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidMidiVelocity, chordVoicingEvent, $"Unexpected {nameof(ChordVoicingEvent)} velocity, {chordVoicingEvent.Velocity}. Expected {Constants.MidiVelocityMin} <= Velocity <= {Constants.MidiVelocityMax}"));
 
         return (IReadOnlyList<ValidationFailure>)failures;
     }
@@ -233,16 +233,4 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
 
         return (IReadOnlyList<ValidationFailure>)failures;
     }
-
-    private const int MidiVelocityMin = 1;
-    private const int MidiVelocityMax = 127;
-
-    private const int GeneralMidiDrumNoteMin = 35;
-    private const int GeneralMidiDrumNoteMax = 81;
-
-    private const int BassMidiNoteMin = 28; // E1
-    private const int BassMidiNoteMax = 57; // A3
-
-    private const int ChordVoicingNoteMin = 48; // C3
-    private const int ChordVoicingNoteMax = 79; // G5
 }

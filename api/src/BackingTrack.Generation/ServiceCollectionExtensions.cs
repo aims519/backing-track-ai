@@ -71,6 +71,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<RetrieveScalesExecutor>();
         services.AddScoped<GenerateCandidateTrackExecutor>();
         services.AddScoped<ValidateCandidateTrackExecutor>();
+        services.AddScoped<FallbackGenerateCandidateTrackExecutor>();
         services.AddScoped<RepairCandidateTrackExecutor>();
         services.AddScoped<CriticExecutor>();
         services.AddScoped<PersistCandidateTrackExecutor>();

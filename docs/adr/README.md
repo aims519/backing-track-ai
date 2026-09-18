@@ -38,3 +38,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0031](0031-message-threaded-attempt-counters-over-scoped-job-context.md) | Message-threaded attempt counters over a scoped GenerationJobContext |
 | [0032](0032-explicit-key-mode-field-for-scale-matching.md) | Explicit `KeyMode` field, song-wide, over inferring mode or per-chord scale matching |
 | [0033](0033-critic-assumes-pitch-legality-instead-of-rechecking-it.md) | Critic assumes pitch legality rather than re-checking it |
+| [0034](0034-rule-based-fallback-generator-bypasses-critic.md) | Rule-based fallback generator bypasses the critic loop |
