@@ -68,7 +68,7 @@ public class CriticExecutorTests
     }
 
     [Fact]
-    public async Task HandleAsync_ReviewFailsAtMaxAttempts_YieldsGenerationFailedWithoutSpendingAnotherGenerateRound()
+    public async Task HandleAsync_ReviewFailsAtMaxAttempts_SendsFallbackGenerateCandidateTrackInputWithoutSpendingAnotherGenerateRound()
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         CandidateTrack track = new(16, [], [], []);
@@ -81,9 +81,9 @@ public class CriticExecutorTests
 
         await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(CreateInput(track, job, validationAttempts: 2, criticAttempts: 3), context, CancellationToken.None);
 
-        GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
-        Assert.Equal(4, failed.Attempts);
-        Assert.Empty(context.SentMessages);
+        FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.Same(job, sent.GenerationJob);
+        Assert.Empty(context.YieldedOutputs);
     }
 
     [Fact]

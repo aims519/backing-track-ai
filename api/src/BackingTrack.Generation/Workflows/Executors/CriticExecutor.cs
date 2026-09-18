@@ -33,11 +33,15 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
                 int criticAttemptsUpdated = input.CriticAttempts + 1;
 
                 // Failed with max attempts reached - stop here instead of spending another
-                // generate+validate round only to reject it on the next critic review.
+                // generate+validate round only to reject it on the next critic review, and fall
+                // back to the deterministic rule-based generator instead of failing the job.
                 if (criticAttemptsUpdated > criticSettings.Value.MaxAttempts)
                 {
-                    logger.LogError("Job {Id} track generation exhausted all {Attempts} critic review attempts and failed", input.GenerationJob.Id, criticSettings.Value.MaxAttempts);
-                    await context.YieldOutputAsync(new GenerationFailed($"Max {criticSettings.Value.MaxAttempts} track critic review attempts reached", criticAttemptsUpdated), cancellationToken);
+                    logger.LogWarning("Job {Id} track generation exhausted all {Attempts} critic review attempts, falling back to rule-based generation", input.GenerationJob.Id, criticSettings.Value.MaxAttempts);
+                    await context.SendMessageAsync(new FallbackGenerateCandidateTrackInput(input.GenerationJob,
+                        input.MatchedStyle,
+                        input.MatchedChords,
+                        input.MatchedScales), cancellationToken);
                     return;
                 }
 
@@ -73,5 +77,6 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
             .ConfigureRoutes(routes => routes.AddHandler<CriticInput>(HandleAsync))
             .SendsMessage<GenerateCandidateTrackInput>()
             .SendsMessage<PersistCandidateTrackInput>()
+            .SendsMessage<FallbackGenerateCandidateTrackInput>()
             .YieldsOutput<GenerationOutcome>();
 }

@@ -32,6 +32,7 @@ public static class GenerationWorkflowBuilder
             .AddEdge(validate, persist)
             .AddEdge(critic, persist)
             .AddEdge(critic, generate)
+            .AddEdge(critic, fallback)
             .WithOutputFrom(style, chords, scales, generate, validate, fallback, repair, critic, persist)
             .Build();
     }
