@@ -19,7 +19,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(sp =>
         {
             OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
-            return new CriticProviderInfo(llmProvider, settings.CriticModel, settings.CriticMaxOutputTokens);
+            return new CriticProviderInfo(llmProvider, settings.CriticModel, settings.CriticMaxOutputTokens, settings.CriticServiceTier);
         });
 
         services.AddTransient<ICriticAiClient, CriticAiClient>();

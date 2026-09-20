@@ -51,6 +51,7 @@ public class RepairStep([FromKeyedServices("repair")] IChatClient chatClient, Tr
             MaxOutputTokens = providerInfo.MaxOutputTokens,
             ResponseFormat = new ChatResponseFormatJson(RepairPatchSchema, "TrackRepairPatch", null),
         };
+        chatOptions.ApplyServiceTier(providerInfo.ServiceTier);
 
         Stopwatch stopwatch = Stopwatch.StartNew();
         ChatResponse chatResponse;

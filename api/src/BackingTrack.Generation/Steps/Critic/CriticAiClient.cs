@@ -100,6 +100,7 @@ public class CriticAiClient([FromKeyedServices("critic")] IChatClient chatClient
             ToolMode = ChatToolMode.RequireSpecific(SubmitVerdictFunctionName),
             MaxOutputTokens = providerInfo.MaxOutputTokens,
         };
+        options.ApplyServiceTier(providerInfo.ServiceTier);
 
         return options;
     }

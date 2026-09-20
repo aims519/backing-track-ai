@@ -22,10 +22,12 @@ public class TrackGenerationClient(
         activity?.SetTag("track_generation.provider", providerInfo.Provider);
         activity?.SetTag("track_generation.model", providerInfo.Model);
 
-        ChatClientAgentRunOptions runOptions = new(new ChatOptions
+        ChatOptions chatOptions = new()
         {
             MaxOutputTokens = providerInfo.MaxOutputTokens
-        });
+        };
+        chatOptions.ApplyServiceTier(providerInfo.ServiceTier);
+        ChatClientAgentRunOptions runOptions = new(chatOptions);
 
         Stopwatch stopwatch = Stopwatch.StartNew();
         AgentResponse<CandidateTrack> agentResponse;

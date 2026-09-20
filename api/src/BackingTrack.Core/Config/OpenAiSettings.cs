@@ -6,6 +6,18 @@ public enum OpenAiApiKind
     Responses,
 }
 
+// Mirrors OpenAI's service_tier request field (https://developers.openai.com/api/docs/guides/flex-processing).
+// Null/unset on OpenAiSettings means "don't send it", i.e. OpenAI's own "auto" default. Flex only
+// applies via the Responses API and is beta with limited model availability, so it's opt-in per step
+// rather than a single global switch.
+public enum OpenAiServiceTier
+{
+    Auto,
+    Default,
+    Flex,
+    Scale,
+}
+
 public class OpenAiSettings
 {
     public required string BaseUrl { get; set; }
@@ -22,4 +34,8 @@ public class OpenAiSettings
     public OpenAiApiKind GenerationApi { get; set; } = OpenAiApiKind.ChatCompletions;
     public OpenAiApiKind RepairApi { get; set; } = OpenAiApiKind.ChatCompletions;
     public OpenAiApiKind CriticApi { get; set; } = OpenAiApiKind.ChatCompletions;
+
+    public OpenAiServiceTier? GenerationServiceTier { get; set; }
+    public OpenAiServiceTier? RepairServiceTier { get; set; }
+    public OpenAiServiceTier? CriticServiceTier { get; set; }
 }
