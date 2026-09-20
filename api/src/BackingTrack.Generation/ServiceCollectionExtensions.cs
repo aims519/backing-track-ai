@@ -11,12 +11,28 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 using OpenAI;
-using OpenAI.Chat;
 
 namespace BackingTrack.Generation;
 
 public static class ServiceCollectionExtensions
 {
+    private static IChatClient CreateChatClient(OpenAiSettings settings, string model, OpenAiApiKind apiKind)
+    {
+        OpenAIClient client = new(new ApiKeyCredential(settings.ApiKey), new OpenAIClientOptions()
+        {
+            Endpoint = new Uri(settings.BaseUrl),
+        });
+
+#pragma warning disable OPENAI001 // Responses-API IChatClient adapter is still evaluation-only upstream.
+        return apiKind switch
+        {
+            OpenAiApiKind.Responses => client.GetResponsesClient().AsIChatClient(model),
+            OpenAiApiKind.ChatCompletions => client.GetChatClient(model).AsIChatClient(),
+            _ => throw new InvalidOperationException($"OpenAi API kind '{apiKind}' is not supported."),
+#pragma warning restore OPENAI001
+        };
+    }
+
     public static IServiceCollection AddLlmChatClient(this IServiceCollection services, IConfiguration configuration)
     {
         string? llmProvider = configuration.GetValue<string>("Llm:Provider");
@@ -29,31 +45,19 @@ public static class ServiceCollectionExtensions
             services.AddKeyedSingleton<IChatClient>("generate", (sp, _) =>
             {
                 OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
-                ChatClient client = new(settings.GenerationModel, new ApiKeyCredential(settings.ApiKey), new OpenAIClientOptions()
-                {
-                    Endpoint = new Uri(settings.BaseUrl),
-                });
-                return client.AsIChatClient();
+                return CreateChatClient(settings, settings.GenerationModel, settings.GenerationApi);
             });
 
             services.AddKeyedSingleton<IChatClient>("repair", (sp, _) =>
             {
                 OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
-                ChatClient client = new(settings.RepairModel, new ApiKeyCredential(settings.ApiKey), new OpenAIClientOptions()
-                {
-                    Endpoint = new Uri(settings.BaseUrl),
-                });
-                return client.AsIChatClient();
+                return CreateChatClient(settings, settings.RepairModel, settings.RepairApi);
             });
 
             services.AddKeyedSingleton<IChatClient>("critic", (sp, _) =>
             {
                 OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
-                ChatClient client = new(settings.CriticModel, new ApiKeyCredential(settings.ApiKey), new OpenAIClientOptions()
-                {
-                    Endpoint = new Uri(settings.BaseUrl),
-                });
-                return client.AsIChatClient();
+                return CreateChatClient(settings, settings.CriticModel, settings.CriticApi);
             });
         }
         else

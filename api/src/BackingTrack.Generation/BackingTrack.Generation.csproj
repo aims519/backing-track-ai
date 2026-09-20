@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <None Include="KnowledgeBase\Content\*.jsonl" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="Steps\TrackRepair\track-repair-patch.schema.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
