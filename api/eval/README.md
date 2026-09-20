@@ -31,16 +31,29 @@ malformed golden-set input.
 ## Golden set categories
 
 | Category              | Exercises                                             | Status |
-|-----------------------|------------------------------------------------------|--------|
-| `Baseline`            | generate → validate, first attempt, no repair        | live |
-| `ValidatorTriggering` | validate → repair → re-validate loop                  | live |
-| `Fallback`            | deterministic rule-based fallback generator           | pending — reported, not run |
+|-----------------------|--------------------------------------------------------|--------|
+| `Baseline`            | generate → validate, first attempt, no repair          | live |
+| `ValidatorTriggering` | validate → repair → re-validate loop                    | live |
+| `CriticTriggering`    | critic → regenerate → re-review loop                    | live |
+| `Fallback`            | deterministic rule-based fallback generator             | live |
 
-`pending` cases are authored now so the golden set is ready when the stage lands. `CaseEvaluator`
-flips them to live via the `FallbackGeneratorImplemented` constant.
+`CriticTriggering` checks pipeline *outcomes* through the critic loop (did the workflow recover
+and still land a valid track, within budget) — it does not check whether the critic's own
+verdicts are correct. That's `BackingTrack.Critic.Eval`'s job (fixture tracks with known-correct
+verdicts, checked for accuracy and self-consistency); the two harnesses are complementary.
 
-A `CriticTriggering` category (inputs that validate but are musically poor, for the planned LLM
-critic) will be added when that step exists — see the critic-step plan.
+Unlike `ValidatorTriggering`, `CriticTriggering` cases don't rely on a "musically risky" input to
+provoke a genuine critic rejection — that turned out unreliable, every input passed on the first
+review regardless of content. Instead they set `forceCriticRejections` on the case, an
+eval-harness-only field (not part of the real API payload) that `FaultInjectingCriticStep`
+(decorating the real `ICriticStep`, wired in `Program.cs`) reads to fail that many reviews
+deterministically before handing off to the real critic. See `GoldenSet/critic-triggering.jsonl`.
+
+`Fallback` uses the same trick on the validator side: `forceValidationFailures` +
+`FaultInjectingValidateStep` deterministically exhaust the repair budget instead of hoping a
+"hard" input genuinely does. It turned out this was needed too — `fallback-dense-changes`
+originally relied on a dense/unusual chord progression alone, and passed cleanly on a real run
+despite that. See `GoldenSet/fallback.jsonl`.
 
 ## Running it
 
@@ -67,9 +80,21 @@ Distil it from a real failure. Give it a stable `id` that's never reused, and pu
 ## Known gaps / next steps
 
 - `ValidatorTriggering` cases currently *encourage* a first-attempt failure through hard inputs
-  (odd meters, fast tempos) rather than *guaranteeing* one. Deterministic version: a fault-
-  injecting `IGenerationRunner` / validator double that fails the first N attempts. See ADR 0027.
+  (odd meters, fast tempos) rather than *guaranteeing* one — unlike `Fallback`, they're not
+  switched over to `forceValidationFailures` yet, since the point there is exercising the
+  repair-and-recover path with a *plausible* failure, not exhaustion. See ADR 0027.
+- `Attempts`/`CriticAttempts` on a `Fallback`-completed track are always `1`/`0` —
+  `FallbackGenerateCandidateTrackExecutor` resets both for the fallback track's own validation —
+  so neither is a meaningful signal of how hard the pipeline tried on a `Fallback` case; only the
+  outcome is.
 - No record/replay of LLM responses yet, so every run is live and costs tokens — fine for a
   manual/nightly job, not for per-PR CI. Replay vs. live-nightly is still to be decided.
 - No run-over-run diffing yet; `--json` output is the raw material for it.
-- Fallback stage not implemented (see table above); critic step and its category not built yet.
+- `CriticAttempts` is 1-indexed like `Attempts`, not a rejection count: 1 = the critic accepted
+  the first candidate outright, 2+ = it rejected at least once first, 0 = it never ran (fallback
+  path). To assert a case actually drew a rejection, set `minCriticAttempts: 2`, not `1`.
+- `appsettings.json`'s `Critic` section was missing entirely until this landed, which silently
+  defaulted `PassingScoreThreshold`/`MaxAttempts` to `0`/`0` — the critic could never reject a
+  track, in *any* category, regardless of input. Worth remembering if a future run behaves like
+  the critic isn't doing anything: check this section is still present before assuming the model
+  got better.

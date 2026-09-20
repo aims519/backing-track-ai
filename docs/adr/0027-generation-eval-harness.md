@@ -64,3 +64,41 @@ The harness is a sibling of `tests/` and `benchmarks/`, wired into `BackingTrack
 - A future LLM critic (musical-quality rejection) would add a `CriticTriggering` category and a
   graded quality check alongside the binary ones — out of scope here, noted so the category
   scheme has room for it.
+
+## Update — 2026-09-20
+
+Both anticipated gaps above have landed:
+
+- The rule-based fallback generator (PR #72) is implemented, so `Fallback` cases are judged like
+  any other category now instead of being reported pending.
+- The Theory Critic (PRs #59–#71) added a critic → regenerate → re-review loop distinct from the
+  validator's repair loop. A `CriticTriggering` category was added, using the same binary,
+  deterministic judging as the other categories (outcome + attempt bounds) — not a graded quality
+  check. `GenerationSucceeded` now also carries `CriticAttempts` so a case can assert the critic
+  loop ran, the same way `Attempts` asserts the validator loop ran. Grading the critic's own
+  verdict quality stays out of scope for this harness — that's what `BackingTrack.Critic.Eval`
+  (PR #60) is for.
+- `CriticTriggering`'s first cut mirrored `ValidatorTriggering`: "musically risky but legal"
+  inputs meant to *encourage* a genuine critic rejection. In practice every case passed on the
+  first review regardless of input — partly because the eval harness's `appsettings.json` was
+  missing a `Critic` section entirely, silently defaulting `PassingScoreThreshold`/`MaxAttempts`
+  to `0`/`0` and making rejection *impossible* rather than merely unlikely (fixed alongside this).
+  Even after fixing that, there was no cheap way to find inputs the model reliably judges badly.
+  Rather than keep guessing at provocative inputs, `CriticTriggering` cases now set
+  `ForceCriticRejections` on the `EvalCase` (harness-only, not part of the real API payload) and
+  a `FaultInjectingCriticStep` decorator (`api/eval/.../Running/FaultInjectingCriticStep.cs`)
+  fails that many reviews deterministically before handing off to the real critic. This is the
+  same fault-injection idea already deferred above for `ValidatorTriggering`, arrived at
+  independently for the critic loop — worth applying there too if that deferral is ever picked
+  back up.
+- `Fallback` had the identical problem: `fallback-dense-changes` relied on a dense, unusual-meter
+  chord progression to exhaust the validator's repair budget, and passed cleanly on a real run
+  instead. Picked up the same fault-injection pattern immediately rather than waiting for the
+  deferred `ValidatorTriggering` version: `ForceValidationFailures` on the `EvalCase` and a
+  `FaultInjectingValidateStep` decorator force that many validations to fail before handing off
+  to the real validator, guaranteeing `ValidateCandidateTrackExecutor`'s exhaustion → fallback
+  branch runs. Also fixed a latent bug this surfaced: the case's original `minAttempts: 3`
+  expectation could never pass even when fallback triggered correctly, since
+  `FallbackGenerateCandidateTrackExecutor` resets `ValidationAttempts` to `1` for the fallback
+  track's own validation — `Attempts` (and `CriticAttempts`) on a fallback-completed track are
+  always `1`/`0`, not a reflection of how many attempts preceded it.

@@ -17,6 +17,18 @@ public sealed record CaseExpectations
 
     /// <summary>Inclusive upper bound on the attempt count, when the case constrains it.</summary>
     public int? MaxAttempts { get; init; }
+
+    /// <summary>
+    /// Inclusive lower bound on the critic attempt count the workflow reports — same "1 = no
+    /// repair needed" indexing as <see cref="MinAttempts"/>, not a rejection count: 0 = the
+    /// critic never ran (fallback path), 1 = it passed the first candidate outright, 2+ = it
+    /// rejected at least once before passing. Set to 2 on a <c>CriticTriggering</c> case to
+    /// assert the critic → regenerate loop actually ran, not just that the case passed.
+    /// </summary>
+    public int MinCriticAttempts { get; init; }
+
+    /// <summary>Inclusive upper bound on the critic attempt count, when the case constrains it.</summary>
+    public int? MaxCriticAttempts { get; init; }
 }
 
 public enum ExpectedOutcome

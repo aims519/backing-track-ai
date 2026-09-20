@@ -17,7 +17,13 @@ public enum EvalCategory
 
     /// <summary>
     /// Input the pipeline cannot satisfy within the repair budget, so it must land on the
-    /// deterministic rule-based fallback generator. Reported as pending until fallback lands.
+    /// deterministic rule-based fallback generator.
     /// </summary>
-    Fallback
+    Fallback,
+
+    /// <summary>
+    /// Input expected to pass deterministic validation but draw at least one Theory Critic
+    /// rejection, exercising the critic → regenerate → re-review loop.
+    /// </summary>
+    CriticTriggering
 }

@@ -46,10 +46,13 @@ documented once, deliberately, in this file.
 
 If applicable, link the PR to its Notion task. Match based on task name as order numbers can shift.
 
-Before opening a PR that touches API code, run `dotnet format api/BackingTrack.sln` and commit
-any changes it makes. CI runs `dotnet format whitespace api/BackingTrack.sln --verify-no-changes`
-(see `.github/workflows/verify.yml`) and fails the build on drift — catch it locally first rather
-than round-tripping through a failed CI run.
+Before opening a PR that touches API code, run `dotnet format whitespace api/BackingTrack.sln`
+and commit any changes it makes — that's exactly what CI verifies (see
+`.github/workflows/verify.yml`, `dotnet format whitespace api/BackingTrack.sln --verify-no-changes`),
+so running it locally catches drift before a failed CI round-trip. Run the plain `dotnet format`
+(no `whitespace` subcommand) only when asked to fix analyzer/style issues as its own task — it
+also applies analyzer-driven code fixes CI doesn't check for, which pulls unrelated files into an
+otherwise-unrelated diff.
 
 ## Swift conventions
 

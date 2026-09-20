@@ -1,4 +1,15 @@
-// Fallback: inputs the agentic pipeline is expected to fail on repeatedly, so the deterministic
-// rule-based generator must step in and still return a playable track.
-// Reported as Pending until the fallback generator lands (scope doc: "rule-based fallback generator").
-{"id": "fallback-dense-changes", "category": "Fallback", "description": "One chord change per beat across an unusual meter — dense enough that repair keeps failing", "rationale": "Guarantees the never-fail promise: when the LLM can't satisfy validation within the attempt budget, the app must still get a track.", "input": {"tempo": 96, "chords": ["Cmaj7", "Dmin7", "Emin7", "Fmaj7", "G7", "Amin7", "Bdim", "Cmaj7", "Bdim", "Amin7", "G7", "Fmaj7", "Emin7", "Dmin7", "Cmaj7"], "keyRoot": "C", "style": "jazz", "timeSignatureBeatCount": 5, "timeSignatureBeatUnit": 4}, "expect": {"outcome": "SucceedsViaFallback", "minAttempts": 3}}
+// Fallback: exercises the validator's repair-budget exhaustion → rule-based fallback branch
+// (ValidateCandidateTrackExecutor), so the app's "never fail" promise holds even when the
+// agentic pipeline can't produce a valid candidate within budget.
+// Deterministic via `forceValidationFailures` (an eval-harness-only field, not part of a real
+// client's input — see EvalCase.ForceValidationFailures / FaultInjectingValidateStep /
+// WorkflowGenerationRunner): the harness forces that many validations to fail before letting the
+// real validator judge, rather than relying on a "hard" input to genuinely exhaust the repair
+// loop — that turned out unreliable in practice, this case passed cleanly in 2 attempts on a
+// real run despite the dense/unusual input. Forcing exactly Attempts (3, appsettings.json's
+// TrackGenerationWorkflow:GenerationMaxAttempts) failures guarantees exhaustion without ever
+// touching the fallback track's own (real) validation, since the forced count runs out first.
+// `Attempts`/`CriticAttempts` on a fallback-completed track are always 1/0 —
+// FallbackGenerateCandidateTrackExecutor resets both for the fallback track's own validation —
+// so neither is a meaningful signal of how hard the pipeline tried; only the outcome is.
+{"id": "fallback-dense-changes", "category": "Fallback", "description": "Force the validator's repair budget to exhaust so the rule-based fallback generator has to produce the track", "rationale": "Guarantees the never-fail promise: when validation can't be satisfied within the attempt budget, the app must still get a track. Input content is unremarkable — the forced failures are what does the work.", "input": {"tempo": 96, "chords": ["Cmaj7", "Dmin7", "Emin7", "Fmaj7", "G7", "Amin7", "Bdim", "Cmaj7", "Bdim", "Amin7", "G7", "Fmaj7", "Emin7", "Dmin7", "Cmaj7"], "keyRoot": "C", "style": "jazz", "timeSignatureBeatCount": 5, "timeSignatureBeatUnit": 4}, "forceValidationFailures": 3, "expect": {"outcome": "SucceedsViaFallback", "maxAttempts": 1}}

@@ -42,6 +42,7 @@ public sealed record RunReport
                 o.Case.Category,
                 o.Verdict,
                 o.Result?.Attempts,
+                o.Result?.CriticAttempts,
                 o.Result?.Elapsed,
                 o.Result?.TrackId,
                 o.Notes))
@@ -67,6 +68,7 @@ public sealed record CaseLine(
     EvalCategory Category,
     CaseVerdict Verdict,
     int? Attempts,
+    int? CriticAttempts,
     TimeSpan? Elapsed,
     Guid? TrackId,
     IReadOnlyList<string> Notes);

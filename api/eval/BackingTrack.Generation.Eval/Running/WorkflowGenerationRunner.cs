@@ -25,6 +25,12 @@ public sealed class WorkflowGenerationRunner(IServiceScopeFactory scopeFactory) 
         // A fresh scope per case, mirroring GenerationJobWorkerHostedService — the workflow
         // executors are scoped and carry per-run state.
         using IServiceScope scope = scopeFactory.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<CriticFaultInjectionState>().RejectionsToForce =
+            evalCase.ForceCriticRejections;
+        scope.ServiceProvider.GetRequiredService<ValidationFaultInjectionState>().FailuresToForce =
+            evalCase.ForceValidationFailures;
+
         Workflow workflow = GenerationWorkflowBuilder.Build(scope.ServiceProvider);
 
         Run run = await InProcessExecution.RunAsync(workflow, job, cancellationToken: cancellationToken);
@@ -41,8 +47,9 @@ public sealed class WorkflowGenerationRunner(IServiceScopeFactory scopeFactory) 
         {
             GenerationSucceeded succeeded => new GenerationRunResult
             {
-                Outcome = ActualOutcome.Succeeded,
+                Outcome = succeeded.WasFallback ? ActualOutcome.SucceededViaFallback : ActualOutcome.Succeeded,
                 Attempts = succeeded.Attempts,
+                CriticAttempts = succeeded.CriticAttempts,
                 TrackId = succeeded.TrackId,
                 Elapsed = elapsed
             },
