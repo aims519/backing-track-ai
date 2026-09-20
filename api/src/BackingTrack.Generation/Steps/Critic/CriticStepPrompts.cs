@@ -48,7 +48,7 @@ public static class CriticStepPrompts
                                                           """;
 
     private const string VoiceLeadingInstructions = """
-                                                    Are the chord changes smooth, i.e. no jarring jumps from one chord to the next?
-                                                    Is there an attempt to create voice leading melodic lines between chords?
+                                                    Do the chord voicings move sensibly from one chord to the next - retaining shared/common tones where the chords allow it, or otherwise moving individual voices by step rather than leaping as a parallel block?
+                                                    If the exact same set of pitches is held verbatim across two or more bars where the underlying chord actually changes, that is an automatic fail: the voicing isn't tracking the progression at all, even though it introduces no jarring jump between bars.
                                                     """;
 }

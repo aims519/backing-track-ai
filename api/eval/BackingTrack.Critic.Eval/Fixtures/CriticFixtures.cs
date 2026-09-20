@@ -113,6 +113,11 @@ internal static class CriticFixtures
     // pool the modes share) on top of a correct min7 arpeggio. Before the ChordToneAdherence
     // instructions mentioned MatchedScales, the critic cited these as tones "outside" the chord
     // even though they're allowed by the scale matched to that exact chord.
+    // Bar 4's voicing is NOT a repeat of bar 1 (an earlier version reused it verbatim) - that
+    // shape sits a block fourth above bar 3's, with zero common tones, which is a real
+    // VoiceLeading defect this fixture never meant to introduce (it should isolate
+    // ChordToneAdherence only). Bar 4 instead keeps the three tones bar 3 and Amin7+9 share
+    // (E, G, B) static and moves the remaining two voices by a step and a third.
     private static CriticFixture GoodModalColorTonesFromMatchedScale()
     {
         IReadOnlyList<IReadOnlyList<int>> voicings =
@@ -120,7 +125,7 @@ internal static class CriticFixtures
             [57, 60, 64, 67, 71], // Amin7 + 9th (B):        A3 C4 E4 G4 B4
             [50, 53, 57, 60, 71], // Dmin7 + Dorian 6th (B): D3 F3 A3 C4 B4
             [52, 55, 59, 62, 65], // Emin7 + Phrygian b9 (F): E3 G3 B3 D4 F4
-            [57, 60, 64, 67, 71]  // Amin7 + 9th (B):        A3 C4 E4 G4 B4
+            [52, 55, 59, 60, 69]  // Amin7 + 9th (B), voice-led from bar 3: E3 G3 B3 (common) C4 A4
         ];
 
         return new CriticFixture(
