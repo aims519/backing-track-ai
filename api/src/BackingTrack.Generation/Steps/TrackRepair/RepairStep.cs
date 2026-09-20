@@ -5,18 +5,33 @@ using BackingTrack.Generation.Steps.TrackGeneration;
 using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
 
-using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-using OpenAI.Realtime;
-
 namespace BackingTrack.Generation.Steps.TrackRepair;
 
-public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepairProviderInfo providerInfo,
+public class RepairStep([FromKeyedServices("repair")] IChatClient chatClient, TrackRepairProviderInfo providerInfo,
     TrackRepairMetrics metrics, ILogger<RepairStep> logger) : IRepairStep
 {
+    // Hand-authored rather than generated from TrackRepairPatch: System.Text.Json's schema exporter
+    // (via AIAgent.RunAsync<T>, which always builds its own schema and offers no transform hook)
+    // produces a schema the OpenAI Responses API's strict validator rejects — polymorphic "$type"
+    // discriminators without an explicit "type" keyword, and "$ref"s that don't point at a top-level
+    // "$defs" entry. This schema is written directly against what the Responses/Chat Completions
+    // strict-schema subset actually accepts. Keep it in sync by hand if TrackRepairPatch's shape changes.
+    private static readonly JsonElement RepairPatchSchema = LoadSchema();
+
+    private static JsonElement LoadSchema()
+    {
+        // JsonDocument.Parse, not JsonSerializer.Deserialize<JsonElement>: the latter is a
+        // reflection-based generic call that trips IL2026/IL3050 under Native AOT (see ADR 0016).
+        string path = Path.Combine(AppContext.BaseDirectory, "Steps", "TrackRepair", "track-repair-patch.schema.json");
+        using FileStream stream = File.OpenRead(path);
+        using JsonDocument document = JsonDocument.Parse(stream);
+        return document.RootElement.Clone();
+    }
+
     public async Task<CandidateTrack> RepairCandidateTrackAsync(CandidateTrack previousAttempt, IReadOnlyList<ValidationFailure> failures,
         CancellationToken cancellationToken = default)
     {
@@ -25,20 +40,23 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
         activity?.SetTag("track_repair.model", providerInfo.Model);
 
         string prompt = GenerateRequestPrompt(previousAttempt, failures);
+        ChatMessage[] messages =
+        [
+            new(ChatRole.System, RepairStepPrompts.SystemInstructions),
+            new(ChatRole.User, prompt)
+        ];
 
-        ChatClientAgentRunOptions runOptions = new(new ChatOptions
+        ChatOptions chatOptions = new()
         {
             MaxOutputTokens = providerInfo.MaxOutputTokens,
-        });
+            ResponseFormat = new ChatResponseFormatJson(RepairPatchSchema, "TrackRepairPatch", null),
+        };
 
         Stopwatch stopwatch = Stopwatch.StartNew();
-        AgentResponse<TrackRepairPatch> agentResponse;
+        ChatResponse chatResponse;
         try
         {
-            agentResponse = await aiAgent.RunAsync<TrackRepairPatch>(prompt,
-                serializerOptions: new JsonSerializerOptions { TypeInfoResolver = TrackRepairJsonContext.Default },
-                options: runOptions,
-                cancellationToken: cancellationToken);
+            chatResponse = await chatClient.GetResponseAsync(messages, chatOptions, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -49,26 +67,28 @@ public class RepairStep([FromKeyedServices("repair")] AIAgent aiAgent, TrackRepa
         }
         stopwatch.Stop();
 
+        TrackRepairPatch? patch = JsonSerializer.Deserialize(chatResponse.Text, TrackRepairJsonContext.Default.TrackRepairPatch);
+
         logger.LogInformation("Generated Candidate Track Repair Patch. Input tokens: {InputCount}. Output tokens: {OutputCount}",
-            agentResponse.Usage?.InputTokenCount, agentResponse.Usage?.OutputTokenCount);
-        logger.LogDebug("Repair patch: {Patch}", JsonSerializer.Serialize(agentResponse.Result, TrackRepairJsonContext.Default.TrackRepairPatch));
+            chatResponse.Usage?.InputTokenCount, chatResponse.Usage?.OutputTokenCount);
+        logger.LogDebug("Repair patch: {Patch}", chatResponse.Text);
 
-        activity?.SetTag("track_repair.input_tokens", agentResponse.Usage?.InputTokenCount);
-        activity?.SetTag("track_repair.output_tokens", agentResponse.Usage?.OutputTokenCount);
-        metrics.RecordSuccess(providerInfo.Provider, providerInfo.Model, stopwatch.Elapsed, agentResponse.Usage?.InputTokenCount, agentResponse.Usage?.OutputTokenCount);
+        activity?.SetTag("track_repair.input_tokens", chatResponse.Usage?.InputTokenCount);
+        activity?.SetTag("track_repair.output_tokens", chatResponse.Usage?.OutputTokenCount);
+        metrics.RecordSuccess(providerInfo.Provider, providerInfo.Model, stopwatch.Elapsed, chatResponse.Usage?.InputTokenCount, chatResponse.Usage?.OutputTokenCount);
 
-        if (IsEmpty(agentResponse.Result))
+        if (IsEmpty(patch))
         {
             logger.LogWarning("Job repair returned an empty patch with no corrections; returning previous attempt unchanged");
             return previousAttempt;
         }
 
-        CandidateTrack updatedTrack = ApplyPatch(previousAttempt, agentResponse.Result);
+        CandidateTrack updatedTrack = ApplyPatch(previousAttempt, patch);
 
         return updatedTrack;
     }
 
-    private static bool IsEmpty(TrackRepairPatch? patch) =>
+    private static bool IsEmpty([System.Diagnostics.CodeAnalysis.NotNullWhen(false)] TrackRepairPatch? patch) =>
         patch is null ||
         ((patch.NoteCorrections is null || patch.NoteCorrections.Count == 0) &&
         patch.NewDrumPart is null &&
