@@ -16,11 +16,17 @@ namespace BackingTrack.Generation;
 
 public static class ServiceCollectionExtensions
 {
-    private static IChatClient CreateChatClient(OpenAiSettings settings, string model, OpenAiApiKind apiKind)
+    // OpenAI's own guidance for Flex processing: its variable, often-slower queueing routinely
+    // exceeds the SDK's much shorter default network timeout, so give Flex-tier steps more room.
+    // See https://developers.openai.com/api/docs/guides/flex-processing.
+    private static readonly TimeSpan FlexNetworkTimeout = TimeSpan.FromMinutes(15);
+
+    private static IChatClient CreateChatClient(OpenAiSettings settings, string model, OpenAiApiKind apiKind, OpenAiServiceTier? serviceTier)
     {
         OpenAIClient client = new(new ApiKeyCredential(settings.ApiKey), new OpenAIClientOptions()
         {
             Endpoint = new Uri(settings.BaseUrl),
+            NetworkTimeout = serviceTier == OpenAiServiceTier.Flex ? FlexNetworkTimeout : null,
         });
 
 #pragma warning disable OPENAI001 // Responses-API IChatClient adapter is still evaluation-only upstream.
@@ -45,19 +51,19 @@ public static class ServiceCollectionExtensions
             services.AddKeyedSingleton<IChatClient>("generate", (sp, _) =>
             {
                 OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
-                return CreateChatClient(settings, settings.GenerationModel, settings.GenerationApi);
+                return CreateChatClient(settings, settings.GenerationModel, settings.GenerationApi, settings.GenerationServiceTier);
             });
 
             services.AddKeyedSingleton<IChatClient>("repair", (sp, _) =>
             {
                 OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
-                return CreateChatClient(settings, settings.RepairModel, settings.RepairApi);
+                return CreateChatClient(settings, settings.RepairModel, settings.RepairApi, settings.RepairServiceTier);
             });
 
             services.AddKeyedSingleton<IChatClient>("critic", (sp, _) =>
             {
                 OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
-                return CreateChatClient(settings, settings.CriticModel, settings.CriticApi);
+                return CreateChatClient(settings, settings.CriticModel, settings.CriticApi, settings.CriticServiceTier);
             });
         }
         else
