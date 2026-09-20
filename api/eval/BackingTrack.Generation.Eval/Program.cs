@@ -16,6 +16,7 @@ using BackingTrack.Generation.Steps.TrackValidation;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -83,6 +84,14 @@ builder.Services.AddTrackPersistence(builder.Configuration);
 builder.Services.AddCritic(builder.Configuration);
 builder.Services.AddFallbackTrackGeneration();
 builder.Services.AddTrackGenerationWorkflow();
+
+// Wrap the real critic behind a fault-injecting decorator so CriticTriggering cases can force a
+// deterministic rejection instead of hoping the input draws a genuine one from the model. Only
+// forces anything when a case sets EvalCase.ForceCriticRejections > 0 — every other case still
+// exercises the real critic untouched.
+builder.Services.AddTransient<CriticStep>();
+builder.Services.AddScoped<CriticFaultInjectionState>();
+builder.Services.Replace(ServiceDescriptor.Transient<ICriticStep, FaultInjectingCriticStep>());
 
 builder.Services.AddSingleton<IGenerationRunner, WorkflowGenerationRunner>();
 builder.Services.AddSingleton<EvalRunner>();

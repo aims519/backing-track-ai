@@ -15,13 +15,14 @@ public static class ConsoleReporter
             Console.WriteLine($"{tally.Category,-22}{tally.Pass,6}{tally.Fail,6}{tally.Pending,6}{tally.Total,7}");
         Console.WriteLine(new string('─', 64));
 
-        Console.WriteLine($"\n{"Case",-32}{"Verdict",-9}{"Att",-5}{"Elapsed",-10}Track");
+        Console.WriteLine($"\n{"Case",-32}{"Verdict",-9}{"Att",-5}{"Crit",-5}{"Elapsed",-10}Track");
         foreach (CaseLine line in report.Cases)
         {
             string attempts = line.Attempts?.ToString() ?? "-";
+            string criticAttempts = line.CriticAttempts?.ToString() ?? "-";
             string elapsed = line.Elapsed is { } e ? $"{e.TotalSeconds:F1}s" : "-";
             string track = line.TrackId?.ToString() ?? "-";
-            Console.WriteLine($"{line.Id,-32}{line.Verdict.ToString().ToLowerInvariant(),-9}{attempts,-5}{elapsed,-10}{track}");
+            Console.WriteLine($"{line.Id,-32}{line.Verdict.ToString().ToLowerInvariant(),-9}{attempts,-5}{criticAttempts,-5}{elapsed,-10}{track}");
         }
 
         if (report.TrackStorageDirectory is { } trackDir)

@@ -24,7 +24,7 @@ public sealed record EvalHarnessArgs
         Usage: dotnet run -- [options]
 
           --category <name>   Only run cases in this category (repeatable).
-                              Baseline | ValidatorTriggering | Fallback
+                              Baseline | ValidatorTriggering | CriticTriggering | Fallback
           --case <id>         Only run this case id (repeatable).
           --golden-set <dir>  Override the golden-set directory (default: ./GoldenSet next to the binary).
           --json <path>       Also write a machine-readable JSON report to <path>.

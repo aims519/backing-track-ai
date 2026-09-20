@@ -1,4 +1,3 @@
 // Fallback: inputs the agentic pipeline is expected to fail on repeatedly, so the deterministic
 // rule-based generator must step in and still return a playable track.
-// Reported as Pending until the fallback generator lands (scope doc: "rule-based fallback generator").
 {"id": "fallback-dense-changes", "category": "Fallback", "description": "One chord change per beat across an unusual meter — dense enough that repair keeps failing", "rationale": "Guarantees the never-fail promise: when the LLM can't satisfy validation within the attempt budget, the app must still get a track.", "input": {"tempo": 96, "chords": ["Cmaj7", "Dmin7", "Emin7", "Fmaj7", "G7", "Amin7", "Bdim", "Cmaj7", "Bdim", "Amin7", "G7", "Fmaj7", "Emin7", "Dmin7", "Cmaj7"], "keyRoot": "C", "style": "jazz", "timeSignatureBeatCount": 5, "timeSignatureBeatUnit": 4}, "expect": {"outcome": "SucceedsViaFallback", "minAttempts": 3}}

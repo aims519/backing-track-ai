@@ -22,4 +22,13 @@ public sealed record EvalCase
     public required GenerationInput Input { get; init; }
 
     public required CaseExpectations Expect { get; init; }
+
+    /// <summary>
+    /// Harness-only test control, not part of <see cref="Input"/> — a real client never sends
+    /// this. When &gt; 0, <c>FaultInjectingCriticStep</c> forces this many critic reviews to fail
+    /// deterministically before letting the real critic judge, so a <c>CriticTriggering</c> case
+    /// can guarantee the critic → regenerate loop runs instead of hoping a "risky" input draws a
+    /// genuine rejection from the model.
+    /// </summary>
+    public int ForceCriticRejections { get; init; }
 }

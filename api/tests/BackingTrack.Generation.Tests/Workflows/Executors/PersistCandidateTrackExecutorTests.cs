@@ -31,6 +31,7 @@ public class PersistCandidateTrackExecutorTests
             GenerationSucceeded succeeded = Assert.IsType<GenerationSucceeded>(Assert.Single(context.YieldedOutputs));
             Assert.Same(track, succeeded.CandidateTrack);
             Assert.Equal(3, succeeded.Attempts);
+            Assert.Equal(1, succeeded.CriticAttempts);
             Assert.Empty(context.SentMessages);
 
             string expectedFilePath = Path.Combine(baseFolderPath, $"{succeeded.TrackId}.json");

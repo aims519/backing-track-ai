@@ -1,0 +1,12 @@
+// Critic-triggering: exercises the critic → regenerate → re-review loop, and — once its attempt
+// budget is exhausted — CriticExecutor's own fallback branch (distinct from the validator's,
+// already covered by GoldenSet/fallback.jsonl).
+// Deterministic via `forceCriticRejections` (an eval-harness-only field, not part of a real
+// client's input — see EvalCase.ForceCriticRejections / FaultInjectingCriticStep /
+// WorkflowGenerationRunner): the harness forces that many critic reviews to fail before letting
+// the real critic judge, rather than relying on a "musically risky" input to draw a genuine
+// rejection from the model — that turned out unreliable in practice, every case passed on the
+// first review regardless of input. Input content here is deliberately unremarkable; the forced
+// rejection is what does the work.
+{"id": "critic-forced-single-rejection", "category": "CriticTriggering", "description": "One forced critic rejection, then a real review of the regenerated candidate", "rationale": "Exercises CriticExecutor's reject → regenerate → re-review branch deterministically. CriticAttempts is 1-indexed like Attempts, so >=2 proves the forced rejection actually drove a regenerate cycle rather than the case just happening to pass.", "input": {"tempo": 100, "chords": ["C", "G", "Amin", "F"], "keyRoot": "C", "style": "pop"}, "forceCriticRejections": 1, "expect": {"outcome": "Succeeds", "minCriticAttempts": 2, "maxCriticAttempts": 3}}
+{"id": "critic-exhausts-to-fallback", "category": "CriticTriggering", "description": "Critic rejects every candidate until the critic attempt budget is exhausted", "rationale": "CriticExecutor falls back to the rule-based generator once critic attempts exceed Critic:MaxAttempts (3, appsettings.json) — a code path separate from the validator's own exhaustion-to-fallback branch, and only reachable deterministically by forcing every review to fail.", "input": {"tempo": 100, "chords": ["C", "G", "Amin", "F"], "keyRoot": "C", "style": "pop"}, "forceCriticRejections": 3, "expect": {"outcome": "SucceedsViaFallback"}}

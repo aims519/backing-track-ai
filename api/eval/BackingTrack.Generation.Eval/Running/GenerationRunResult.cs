@@ -8,6 +8,13 @@ public sealed record GenerationRunResult
     /// <summary>Attempt count reported by the workflow (1 = first candidate accepted). Null when generation never got that far.</summary>
     public int? Attempts { get; init; }
 
+    /// <summary>
+    /// Critic attempt count reported by the workflow (1 = the critic accepted the first
+    /// candidate; 2+ means it rejected 1+ times before accepting one; 0 = the critic never ran,
+    /// e.g. the fallback path). Null when generation never got that far.
+    /// </summary>
+    public int? CriticAttempts { get; init; }
+
     public Guid? TrackId { get; init; }
 
     public string? FailureReason { get; init; }

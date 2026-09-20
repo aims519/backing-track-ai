@@ -29,22 +29,14 @@ public sealed record CaseOutcome
 /// </summary>
 public static class CaseEvaluator
 {
-    // Flip this when the fallback generator lands. Until then, cases that depend on it are
-    // reported Pending rather than Fail, so the golden set can be authored ahead of the code.
-    private const bool FallbackGeneratorImplemented = false;
-
     public static CaseOutcome Evaluate(EvalCase evalCase, GenerationRunResult result)
     {
-        if (evalCase.Expect.Outcome == ExpectedOutcome.SucceedsViaFallback && !FallbackGeneratorImplemented)
-            return Pending(evalCase, result, "rule-based fallback generator not implemented yet");
-
         List<string> notes = [];
 
         ActualOutcome expected = evalCase.Expect.Outcome switch
         {
             ExpectedOutcome.Succeeds => ActualOutcome.Succeeded,
             ExpectedOutcome.SucceedsViaFallback => ActualOutcome.SucceededViaFallback,
-            ExpectedOutcome.Fails => ActualOutcome.Failed,
             _ => ActualOutcome.Failed
         };
 
@@ -62,6 +54,14 @@ public static class CaseEvaluator
                 notes.Add($"expected ≤ {max} attempt(s), got {attempts}");
         }
 
+        if (result.CriticAttempts is { } criticAttempts)
+        {
+            if (criticAttempts < evalCase.Expect.MinCriticAttempts)
+                notes.Add($"expected ≥ {evalCase.Expect.MinCriticAttempts} critic attempt(s), got {criticAttempts}");
+            if (evalCase.Expect.MaxCriticAttempts is { } maxCritic && criticAttempts > maxCritic)
+                notes.Add($"expected ≤ {maxCritic} critic attempt(s), got {criticAttempts}");
+        }
+
         return new CaseOutcome
         {
             Case = evalCase,
@@ -70,12 +70,4 @@ public static class CaseEvaluator
             Notes = notes
         };
     }
-
-    private static CaseOutcome Pending(EvalCase evalCase, GenerationRunResult? result, string reason) => new()
-    {
-        Case = evalCase,
-        Verdict = CaseVerdict.Pending,
-        Result = result,
-        Notes = [reason]
-    };
 }
