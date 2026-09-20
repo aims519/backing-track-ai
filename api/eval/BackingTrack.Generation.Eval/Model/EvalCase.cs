@@ -31,4 +31,13 @@ public sealed record EvalCase
     /// genuine rejection from the model.
     /// </summary>
     public int ForceCriticRejections { get; init; }
+
+    /// <summary>
+    /// Harness-only test control, not part of <see cref="Input"/> — a real client never sends
+    /// this. When &gt; 0, <c>FaultInjectingValidateStep</c> forces this many validations to fail
+    /// deterministically before letting the real validator judge, so a <c>Fallback</c> case can
+    /// guarantee the validator's repair-budget exhaustion → fallback branch runs instead of
+    /// hoping a "hard" input genuinely exhausts the repair loop.
+    /// </summary>
+    public int ForceValidationFailures { get; init; }
 }

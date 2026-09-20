@@ -49,6 +49,12 @@ eval-harness-only field (not part of the real API payload) that `FaultInjectingC
 (decorating the real `ICriticStep`, wired in `Program.cs`) reads to fail that many reviews
 deterministically before handing off to the real critic. See `GoldenSet/critic-triggering.jsonl`.
 
+`Fallback` uses the same trick on the validator side: `forceValidationFailures` +
+`FaultInjectingValidateStep` deterministically exhaust the repair budget instead of hoping a
+"hard" input genuinely does. It turned out this was needed too — `fallback-dense-changes`
+originally relied on a dense/unusual chord progression alone, and passed cleanly on a real run
+despite that. See `GoldenSet/fallback.jsonl`.
+
 ## Running it
 
 ```bash
@@ -74,8 +80,13 @@ Distil it from a real failure. Give it a stable `id` that's never reused, and pu
 ## Known gaps / next steps
 
 - `ValidatorTriggering` cases currently *encourage* a first-attempt failure through hard inputs
-  (odd meters, fast tempos) rather than *guaranteeing* one. Deterministic version: a fault-
-  injecting `IGenerationRunner` / validator double that fails the first N attempts. See ADR 0027.
+  (odd meters, fast tempos) rather than *guaranteeing* one — unlike `Fallback`, they're not
+  switched over to `forceValidationFailures` yet, since the point there is exercising the
+  repair-and-recover path with a *plausible* failure, not exhaustion. See ADR 0027.
+- `Attempts`/`CriticAttempts` on a `Fallback`-completed track are always `1`/`0` —
+  `FallbackGenerateCandidateTrackExecutor` resets both for the fallback track's own validation —
+  so neither is a meaningful signal of how hard the pipeline tried on a `Fallback` case; only the
+  outcome is.
 - No record/replay of LLM responses yet, so every run is live and costs tokens — fine for a
   manual/nightly job, not for per-PR CI. Replay vs. live-nightly is still to be decided.
 - No run-over-run diffing yet; `--json` output is the raw material for it.

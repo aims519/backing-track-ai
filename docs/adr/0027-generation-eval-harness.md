@@ -91,3 +91,14 @@ Both anticipated gaps above have landed:
   same fault-injection idea already deferred above for `ValidatorTriggering`, arrived at
   independently for the critic loop — worth applying there too if that deferral is ever picked
   back up.
+- `Fallback` had the identical problem: `fallback-dense-changes` relied on a dense, unusual-meter
+  chord progression to exhaust the validator's repair budget, and passed cleanly on a real run
+  instead. Picked up the same fault-injection pattern immediately rather than waiting for the
+  deferred `ValidatorTriggering` version: `ForceValidationFailures` on the `EvalCase` and a
+  `FaultInjectingValidateStep` decorator force that many validations to fail before handing off
+  to the real validator, guaranteeing `ValidateCandidateTrackExecutor`'s exhaustion → fallback
+  branch runs. Also fixed a latent bug this surfaced: the case's original `minAttempts: 3`
+  expectation could never pass even when fallback triggered correctly, since
+  `FallbackGenerateCandidateTrackExecutor` resets `ValidationAttempts` to `1` for the fallback
+  track's own validation — `Attempts` (and `CriticAttempts`) on a fallback-completed track are
+  always `1`/`0`, not a reflection of how many attempts preceded it.
