@@ -24,9 +24,12 @@ public class RepairStep([FromKeyedServices("repair")] IChatClient chatClient, Tr
 
     private static JsonElement LoadSchema()
     {
+        // JsonDocument.Parse, not JsonSerializer.Deserialize<JsonElement>: the latter is a
+        // reflection-based generic call that trips IL2026/IL3050 under Native AOT (see ADR 0016).
         string path = Path.Combine(AppContext.BaseDirectory, "Steps", "TrackRepair", "track-repair-patch.schema.json");
         using FileStream stream = File.OpenRead(path);
-        return JsonSerializer.Deserialize<JsonElement>(stream);
+        using JsonDocument document = JsonDocument.Parse(stream);
+        return document.RootElement.Clone();
     }
 
     public async Task<CandidateTrack> RepairCandidateTrackAsync(CandidateTrack previousAttempt, IReadOnlyList<ValidationFailure> failures,
