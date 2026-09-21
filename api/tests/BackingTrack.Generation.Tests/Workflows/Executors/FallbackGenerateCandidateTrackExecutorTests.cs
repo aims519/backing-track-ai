@@ -35,13 +35,16 @@ public class FallbackGenerateCandidateTrackExecutorTests
         await CreateExecutor(fallbackGenerationStepMock).HandleAsync(
             new FallbackGenerateCandidateTrackInput(job, matchedStyle, [chord], [scale]), context, CancellationToken.None);
 
-        ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
         Assert.Same(fallbackTrack, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal(1, sent.ValidationAttempts);
         Assert.Equal(0, sent.CriticAttempts);
         Assert.True(sent.IsFallbackTrack);
         Assert.Empty(context.YieldedOutputs);
+
+        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
+        Assert.Equal(job.Id, statusUpdate.JobId);
     }
 
     [Fact]
@@ -62,7 +65,7 @@ public class FallbackGenerateCandidateTrackExecutorTests
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("fallback generation failed", failed.Reason);
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 
     [Fact]
@@ -84,6 +87,6 @@ public class FallbackGenerateCandidateTrackExecutorTests
             new FallbackGenerateCandidateTrackInput(job, matchedStyle, [chord], [scale]), context, cts.Token);
 
         Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 }

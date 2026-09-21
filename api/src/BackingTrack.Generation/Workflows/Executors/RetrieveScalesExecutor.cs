@@ -15,6 +15,9 @@ internal sealed class RetrieveScalesExecutor(
     internal async ValueTask HandleAsync(RetrieveScalesInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
+        await context.SendMessageAsync(new StatusUpdateInput(input.GenerationJob.Id, DateTime.UtcNow, "Retrieval", 1,
+            "Retrieving scales..."), cancellationToken);
+
         IReadOnlyList<MatchedScale> matchingScaleEntries;
         try
         {
@@ -50,5 +53,6 @@ internal sealed class RetrieveScalesExecutor(
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<RetrieveScalesInput>(HandleAsync))
             .SendsMessage<GenerateCandidateTrackInput>()
+            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

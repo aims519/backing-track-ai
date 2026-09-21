@@ -1,3 +1,5 @@
+using BackingTrack.Generation.Workflows.Inputs;
+
 using Microsoft.Agents.AI.Workflows;
 
 namespace BackingTrack.Generation.Tests.Workflows;
@@ -11,6 +13,13 @@ internal sealed class FakeWorkflowContext : IWorkflowContext
 {
     public List<object> SentMessages { get; } = [];
     public List<object> YieldedOutputs { get; } = [];
+
+    /// <summary>
+    /// SentMessages minus the fire-and-forget StatusUpdateInput every executor now sends
+    /// alongside its real routing message; tests assert workflow routing against this so they
+    /// don't have to know about the status-update instrumentation on every single case.
+    /// </summary>
+    public IReadOnlyList<object> WorkflowMessages => [.. SentMessages.Where(message => message is not StatusUpdateInput)];
 
     public ValueTask AddEventAsync(WorkflowEvent workflowEvent, CancellationToken cancellationToken = default) => default;
 

@@ -80,7 +80,11 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
             switch (outcome)
             {
                 case GenerationSucceeded succeeded when !alreadyCancelled:
-                    GenerationJob completedJob = updatedJob with
+                    // Base this on the job store's current copy, not the `updatedJob` snapshot taken
+                    // before the workflow ran - StatusUpdateExecutor has been appending FeedbackItems
+                    // to the stored job throughout the run, and `updatedJob with { ... }` would discard
+                    // all of them.
+                    GenerationJob completedJob = (jobStore.TryGet(jobId) ?? updatedJob) with
                     {
                         State = succeeded.WasFallback ? JobStates.CompletedViaFallback : JobStates.Complete,
                         EndTime = DateTimeOffset.UtcNow,
@@ -95,7 +99,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     break;
 
                 case GenerationFailed failed when !alreadyCancelled:
-                    GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
+                    GenerationJob failedJob = (jobStore.TryGet(jobId) ?? updatedJob) with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                     jobStore.AddOrUpdate(failedJob);
 
                     activity?.SetStatus(ActivityStatusCode.Error, failed.Reason);
@@ -125,7 +129,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     logger.LogError("Job {Id} failed unexpectedly without a given reason", jobId);
                     activity?.SetStatus(ActivityStatusCode.Error);
 
-                    GenerationJob failedJobNoExp = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
+                    GenerationJob failedJobNoExp = (jobStore.TryGet(jobId) ?? updatedJob) with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
                     jobStore.AddOrUpdate(failedJobNoExp);
                     break;
             }

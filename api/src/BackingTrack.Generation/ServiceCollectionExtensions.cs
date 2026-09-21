@@ -85,6 +85,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<RepairCandidateTrackExecutor>();
         services.AddScoped<CriticExecutor>();
         services.AddScoped<PersistCandidateTrackExecutor>();
+        services.AddScoped<StatusUpdateExecutor>();
 
         return services;
     }

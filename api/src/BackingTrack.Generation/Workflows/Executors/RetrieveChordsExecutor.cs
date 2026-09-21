@@ -17,6 +17,10 @@ internal sealed class RetrieveChordsExecutor(
         CancellationToken cancellationToken)
     {
         GenerationJob job = input.Job;
+
+        await context.SendMessageAsync(new StatusUpdateInput(job.Id, DateTime.UtcNow, "Retrieval", 1,
+            "Retrieving chords..."), cancellationToken);
+
         IReadOnlyList<MatchedChord> matchingChords;
         try
         {
@@ -36,5 +40,6 @@ internal sealed class RetrieveChordsExecutor(
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<RetrieveChordsInput>(HandleAsync))
             .SendsMessage<RetrieveScalesInput>()
+            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

@@ -36,12 +36,15 @@ public class ValidateCandidateTrackExecutorTests
 
         await CreateExecutor(validateStepMock, maxAttempts: 5).HandleAsync(CreateInput(track, job, attempts: 2, criticAttempts: 1), context, CancellationToken.None);
 
-        CriticInput sent = Assert.IsType<CriticInput>(Assert.Single(context.SentMessages));
+        CriticInput sent = Assert.IsType<CriticInput>(Assert.Single(context.WorkflowMessages));
         Assert.Same(track, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal(2, sent.ValidationAttempts);
         Assert.Equal(1, sent.CriticAttempts);
         Assert.Empty(context.YieldedOutputs);
+
+        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
+        Assert.Equal(job.Id, statusUpdate.JobId);
     }
 
     [Fact]
@@ -57,7 +60,7 @@ public class ValidateCandidateTrackExecutorTests
 
         await CreateExecutor(validateStepMock, maxAttempts: 5).HandleAsync(CreateInput(track, job, attempts: 2), context, CancellationToken.None);
 
-        RepairCandidateTrackInput sent = Assert.IsType<RepairCandidateTrackInput>(Assert.Single(context.SentMessages));
+        RepairCandidateTrackInput sent = Assert.IsType<RepairCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
         Assert.Same(track, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal([failure], sent.ValidationResult.Failures);
@@ -77,7 +80,7 @@ public class ValidateCandidateTrackExecutorTests
 
         await CreateExecutor(validateStepMock, maxAttempts: 5).HandleAsync(CreateInput(track, job, attempts: 5), context, CancellationToken.None);
 
-        FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
         Assert.Same(job, sent.GenerationJob);
         Assert.Empty(context.YieldedOutputs);
     }
@@ -96,7 +99,7 @@ public class ValidateCandidateTrackExecutorTests
 
         await CreateExecutor(validateStepMock, maxAttempts: 5).HandleAsync(CreateInput(track, job, attempts: 6), context, CancellationToken.None);
 
-        Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
         Assert.Empty(context.YieldedOutputs);
     }
 
@@ -113,7 +116,7 @@ public class ValidateCandidateTrackExecutorTests
         await CreateExecutor(validateStepMock, maxAttempts: 5).HandleAsync(
             CreateInput(track, job, attempts: 1, criticAttempts: 0, isFallbackTrack: true), context, CancellationToken.None);
 
-        PersistCandidateTrackInput sent = Assert.IsType<PersistCandidateTrackInput>(Assert.Single(context.SentMessages));
+        PersistCandidateTrackInput sent = Assert.IsType<PersistCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
         Assert.Same(track, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal(1, sent.ValidationAttempts);
@@ -137,7 +140,7 @@ public class ValidateCandidateTrackExecutorTests
             CreateInput(track, job, attempts: 1, isFallbackTrack: true), context, CancellationToken.None);
 
         Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 
     [Fact]
@@ -155,7 +158,7 @@ public class ValidateCandidateTrackExecutorTests
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("validator blew up", failed.Reason);
         Assert.Null(failed.Attempts);
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 
     [Fact]
@@ -173,6 +176,6 @@ public class ValidateCandidateTrackExecutorTests
         await CreateExecutor(validateStepMock, maxAttempts: 5).HandleAsync(CreateInput(track, job, attempts: 2), context, cts.Token);
 
         Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 }
