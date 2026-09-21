@@ -22,6 +22,7 @@ internal static class WorkflowTestFixtures
         Style = "rock",
         TimeSignatureBeatCount = 4,
         TimeSignatureBeatUnit = 4,
+        FeedbackItems = []
     };
 
     public static MatchedStyle CreateMatchedStyle() =>

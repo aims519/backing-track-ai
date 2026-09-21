@@ -49,6 +49,7 @@ internal static class TrackEndpoints
             Style = requestDto.Style!,
             TimeSignatureBeatCount = requestDto.TimeSignatureBeatCount,
             TimeSignatureBeatUnit = requestDto.TimeSignatureBeatUnit,
+            FeedbackItems = []
         };
 
         jobStore.AddOrUpdate(job);

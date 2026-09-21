@@ -22,6 +22,7 @@ public class ValidateStepTests
         Style = "rock",
         TimeSignatureBeatCount = 4,
         TimeSignatureBeatUnit = 4,
+        FeedbackItems = []
     };
 
     private static CandidateTrack CreateCandidateTrack() => new(16, [], [], []);

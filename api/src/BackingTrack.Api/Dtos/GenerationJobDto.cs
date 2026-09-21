@@ -18,7 +18,10 @@ public sealed record GenerationJobDto
     public IReadOnlyList<string> KeyModeWarnings { get; init; } = [];
     public required int TimeSignatureBeatCount { get; init; }
     public required int TimeSignatureBeatUnit { get; init; }
+    public required IReadOnlyList<JobFeedbackDto> FeedbackItems { get; init; }
 }
+
+public sealed record JobFeedbackDto(DateTime Timestamp, string Stage, string Message, int Attempt);
 
 internal static class GenerationJobDtoExtensions
 {
@@ -38,5 +41,6 @@ internal static class GenerationJobDtoExtensions
         KeyModeWarnings = job.KeyModeWarnings,
         TimeSignatureBeatCount = job.TimeSignatureBeatCount,
         TimeSignatureBeatUnit = job.TimeSignatureBeatUnit,
+        FeedbackItems = job.FeedbackItems.Select(i => new JobFeedbackDto(i.Timestamp, i.Stage, i.Message, i.Attempt)).ToList(),
     };
 }

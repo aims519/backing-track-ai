@@ -23,6 +23,7 @@ public class TrackValidatorTests
         Style = "rock",
         TimeSignatureBeatCount = timeSignatureBeatCount,
         TimeSignatureBeatUnit = 4,
+        FeedbackItems = []
     };
 
     private static CandidateTrack CreateCandidateTrack(double lengthInBeats,
