@@ -157,4 +157,22 @@ public class ValidateCandidateTrackExecutorTests
         Assert.Null(failed.Attempts);
         Assert.Empty(context.SentMessages);
     }
+
+    [Fact]
+    public async Task HandleAsync_CancellationRequested_YieldsGenerationCancelledAndSendsNothing()
+    {
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        CandidateTrack track = new(16, [], [], []);
+        IValidateStep validateStepMock = Substitute.For<IValidateStep>();
+        validateStepMock.ValidateCandidateTrack(track, job, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>())
+            .Throws(new OperationCanceledException());
+        FakeWorkflowContext context = new();
+        using CancellationTokenSource cts = new();
+        cts.Cancel();
+
+        await CreateExecutor(validateStepMock, maxAttempts: 5).HandleAsync(CreateInput(track, job, attempts: 2), context, cts.Token);
+
+        Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
+        Assert.Empty(context.SentMessages);
+    }
 }

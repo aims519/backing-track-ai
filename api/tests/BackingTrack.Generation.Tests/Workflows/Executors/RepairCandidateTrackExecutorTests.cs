@@ -58,4 +58,23 @@ public class RepairCandidateTrackExecutorTests
         Assert.Equal(2, failed.Attempts);
         Assert.Empty(context.SentMessages);
     }
+
+    [Fact]
+    public async Task HandleAsync_CancellationRequested_YieldsGenerationCancelledAndSendsNothing()
+    {
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        CandidateTrack track = new(16, [], [], []);
+        ValidationFailure failure = new(ValidationFailureType.PartEmpty, null, "no drum notes");
+        IRepairStep repairStepMock = Substitute.For<IRepairStep>();
+        repairStepMock.RepairCandidateTrackAsync(track, Arg.Any<IReadOnlyList<ValidationFailure>>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new OperationCanceledException());
+        FakeWorkflowContext context = new();
+        using CancellationTokenSource cts = new();
+        cts.Cancel();
+
+        await CreateExecutor(repairStepMock).HandleAsync(CreateInput(track, job, [failure], attempts: 2), context, cts.Token);
+
+        Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
+        Assert.Empty(context.SentMessages);
+    }
 }

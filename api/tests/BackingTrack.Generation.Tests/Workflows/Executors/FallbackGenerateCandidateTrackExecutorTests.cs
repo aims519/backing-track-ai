@@ -64,4 +64,26 @@ public class FallbackGenerateCandidateTrackExecutorTests
         Assert.Equal("fallback generation failed", failed.Reason);
         Assert.Empty(context.SentMessages);
     }
+
+    [Fact]
+    public async Task HandleAsync_CancellationRequested_YieldsGenerationCancelledAndSendsNothing()
+    {
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        MatchedStyle matchedStyle = WorkflowTestFixtures.CreateMatchedStyle();
+        MatchedChord chord = WorkflowTestFixtures.CreateMatchedChord();
+        MatchedScale scale = WorkflowTestFixtures.CreateMatchedScale(chord);
+        IFallbackGenerationStep fallbackGenerationStepMock = Substitute.For<IFallbackGenerationStep>();
+        fallbackGenerationStepMock.GenerateFallbackCandidateTrackAsync(job.TimeSignatureBeatCount, job.TimeSignatureBeatUnit,
+                matchedStyle, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new OperationCanceledException());
+        FakeWorkflowContext context = new();
+        using CancellationTokenSource cts = new();
+        cts.Cancel();
+
+        await CreateExecutor(fallbackGenerationStepMock).HandleAsync(
+            new FallbackGenerateCandidateTrackInput(job, matchedStyle, [chord], [scale]), context, cts.Token);
+
+        Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
+        Assert.Empty(context.SentMessages);
+    }
 }

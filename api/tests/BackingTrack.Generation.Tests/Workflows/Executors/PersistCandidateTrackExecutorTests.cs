@@ -90,4 +90,28 @@ public class PersistCandidateTrackExecutorTests
             File.Delete(blockingFilePath);
         }
     }
+
+    [Fact]
+    public async Task HandleAsync_CancellationRequested_YieldsGenerationCancelledAndSendsNothing()
+    {
+        string baseFolderPath = Path.Combine(Path.GetTempPath(), $"backing-track-tests-{Guid.NewGuid()}");
+        try
+        {
+            GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+            CandidateTrack track = new(16, [], [], []);
+            FakeWorkflowContext context = new();
+            using CancellationTokenSource cts = new();
+            cts.Cancel();
+
+            await CreateExecutor(baseFolderPath).HandleAsync(new PersistCandidateTrackInput(track, job, 3, 1), context, cts.Token);
+
+            Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
+            Assert.Empty(context.SentMessages);
+        }
+        finally
+        {
+            if (Directory.Exists(baseFolderPath))
+                Directory.Delete(baseFolderPath, recursive: true);
+        }
+    }
 }

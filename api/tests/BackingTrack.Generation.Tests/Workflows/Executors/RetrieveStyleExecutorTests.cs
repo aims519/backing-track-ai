@@ -64,4 +64,21 @@ public class RetrieveStyleExecutorTests
         Assert.Equal("style lookup failed", failed.Reason);
         Assert.Empty(context.SentMessages);
     }
+
+    [Fact]
+    public async Task HandleAsync_CancellationRequested_YieldsGenerationCancelledAndSendsNothing()
+    {
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        IRetrieveStep retrieveStepMock = Substitute.For<IRetrieveStep>();
+        retrieveStepMock.RetrieveTopMatchingStyles(job.Style, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new OperationCanceledException());
+        FakeWorkflowContext context = new();
+        using CancellationTokenSource cts = new();
+        cts.Cancel();
+
+        await CreateExecutor(retrieveStepMock).HandleAsync(job, context, cts.Token);
+
+        Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
+        Assert.Empty(context.SentMessages);
+    }
 }
