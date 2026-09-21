@@ -52,7 +52,9 @@ internal sealed class GenerateCandidateTrackExecutor(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            throw; // Service shutdown, not a job failure
+            logger.LogInformation("Cancellation requested during {ExecutorName}", nameof(GenerateCandidateTrackExecutor));
+            await context.YieldOutputAsync(new GenerationCancelled(), CancellationToken.None);
+            return;
         }
         catch (Exception ex)
         {

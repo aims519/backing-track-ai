@@ -38,12 +38,19 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
             return;
         }
 
+        if (generationJob.State == JobStates.Cancelled)
+        {
+            logger.LogInformation("Job {Id} was cancelled before it started", jobId);
+            return;
+        }
+
         using Activity? activity = GenerationJobActivitySource.Instance.StartActivity($"{nameof(GenerationJobWorkerHostedService)}.ProcessGenerationJobAsync");
         activity?.SetTag("job.id", generationJob.Id);
         activity?.SetTag("job.mode", generationJob.Mode);
 
         GenerationJob updatedJob = generationJob with { State = JobStates.InProgress };
         jobStore.AddOrUpdate(updatedJob);
+
         logger.LogInformation("Job {Id} started", jobId);
 
         // Process the generation job here
@@ -52,50 +59,81 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
 
         Workflow generationWorkflow = GenerationWorkflowBuilder.Build(scope.ServiceProvider);
 
-        Run run = await InProcessExecution.RunAsync(generationWorkflow, generationJob, cancellationToken: stoppingToken);
-        GenerationOutcome? outcome = run.OutgoingEvents
-            .OfType<WorkflowOutputEvent>()
-            .Select(e => e.As<GenerationOutcome>())
-            .OfType<GenerationOutcome>()
-            .LastOrDefault();
-
-        switch (outcome)
+        StreamingRun? run = null;
+        try
         {
-            case GenerationSucceeded succeeded:
-                GenerationJob completedJob = updatedJob with
-                {
-                    State = succeeded.WasFallback ? JobStates.CompletedViaFallback : JobStates.Complete,
-                    EndTime = DateTimeOffset.UtcNow,
-                    TrackId = succeeded.TrackId
-                };
-                jobStore.AddOrUpdate(completedJob);
+            run = await InProcessExecution.RunStreamingAsync(generationWorkflow, generationJob, cancellationToken: stoppingToken);
+            jobStore.RegisterJobRun(jobId, run);
 
-                logger.LogDebug("Job {Id} completed track saved: {Track}", generationJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
-                logger.LogInformation("Job {Id} completed", jobId);
+            GenerationOutcome? outcome = null;
+            await foreach (WorkflowEvent evt in run.WatchStreamAsync(blockOnPendingRequest: false, stoppingToken))
+            {
+                if (evt is WorkflowOutputEvent output && output.As<GenerationOutcome>() is { } o)
+                    outcome = o;
+            }
 
-                generationJobMetrics.RecordAttempts(succeeded.Attempts, "success");
-                break;
+            // /cancel marks the job Cancelled directly as soon as it's requested (see JobStore.CancelAsync) -
+            // the workflow engine's event stream can end before, or race with, an executor's own cooperative
+            // GenerationCancelled yield, so a terminal outcome arriving after that point must not clobber it.
+            bool alreadyCancelled = jobStore.TryGet(jobId)?.State == JobStates.Cancelled;
 
-            case GenerationFailed failed:
-                GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
-                jobStore.AddOrUpdate(failedJob);
+            switch (outcome)
+            {
+                case GenerationSucceeded succeeded when !alreadyCancelled:
+                    GenerationJob completedJob = updatedJob with
+                    {
+                        State = succeeded.WasFallback ? JobStates.CompletedViaFallback : JobStates.Complete,
+                        EndTime = DateTimeOffset.UtcNow,
+                        TrackId = succeeded.TrackId
+                    };
+                    jobStore.AddOrUpdate(completedJob);
 
-                activity?.SetStatus(ActivityStatusCode.Error, failed.Reason);
-                logger.LogError("Job {Id} failed: {Reason}", jobId, failed.Reason);
+                    logger.LogDebug("Job {Id} completed track saved: {Track}", generationJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
+                    logger.LogInformation("Job {Id} completed", jobId);
 
-                if (failed.Attempts.HasValue)
-                {
-                    generationJobMetrics.RecordAttempts(failed.Attempts.Value, "failed");
-                }
-                break;
+                    generationJobMetrics.RecordAttempts(succeeded.Attempts, "success");
+                    break;
 
-            case null:
-                logger.LogError("Job {Id} failed unexpectedly without a given reason", jobId);
-                activity?.SetStatus(ActivityStatusCode.Error);
+                case GenerationFailed failed when !alreadyCancelled:
+                    GenerationJob failedJob = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
+                    jobStore.AddOrUpdate(failedJob);
 
-                GenerationJob failedJobNoExp = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
-                jobStore.AddOrUpdate(failedJobNoExp);
-                break;
+                    activity?.SetStatus(ActivityStatusCode.Error, failed.Reason);
+                    logger.LogError("Job {Id} failed: {Reason}", jobId, failed.Reason);
+
+                    if (failed.Attempts.HasValue)
+                    {
+                        generationJobMetrics.RecordAttempts(failed.Attempts.Value, "failed");
+                    }
+                    break;
+
+                case GenerationCancelled or GenerationSucceeded or GenerationFailed when alreadyCancelled:
+                    activity?.SetStatus(ActivityStatusCode.Error);
+                    logger.LogInformation("Job {Id} was cancelled", jobId);
+                    break;
+
+                case null when alreadyCancelled:
+                    // No terminal outcome was observed before the job was marked Cancelled - the
+                    // workflow's event stream can end before an executor's own cooperative
+                    // GenerationCancelled yield reaches it, so this doesn't mean cancellation
+                    // landed between steps, just that we didn't wait to see how it landed.
+                    activity?.SetStatus(ActivityStatusCode.Error);
+                    logger.LogInformation("Job {Id} was cancelled", jobId);
+                    break;
+
+                case null:
+                    logger.LogError("Job {Id} failed unexpectedly without a given reason", jobId);
+                    activity?.SetStatus(ActivityStatusCode.Error);
+
+                    GenerationJob failedJobNoExp = updatedJob with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
+                    jobStore.AddOrUpdate(failedJobNoExp);
+                    break;
+            }
+        }
+        finally
+        {
+            jobStore.UnregisterJobRun(jobId);
+            if (run is not null) await run.DisposeAsync();
         }
     }
 }

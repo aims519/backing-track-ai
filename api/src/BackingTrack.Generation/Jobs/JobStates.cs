@@ -6,5 +6,6 @@ public enum JobStates
     InProgress,
     Complete,
     CompletedViaFallback,
-    Failed
+    Failed,
+    Cancelled
 }

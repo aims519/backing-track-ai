@@ -63,7 +63,8 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            throw; // shutdown, not a job failure
+            logger.LogInformation("Cancellation requested during {ExecutorName}", nameof(CriticExecutor));
+            await context.YieldOutputAsync(new GenerationCancelled(), CancellationToken.None);
         }
         catch (Exception ex)
         {
