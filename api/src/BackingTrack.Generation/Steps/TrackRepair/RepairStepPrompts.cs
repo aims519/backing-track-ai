@@ -38,6 +38,12 @@ public static class RepairStepPrompts
            - The replacement is the ENTIRE part: it must contain events for every bar from beat
              0 up to LengthInBeats, not only the empty ones. Carry the existing bars' events
              across unchanged and add events for the missing bars.
+           - The added bars must match the rhythmic density and pattern of the bars that already
+             have events, not just contain a single token note. A missing bar sitting between
+             (or after) fully-realised bars should read as a continuation of the same groove -
+             same rough event count, same mix of drum/bass/chord activity - not a sparse downbeat
+             hit. A bar that only satisfies "not empty" will still be rejected by the music critic
+             for breaking rhythmic consistency.
            - One replacement per part covers all of that part's PartEmpty / SilentBar failures.
            - Do not also emit note corrections for a part you replace this way.
 

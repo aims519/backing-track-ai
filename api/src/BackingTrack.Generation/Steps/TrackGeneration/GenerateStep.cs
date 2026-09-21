@@ -25,7 +25,7 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
         CancellationToken cancellationToken = default)
     {
         string chordProgressionString = GenerateChordProgressionStringForPrompt(chords, scales);
-        string prompt = GenerateRequestPrompt(keyRoot, keyMode, tempo, timeSignatureBeatCount, timeSignatureBeatUnit, style, chordProgressionString);
+        string prompt = GenerateRequestPrompt(keyRoot, keyMode, tempo, timeSignatureBeatCount, timeSignatureBeatUnit, style, chordProgressionString, chords.Count);
 
         if (previousAttempt != null && previousAttemptFailures != null)
             prompt += ("\n" + GeneratePreviousFailurePrompt(previousAttempt, previousAttemptFailures));
@@ -41,7 +41,7 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
         CandidateTrack previousAttempt, CriticFinalReview criticReview, CancellationToken cancellationToken = default)
     {
         string chordProgressionString = GenerateChordProgressionStringForPrompt(chords, scales);
-        string prompt = GenerateRequestPrompt(keyRoot, keyMode, tempo, timeSignatureBeatCount, timeSignatureBeatUnit, style, chordProgressionString);
+        string prompt = GenerateRequestPrompt(keyRoot, keyMode, tempo, timeSignatureBeatCount, timeSignatureBeatUnit, style, chordProgressionString, chords.Count);
         string criticReviewString = GenerateCriticReviewPrompt(previousAttempt, criticReview);
 
         prompt += ("\n" + criticReviewString);
@@ -76,8 +76,11 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
         int timeSignatureBeatCount,
         int timeSignatureBeatUnit,
         MatchedStyle style,
-        string chordProgression)
+        string chordProgression,
+        int barCount)
     {
+        int totalBeats = timeSignatureBeatCount * barCount;
+
         return $"""
                Tempo: {tempo}
                Time Signature: {timeSignatureBeatCount}/{timeSignatureBeatUnit}
@@ -86,6 +89,9 @@ public class GenerateStep(ITrackGenerationClient trackGenerationClient, ScaleMat
                Style: {style.StyleEntry.Id} - {style.StyleEntry.Description}
                Chord Progression:
                {chordProgression}
+               Total length: {totalBeats} beats across {barCount} bars ({timeSignatureBeatCount} beats each), beat
+               positions 0 to {totalBeats}. Every bar in that range must contain drum, bass, and chord events -
+               do not stop generating after the first one or two bars.
                """;
     }
 
