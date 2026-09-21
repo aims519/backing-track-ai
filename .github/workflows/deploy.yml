@@ -71,7 +71,7 @@ jobs:
     runs-on: [self-hosted, macOS]
     steps:
       - name: Download publish output
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: api-publish-${{ github.sha }}
           path: ${{ env.PUBLISH_DIR }}
