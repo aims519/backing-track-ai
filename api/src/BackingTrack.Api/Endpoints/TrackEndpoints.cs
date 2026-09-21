@@ -17,6 +17,7 @@ internal static class TrackEndpoints
         group.MapPost("/generate", Generate);
         group.MapGet("/status/{jobId:guid}", GetStatus).DisableRateLimiting();
         group.MapGet("/download/{trackId:guid}", DownloadTrack).DisableRateLimiting();
+        group.MapPost("/cancel/{jobId:guid}", CancelJobAsync).DisableRateLimiting();
         return group;
     }
 
@@ -67,6 +68,12 @@ internal static class TrackEndpoints
 
         GenerationJobDto jobDto = job.ToDto();
         return Results.Ok(jobDto);
+    }
+
+    private static async Task<IResult> CancelJobAsync(Guid jobId, JobStore jobStore)
+    {
+        await jobStore.CancelAsync(jobId);
+        return Results.NoContent();
     }
 
     private static IResult DownloadTrack(Guid trackId, IOptions<TrackStorageSettings> trackStorageSettings)

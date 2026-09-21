@@ -15,6 +15,7 @@ struct JobStatusTests {
         ("Complete", .complete),
         ("CompletedViaFallback", .completedViaFallback),
         ("Failed", .failed),
+        ("Cancelled", .cancelled),
     ])
     func decodesEveryBackendState(raw: String, expected: JobStatus) throws {
         #expect(try decode(raw) == expected)
@@ -25,7 +26,7 @@ struct JobStatusTests {
     }
 
     @Test(arguments: [
-        JobStatus.pending, .inProgress, .complete, .completedViaFallback, .failed,
+        JobStatus.pending, .inProgress, .complete, .completedViaFallback, .failed, .cancelled,
         .unknown("SomethingNew"),
     ])
     func wireValueRoundTrips(_ status: JobStatus) {
@@ -44,10 +45,12 @@ struct JobStatusTests {
         #expect(JobStatus.complete.isTerminal)
         #expect(JobStatus.completedViaFallback.isTerminal)
         #expect(JobStatus.failed.isTerminal)
+        #expect(JobStatus.cancelled.isTerminal)
 
         #expect(JobStatus.complete.isSuccess)
         #expect(JobStatus.completedViaFallback.isSuccess)
         #expect(JobStatus.failed.isSuccess == false)
+        #expect(JobStatus.cancelled.isSuccess == false)
         #expect(JobStatus.unknown("x").isSuccess == false)
     }
 }

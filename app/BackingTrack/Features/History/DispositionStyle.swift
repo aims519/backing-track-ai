@@ -15,6 +15,8 @@ extension JobDisposition {
                 "May have finished"
             case .pollError:
                 "Couldn't confirm"
+            case .cancelled:
+                "Cancelled"
         }
     }
     
@@ -32,9 +34,11 @@ extension JobDisposition {
                 .secondary
             case .pollError:
                 .orange
+            case .cancelled:
+                .secondary
         }
     }
-    
+
     var historyIcon: String {
         switch self {
             case .ready:
@@ -49,6 +53,8 @@ extension JobDisposition {
                 "questionmark.circle"
             case .pollError:
                 "wifi.exclamationmark"
+            case .cancelled:
+                "xmark.circle"
         }
     }
 }

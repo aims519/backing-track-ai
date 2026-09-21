@@ -103,4 +103,23 @@ public class CriticExecutorTests
         Assert.Equal("critic blew up", failed.Reason);
         Assert.Empty(context.SentMessages);
     }
+
+    [Fact]
+    public async Task HandleAsync_CancellationRequested_YieldsGenerationCancelledAndSendsNothing()
+    {
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        CandidateTrack track = new(16, [], [], []);
+        ICriticStep criticStepMock = Substitute.For<ICriticStep>();
+        criticStepMock.ReviewCandidateTrackAsync(track, job, Arg.Any<MatchedStyle>(), Arg.Any<IReadOnlyList<MatchedChord>>(),
+                Arg.Any<IReadOnlyList<MatchedScale>>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new OperationCanceledException());
+        FakeWorkflowContext context = new();
+        using CancellationTokenSource cts = new();
+        cts.Cancel();
+
+        await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(CreateInput(track, job, validationAttempts: 2, criticAttempts: 1), context, cts.Token);
+
+        Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
+        Assert.Empty(context.SentMessages);
+    }
 }

@@ -108,6 +108,7 @@ private struct PreviewAPIClient: BackingTrackAPIClient {
     func jobStatus(id: UUID) async throws -> GenerationJob {
         .preview(id: id, status: .inProgress)
     }
+    func cancelJob(id: UUID) async throws {}
     func downloadTrackData(trackID: UUID) async throws -> Data {
         fatalError("history previews never download")
     }

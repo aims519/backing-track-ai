@@ -37,8 +37,10 @@ internal sealed class PersistCandidateTrackExecutor(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // Service shutdown, not a job failure - let it propagate and stop the loop.
-            throw;
+            logger.LogInformation("Cancellation requested during {ExecutorName}", nameof(PersistCandidateTrackExecutor));
+            await context.YieldOutputAsync(new GenerationCancelled(), CancellationToken.None);
+            activity?.SetStatus(ActivityStatusCode.Error, "Job cancelled");
+            return;
         }
         catch (Exception ex)
         {

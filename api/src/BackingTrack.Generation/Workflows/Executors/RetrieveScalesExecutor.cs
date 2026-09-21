@@ -26,8 +26,9 @@ internal sealed class RetrieveScalesExecutor(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // Service shutdown, not a job failure - let it propagate and stop the loop.
-            throw;
+            logger.LogInformation("Cancellation requested during {ExecutorName}", nameof(RetrieveScalesExecutor));
+            await context.YieldOutputAsync(new GenerationCancelled(), CancellationToken.None);
+            return;
         }
         catch (Exception ex)
         {

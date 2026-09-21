@@ -68,6 +68,18 @@ struct JobReconcilerTests {
         #expect(try store.entry(jobID: jobID)?.disposition == .serverFailed)
     }
 
+    /// A job cancelled from the progress screen, then later reconciled from the history screen,
+    /// must land as `.cancelled` — not `.serverFailed`, which `isSuccess` alone would suggest.
+    @Test func cancelledStatusAdvancesToCancelled() async throws {
+        let entry = try seedRow()
+        let client = ScriptedStatusClient.statuses([.cancelled], id: jobID)
+
+        let outcome = await reconciler(client).reconcile(entry: entry)
+
+        #expect(outcome == .advanced(.cancelled))
+        #expect(try store.entry(jobID: jobID)?.disposition == .cancelled)
+    }
+
     @Test func stillRunningLeavesDispositionButRefreshesStatus() async throws {
         let entry = try seedRow()
         let client = ScriptedStatusClient.statuses([.inProgress], id: jobID)

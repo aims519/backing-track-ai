@@ -77,7 +77,8 @@ internal sealed class ValidateCandidateTrackExecutor(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            throw; // shutdown, not a job failure
+            logger.LogInformation("Cancellation requested during {ExecutorName}", nameof(ValidateCandidateTrackExecutor));
+            await context.YieldOutputAsync(new GenerationCancelled(), CancellationToken.None);
         }
         catch (Exception ex)
         {

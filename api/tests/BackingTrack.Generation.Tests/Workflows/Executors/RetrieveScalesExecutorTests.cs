@@ -75,4 +75,23 @@ public class RetrieveScalesExecutorTests
         Assert.Equal("scale lookup failed", failed.Reason);
         Assert.Empty(context.SentMessages);
     }
+
+    [Fact]
+    public async Task HandleAsync_CancellationRequested_YieldsGenerationCancelledAndSendsNothing()
+    {
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        MatchedChord chord = WorkflowTestFixtures.CreateMatchedChord();
+        IRetrieveStep retrieveStepMock = Substitute.For<IRetrieveStep>();
+        retrieveStepMock.RetrieveMatchingScales(job.KeyRoot, job.KeyMode, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<CancellationToken>())
+            .Throws(new OperationCanceledException());
+        FakeWorkflowContext context = new();
+        using CancellationTokenSource cts = new();
+        cts.Cancel();
+
+        await CreateExecutor(retrieveStepMock).HandleAsync(
+            new RetrieveScalesInput([chord], WorkflowTestFixtures.CreateMatchedStyle(), job), context, cts.Token);
+
+        Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
+        Assert.Empty(context.SentMessages);
+    }
 }

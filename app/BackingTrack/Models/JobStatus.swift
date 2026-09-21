@@ -13,6 +13,8 @@ enum JobStatus: Sendable, Hashable {
     case complete
     case completedViaFallback
     case failed
+    /// The user cancelled the job (`POST /tracks/cancel/{jobId}`).
+    case cancelled
     /// A status string the app doesn't recognise — keeps decoding total if the backend adds a
     /// state before the app is updated, rather than throwing.
     case unknown(String)
@@ -24,6 +26,7 @@ enum JobStatus: Sendable, Hashable {
         case .complete: "Complete"
         case .completedViaFallback: "Complete (fallback)"
         case .failed: "Failed"
+        case .cancelled: "Cancelled"
         case .unknown(let raw): raw
         }
     }
@@ -31,7 +34,7 @@ enum JobStatus: Sendable, Hashable {
     /// Whether the job has reached an end state (won't change on further polling).
     var isTerminal: Bool {
         switch self {
-        case .complete, .completedViaFallback, .failed: true
+        case .complete, .completedViaFallback, .failed, .cancelled: true
         case .pending, .inProgress, .unknown: false
         }
     }
@@ -42,7 +45,7 @@ enum JobStatus: Sendable, Hashable {
     var isSuccess: Bool {
         switch self {
         case .complete, .completedViaFallback: true
-        case .pending, .inProgress, .failed, .unknown: false
+        case .pending, .inProgress, .failed, .cancelled, .unknown: false
         }
     }
 }
@@ -58,6 +61,7 @@ extension JobStatus {
         case .complete: "Complete"
         case .completedViaFallback: "CompletedViaFallback"
         case .failed: "Failed"
+        case .cancelled: "Cancelled"
         case .unknown(let raw): raw
         }
     }
@@ -72,6 +76,7 @@ extension JobStatus {
         case "Complete": .complete
         case "CompletedViaFallback": .completedViaFallback
         case "Failed": .failed
+        case "Cancelled": .cancelled
         default: .unknown(raw)
         }
     }

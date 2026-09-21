@@ -98,4 +98,26 @@ public class GenerateCandidateTrackExecutorTests
         Assert.Equal("generation failed", failed.Reason);
         Assert.Empty(context.SentMessages);
     }
+
+    [Fact]
+    public async Task HandleAsync_CancellationRequested_YieldsGenerationCancelledAndSendsNothing()
+    {
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        MatchedStyle matchedStyle = WorkflowTestFixtures.CreateMatchedStyle();
+        MatchedChord chord = WorkflowTestFixtures.CreateMatchedChord();
+        MatchedScale scale = WorkflowTestFixtures.CreateMatchedScale(chord);
+        IGenerateStep generateStepMock = Substitute.For<IGenerateStep>();
+        generateStepMock.GenerateCandidateTrackAsync(job.KeyRoot, job.KeyMode, job.Tempo, job.TimeSignatureBeatCount,
+                job.TimeSignatureBeatUnit, matchedStyle, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>(),
+                null, null, Arg.Any<CancellationToken>()).ThrowsAsync(new OperationCanceledException());
+        FakeWorkflowContext context = new();
+        using CancellationTokenSource cts = new();
+        cts.Cancel();
+
+        await CreateExecutor(generateStepMock).HandleAsync(
+            new GenerateCandidateTrackInput(job, matchedStyle, [chord], [scale], CriticAttempts: 1), context, cts.Token);
+
+        Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
+        Assert.Empty(context.SentMessages);
+    }
 }

@@ -34,7 +34,8 @@ public class FallbackGenerateCandidateTrackExecutor(IFallbackGenerationStep fall
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            throw; // shutdown, not a job failure
+            logger.LogInformation("Cancellation requested during {ExecutorName}", nameof(FallbackGenerateCandidateTrackExecutor));
+            await context.YieldOutputAsync(new GenerationCancelled(), CancellationToken.None);
         }
         catch (Exception ex)
         {

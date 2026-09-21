@@ -113,7 +113,7 @@ struct JobHistoryStoreTests {
         #expect(entry.finishedAt == completed.endTime)
     }
 
-    @Test(arguments: [JobDisposition.timedOut, .lost, .serverFailed, .pollError])
+    @Test(arguments: [JobDisposition.timedOut, .lost, .serverFailed, .pollError, .cancelled])
     func terminalDispositionsRoundTrip(_ disposition: JobDisposition) throws {
         let job = GenerationJob.preview(status: .inProgress)
         try store.upsertOnSubmit(job: job, style: "Jazz")

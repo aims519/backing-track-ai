@@ -280,6 +280,9 @@ private struct NeverResolvingAPIClient: BackingTrackAPIClient {
     func jobStatus(id: UUID) async throws -> GenerationJob {
         fatalError("previews never poll")
     }
+    func cancelJob(id: UUID) async throws {
+        fatalError("previews never cancel")
+    }
     func downloadTrackData(trackID: UUID) async throws -> Data {
         try await Task.sleep(for: .seconds(3600))
         return Data()

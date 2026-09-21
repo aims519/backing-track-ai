@@ -22,7 +22,9 @@ internal sealed class RetrieveStyleExecutor(IRetrieveStep retrieveStep,
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            throw; // shutdown, not a job failure
+            logger.LogInformation("Cancellation requested during {ExecutorName}", nameof(RetrieveStyleExecutor));
+            await context.YieldOutputAsync(new GenerationCancelled(), CancellationToken.None);
+            return;
         }
         catch (Exception ex)
         {

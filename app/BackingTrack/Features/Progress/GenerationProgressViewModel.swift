@@ -19,6 +19,8 @@ final class GenerationProgressViewModel {
         /// Polling ran past `PollingConfiguration.timeout` without the job reaching a terminal
         /// state. The job may still finish server-side — there's just nowhere to see it yet.
         case timedOut
+        /// The user cancelled the job from this screen (`cancel()`).
+        case cancelled
 
         var isTerminal: Bool {
             if case .polling = self { return false }
@@ -93,7 +95,7 @@ final class GenerationProgressViewModel {
             "Queued…"
         case .inProgress:
             "Composing your track…"
-        case .complete, .completedViaFallback, .failed:
+        case .complete, .completedViaFallback, .failed, .cancelled:
             // Reached only in the brief window between seeing a terminal status and `phase`
             // switching away from `.polling`.
             "Finishing up…"
@@ -125,9 +127,12 @@ final class GenerationProgressViewModel {
         var consecutiveFailures = 0
         var hasRecordedStartTime = initialJob.startTime != nil
 
-        while !Task.isCancelled {
+        while !Task.isCancelled, case .polling = phase {
             do {
                 let job = try await apiClient.jobStatus(id: jobID)
+                // `cancel()` may have run while this poll was in flight — don't let a status
+                // that landed after the user cancelled clobber `.cancelled`.
+                guard case .polling = phase else { return }
                 consecutiveFailures = 0
                 pollCount += 1
                 let statusChanged = job.status != latestStatus
@@ -187,6 +192,22 @@ final class GenerationProgressViewModel {
         }
     }
 
+    /// User-initiated cancel (the progress screen's "Cancel" button). Marks the screen and the
+    /// history row `.cancelled` immediately — regardless of how the cancel request itself turns
+    /// out — since the user's intent is what the screen should reflect, not a network round trip
+    /// (same swallow-errors stance as `recordToHistory`). A no-op once the job is already terminal.
+    func cancel() async {
+        guard case .polling = phase else { return }
+        transition(to: .cancelled)
+        do {
+            try await apiClient.cancelJob(id: jobID)
+        } catch {
+            #if DEBUG
+            print("⚠️ cancel request failed (job already marked cancelled locally): \(error)")
+            #endif
+        }
+    }
+
     private enum PollOutcome {
         case retry
         case giveUp(Failure)
@@ -231,6 +252,8 @@ final class GenerationProgressViewModel {
             disposition = .ready
         case .timedOut:
             disposition = .timedOut
+        case .cancelled:
+            disposition = .cancelled
         case .failed(let failure):
             switch failure {
             case .jobFailed: disposition = .serverFailed
@@ -301,6 +324,7 @@ private struct PreviewStatusClient: BackingTrackAPIClient {
     func jobStatus(id: UUID) async throws -> GenerationJob {
         .preview(status: held)
     }
+    func cancelJob(id: UUID) async throws {}
     func downloadTrackData(trackID: UUID) async throws -> Data {
         fatalError("the progress screen never downloads")
     }
