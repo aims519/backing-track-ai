@@ -15,6 +15,9 @@ internal sealed class RepairCandidateTrackExecutor(
     internal async ValueTask HandleAsync(RepairCandidateTrackInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
+        await context.SendMessageAsync(new StatusUpdateInput(input.GenerationJob.Id, DateTime.UtcNow, "Repair",
+            input.ValidationAttempts, "Repairing candidate track..."), cancellationToken);
+
         CandidateTrack repairedTrack;
         try
         {
@@ -43,5 +46,6 @@ internal sealed class RepairCandidateTrackExecutor(
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<RepairCandidateTrackInput>(HandleAsync))
             .SendsMessage<ValidateCandidateTrackInput>()
+            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

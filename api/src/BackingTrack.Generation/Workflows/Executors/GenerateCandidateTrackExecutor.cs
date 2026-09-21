@@ -19,6 +19,9 @@ internal sealed class GenerateCandidateTrackExecutor(
         GenerationJob generationJob = input.GenerationJob;
         Guid jobId = input.GenerationJob.Id;
 
+        await context.SendMessageAsync(new StatusUpdateInput(jobId, DateTime.UtcNow, "Generation", input.CriticAttempts,
+            "Generating candidate track..."), cancellationToken);
+
         CandidateTrack candidateTrack;
         try
         {
@@ -72,5 +75,6 @@ internal sealed class GenerateCandidateTrackExecutor(
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<GenerateCandidateTrackInput>(HandleAsync))
             .SendsMessage<ValidateCandidateTrackInput>()
+            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

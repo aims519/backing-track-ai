@@ -28,10 +28,13 @@ public class RetrieveStyleExecutorTests
 
         await CreateExecutor(retrieveStepMock).HandleAsync(job, context, CancellationToken.None);
 
-        RetrieveChordsInput sent = Assert.IsType<RetrieveChordsInput>(Assert.Single(context.SentMessages));
+        RetrieveChordsInput sent = Assert.IsType<RetrieveChordsInput>(Assert.Single(context.WorkflowMessages));
         Assert.Same(job, sent.Job);
         Assert.Same(matchedStyle, sent.MatchedStyle);
         Assert.Empty(context.YieldedOutputs);
+
+        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
+        Assert.Equal(job.Id, statusUpdate.JobId);
     }
 
     [Fact]
@@ -46,7 +49,7 @@ public class RetrieveStyleExecutorTests
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Contains(job.Style, failed.Reason);
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 
     [Fact]
@@ -62,7 +65,7 @@ public class RetrieveStyleExecutorTests
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("style lookup failed", failed.Reason);
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 
     [Fact]
@@ -79,6 +82,6 @@ public class RetrieveStyleExecutorTests
         await CreateExecutor(retrieveStepMock).HandleAsync(job, context, cts.Token);
 
         Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 }

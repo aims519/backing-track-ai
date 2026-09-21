@@ -1,7 +1,5 @@
 using System.Collections.Concurrent;
 
-using BackingTrack.Generation.Workflows.Outputs;
-
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.Logging;
 
@@ -59,5 +57,20 @@ public class JobStore(ILogger<JobStore> logger)
             logger.LogInformation("Cancellation requested for job {Id} before it started", jobId);
             AddOrUpdate(pendingJob with { State = JobStates.Cancelled, EndTime = DateTimeOffset.UtcNow });
         }
+    }
+
+    public void AppendJobFeedback(Guid jobId, JobFeedback newFeedbackItem)
+    {
+        try
+        {
+            _generationJobs.AddOrUpdate(jobId,
+                _ => throw new KeyNotFoundException($"Job {jobId} was not found"),
+                (_, existing) => existing with { FeedbackItems = [.. existing.FeedbackItems, newFeedbackItem] });
+        }
+        catch (KeyNotFoundException e)
+        {
+            logger.LogError(e, "Job {Id} was not found", jobId);
+        }
+
     }
 }

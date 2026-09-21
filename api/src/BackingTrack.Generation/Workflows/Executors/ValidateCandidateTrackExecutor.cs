@@ -22,6 +22,9 @@ internal sealed class ValidateCandidateTrackExecutor(
     {
         try
         {
+            await context.SendMessageAsync(new StatusUpdateInput(input.GenerationJob.Id, DateTime.UtcNow, "Validation",
+                input.ValidationAttempts, "Validating candidate track..."), cancellationToken);
+
             TrackValidationResult trackValidationResult = validateStep.ValidateCandidateTrack(input.CandidateTrack,
                 input.GenerationJob, input.MatchedChords, input.MatchedScales);
 
@@ -94,5 +97,6 @@ internal sealed class ValidateCandidateTrackExecutor(
             .SendsMessage<CriticInput>()
             .SendsMessage<FallbackGenerateCandidateTrackInput>()
             .SendsMessage<PersistCandidateTrackInput>()
+            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

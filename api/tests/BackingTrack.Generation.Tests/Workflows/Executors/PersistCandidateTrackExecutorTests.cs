@@ -32,7 +32,10 @@ public class PersistCandidateTrackExecutorTests
             Assert.Same(track, succeeded.CandidateTrack);
             Assert.Equal(3, succeeded.Attempts);
             Assert.Equal(1, succeeded.CriticAttempts);
-            Assert.Empty(context.SentMessages);
+            Assert.Empty(context.WorkflowMessages);
+
+            StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
+            Assert.Equal(job.Id, statusUpdate.JobId);
 
             string expectedFilePath = Path.Combine(baseFolderPath, $"{succeeded.TrackId}.json");
             Assert.True(File.Exists(expectedFilePath));
@@ -83,7 +86,7 @@ public class PersistCandidateTrackExecutorTests
 
             GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
             Assert.Equal(4, failed.Attempts);
-            Assert.Empty(context.SentMessages);
+            Assert.Empty(context.WorkflowMessages);
         }
         finally
         {
@@ -106,7 +109,7 @@ public class PersistCandidateTrackExecutorTests
             await CreateExecutor(baseFolderPath).HandleAsync(new PersistCandidateTrackInput(track, job, 3, 1), context, cts.Token);
 
             Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-            Assert.Empty(context.SentMessages);
+            Assert.Empty(context.WorkflowMessages);
         }
         finally
         {

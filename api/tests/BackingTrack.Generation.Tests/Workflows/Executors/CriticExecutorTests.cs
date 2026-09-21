@@ -37,12 +37,15 @@ public class CriticExecutorTests
 
         await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(CreateInput(track, job, validationAttempts: 2, criticAttempts: 1), context, CancellationToken.None);
 
-        PersistCandidateTrackInput sent = Assert.IsType<PersistCandidateTrackInput>(Assert.Single(context.SentMessages));
+        PersistCandidateTrackInput sent = Assert.IsType<PersistCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
         Assert.Same(track, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal(2, sent.ValidationAttempts);
         Assert.Equal(1, sent.CriticAttempts);
         Assert.Empty(context.YieldedOutputs);
+
+        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
+        Assert.Equal(job.Id, statusUpdate.JobId);
     }
 
     [Fact]
@@ -59,7 +62,7 @@ public class CriticExecutorTests
 
         await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(CreateInput(track, job, validationAttempts: 2, criticAttempts: 1), context, CancellationToken.None);
 
-        GenerateCandidateTrackInput sent = Assert.IsType<GenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        GenerateCandidateTrackInput sent = Assert.IsType<GenerateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
         Assert.Same(job, sent.GenerationJob);
         Assert.Same(review, sent.CriticReview);
         Assert.Same(track, sent.PreviousAttempt);
@@ -81,7 +84,7 @@ public class CriticExecutorTests
 
         await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(CreateInput(track, job, validationAttempts: 2, criticAttempts: 3), context, CancellationToken.None);
 
-        FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
         Assert.Same(job, sent.GenerationJob);
         Assert.Empty(context.YieldedOutputs);
     }
@@ -101,7 +104,7 @@ public class CriticExecutorTests
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("critic blew up", failed.Reason);
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 
     [Fact]
@@ -120,6 +123,6 @@ public class CriticExecutorTests
         await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(CreateInput(track, job, validationAttempts: 2, criticAttempts: 1), context, cts.Token);
 
         Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 }

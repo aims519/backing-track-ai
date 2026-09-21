@@ -16,6 +16,9 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
     {
         try
         {
+            await context.SendMessageAsync(new StatusUpdateInput(input.GenerationJob.Id, DateTime.UtcNow, "Critic Review",
+                input.CriticAttempts, "Reviewing candidate track..."), cancellationToken);
+
             CriticFinalReview review = await criticStep.ReviewCandidateTrackAsync(input.CandidateTrack,
                 input.GenerationJob,
                 input.MatchedStyle,
@@ -79,5 +82,6 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
             .SendsMessage<GenerateCandidateTrackInput>()
             .SendsMessage<PersistCandidateTrackInput>()
             .SendsMessage<FallbackGenerateCandidateTrackInput>()
+            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

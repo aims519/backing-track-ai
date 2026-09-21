@@ -17,6 +17,10 @@ public class FallbackGenerateCandidateTrackExecutor(IFallbackGenerationStep fall
         try
         {
             GenerationJob job = input.GenerationJob;
+
+            await context.SendMessageAsync(new StatusUpdateInput(job.Id, DateTime.UtcNow, "Fallback Generation", 1,
+                "Generating a fallback candidate track..."), cancellationToken);
+
             CandidateTrack track = await fallbackGenerationStep.GenerateFallbackCandidateTrackAsync(job.TimeSignatureBeatCount,
                 job.TimeSignatureBeatUnit,
                 input.MatchedStyle,
@@ -48,5 +52,6 @@ public class FallbackGenerateCandidateTrackExecutor(IFallbackGenerationStep fall
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<FallbackGenerateCandidateTrackInput>(HandleAsync))
             .SendsMessage<ValidateCandidateTrackInput>()
+            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

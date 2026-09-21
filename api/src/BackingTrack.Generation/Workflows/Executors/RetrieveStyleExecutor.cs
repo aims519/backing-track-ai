@@ -15,6 +15,9 @@ internal sealed class RetrieveStyleExecutor(IRetrieveStep retrieveStep,
     internal async ValueTask HandleAsync(GenerationJob job, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
+        await context.SendMessageAsync(new StatusUpdateInput(job.Id, DateTime.UtcNow, "Retrieval", 1,
+            "Retrieving style information..."), cancellationToken);
+
         MatchedStyle? matchedStyle;
         try
         {
@@ -48,5 +51,6 @@ internal sealed class RetrieveStyleExecutor(IRetrieveStep retrieveStep,
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<GenerationJob>(HandleAsync))
             .SendsMessage<RetrieveChordsInput>()
+            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

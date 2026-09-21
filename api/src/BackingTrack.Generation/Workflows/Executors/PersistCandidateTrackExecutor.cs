@@ -26,6 +26,10 @@ internal sealed class PersistCandidateTrackExecutor(
 
         Guid trackId = Guid.NewGuid();
         activity?.SetTag("track.id", trackId);
+
+        await context.SendMessageAsync(new StatusUpdateInput(input.GenerationJob.Id, DateTime.UtcNow, "Persistence",
+            1, "Persisting candidate track..."), cancellationToken);
+
         try
         {
             Directory.CreateDirectory(trackStorageSettings.Value.BaseFolderPath);
@@ -56,5 +60,6 @@ internal sealed class PersistCandidateTrackExecutor(
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<PersistCandidateTrackInput>(HandleAsync))
+            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

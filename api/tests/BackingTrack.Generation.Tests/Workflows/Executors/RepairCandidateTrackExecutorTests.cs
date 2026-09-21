@@ -34,11 +34,14 @@ public class RepairCandidateTrackExecutorTests
 
         await CreateExecutor(repairStepMock).HandleAsync(CreateInput(originalTrack, job, [failure], attempts: 2), context, CancellationToken.None);
 
-        ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
         Assert.Same(repairedTrack, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal(3, sent.ValidationAttempts);
         Assert.Empty(context.YieldedOutputs);
+
+        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
+        Assert.Equal(job.Id, statusUpdate.JobId);
     }
 
     [Fact]
@@ -56,7 +59,7 @@ public class RepairCandidateTrackExecutorTests
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("repair failed", failed.Reason);
         Assert.Equal(2, failed.Attempts);
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 
     [Fact]
@@ -75,6 +78,6 @@ public class RepairCandidateTrackExecutorTests
         await CreateExecutor(repairStepMock).HandleAsync(CreateInput(track, job, [failure], attempts: 2), context, cts.Token);
 
         Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 }

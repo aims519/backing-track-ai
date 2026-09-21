@@ -32,12 +32,15 @@ public class RetrieveScalesExecutorTests
         await CreateExecutor(retrieveStepMock).HandleAsync(
             new RetrieveScalesInput([chord], matchedStyle, job), context, CancellationToken.None);
 
-        GenerateCandidateTrackInput sent = Assert.IsType<GenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        GenerateCandidateTrackInput sent = Assert.IsType<GenerateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
         Assert.Same(job, sent.GenerationJob);
         Assert.Same(matchedStyle, sent.MatchedStyle);
         Assert.Equal([chord], sent.MatchedChords);
         Assert.Equal(matchedScales, sent.MatchedScales);
         Assert.Empty(context.YieldedOutputs);
+
+        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
+        Assert.Equal(job.Id, statusUpdate.JobId);
     }
 
     [Fact]
@@ -53,7 +56,7 @@ public class RetrieveScalesExecutorTests
         await CreateExecutor(retrieveStepMock).HandleAsync(
             new RetrieveScalesInput([chord], WorkflowTestFixtures.CreateMatchedStyle(), job), context, CancellationToken.None);
 
-        GenerateCandidateTrackInput sent = Assert.IsType<GenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        GenerateCandidateTrackInput sent = Assert.IsType<GenerateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
         Assert.Empty(sent.MatchedScales);
         Assert.Empty(context.YieldedOutputs);
     }
@@ -73,7 +76,7 @@ public class RetrieveScalesExecutorTests
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("scale lookup failed", failed.Reason);
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 
     [Fact]
@@ -92,6 +95,6 @@ public class RetrieveScalesExecutorTests
             new RetrieveScalesInput([chord], WorkflowTestFixtures.CreateMatchedStyle(), job), context, cts.Token);
 
         Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 }

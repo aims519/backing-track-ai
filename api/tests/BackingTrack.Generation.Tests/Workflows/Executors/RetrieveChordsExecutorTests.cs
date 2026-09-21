@@ -29,11 +29,14 @@ public class RetrieveChordsExecutorTests
 
         await CreateExecutor(retrieveStepMock).HandleAsync(new RetrieveChordsInput(job, matchedStyle), context, CancellationToken.None);
 
-        RetrieveScalesInput sent = Assert.IsType<RetrieveScalesInput>(Assert.Single(context.SentMessages));
+        RetrieveScalesInput sent = Assert.IsType<RetrieveScalesInput>(Assert.Single(context.WorkflowMessages));
         Assert.Same(job, sent.GenerationJob);
         Assert.Same(matchedStyle, sent.MatchedStyle);
         Assert.Same(matchedChords, sent.MatchedChords);
         Assert.Empty(context.YieldedOutputs);
+
+        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
+        Assert.Equal(job.Id, statusUpdate.JobId);
     }
 
     [Fact]
@@ -50,6 +53,6 @@ public class RetrieveChordsExecutorTests
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("chord lookup failed", failed.Reason);
-        Assert.Empty(context.SentMessages);
+        Assert.Empty(context.WorkflowMessages);
     }
 }
