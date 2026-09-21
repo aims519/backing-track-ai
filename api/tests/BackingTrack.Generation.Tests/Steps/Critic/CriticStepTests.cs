@@ -32,7 +32,8 @@ public class CriticStepTests
         KeyMode = KeyMode.Ionian,
         Style = "rock",
         TimeSignatureBeatCount = 4,
-        TimeSignatureBeatUnit = 4
+        TimeSignatureBeatUnit = 4,
+        FeedbackItems = []
     };
 
     private sealed class StubCriticAiClient(CriticVerdictSubmission submission) : ICriticAiClient

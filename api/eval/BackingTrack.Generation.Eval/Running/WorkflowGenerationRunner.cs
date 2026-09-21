@@ -81,6 +81,7 @@ public sealed class WorkflowGenerationRunner(IServiceScopeFactory scopeFactory) 
         KeyMode = Enum.Parse<KeyMode>(input.KeyMode),
         Style = input.Style,
         TimeSignatureBeatCount = input.TimeSignatureBeatCount,
-        TimeSignatureBeatUnit = input.TimeSignatureBeatUnit
+        TimeSignatureBeatUnit = input.TimeSignatureBeatUnit,
+        FeedbackItems = []
     };
 }

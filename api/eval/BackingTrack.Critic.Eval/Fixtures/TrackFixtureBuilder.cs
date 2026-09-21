@@ -73,7 +73,8 @@ internal static class TrackFixtureBuilder
         KeyMode = keyMode,
         Style = style,
         TimeSignatureBeatCount = 4,
-        TimeSignatureBeatUnit = 4
+        TimeSignatureBeatUnit = 4,
+        FeedbackItems = []
     };
 
     internal static MatchedStyle Style(string id, string description) => new(new StyleEntry { Id = id, Description = description });
