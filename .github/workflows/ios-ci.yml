@@ -56,13 +56,19 @@ jobs:
         # identity. Deliberately *not* CODE_SIGNING_ALLOWED=NO: an unsigned binary has no
         # app-identifier entitlement, and Keychain access (see APIKeyStoreTests) needs one even
         # in the Simulator — that gap only surfaces at test-run time, not at build time.
+        #
+        # OS pinned explicitly rather than left as the implicit OS:latest: this runner's
+        # selected Xcode's latest iOS SDK has moved past the newest runtime that still ships
+        # an "iPhone 16" simulator, so name+OS:latest stopped resolving to any device at all.
+        # 26.5 is the newest runtime this device name still exists under (`xcrun simctl list
+        # devices available` on the runner) — bump this if that changes again.
         run: >
           xcodebuild -project app/BackingTrack.xcodeproj -scheme BackingTrack
-          -destination 'platform=iOS Simulator,name=iPhone 16'
+          -destination 'platform=iOS Simulator,name=iPhone 16,OS=26.5'
           CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO build
 
       - name: Test
         run: >
           xcodebuild -project app/BackingTrack.xcodeproj -scheme BackingTrack
-          -destination 'platform=iOS Simulator,name=iPhone 16'
+          -destination 'platform=iOS Simulator,name=iPhone 16,OS=26.5'
           CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO test
