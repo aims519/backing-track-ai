@@ -205,6 +205,32 @@ struct BackingTrackAPIClientTests {
         #expect(job.status == .inProgress)
     }
 
+    // MARK: - cancelJob
+
+    @Test func cancelHitsTheCancelEndpointAndSucceedsOnNoContent() async throws {
+        let id = UUID()
+        var seenRequest: URLRequest?
+        StubURLProtocol.handler = { request in
+            seenRequest = request
+            return (204, [:], Data())
+        }
+
+        try await makeClient(key: "cancel-key").cancelJob(id: id)
+
+        let request = try #require(seenRequest)
+        #expect(request.url?.path == "/tracks/cancel/\(id.uuidString)")
+        #expect(request.httpMethod == "POST")
+        #expect(request.value(forHTTPHeaderField: "X-API-Key") == "cancel-key")
+    }
+
+    @Test func cancelNotFoundBecomesAServerError() async {
+        StubURLProtocol.handler = { _ in (404, [:], Data()) }
+
+        await #expect(throws: APIClientError.server(status: 404)) {
+            try await makeClient().cancelJob(id: UUID())
+        }
+    }
+
     // MARK: - downloadTrackData
 
     @Test func downloadHitsTheDownloadEndpointWithTheKeyAndReturnsTheBodyUnchanged() async throws {

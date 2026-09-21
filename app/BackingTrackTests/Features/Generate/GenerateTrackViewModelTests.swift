@@ -19,6 +19,9 @@ private struct StubAPIClient: BackingTrackAPIClient {
         return try result.get()
     }
     func jobStatus(id: UUID) async throws -> GenerationJob { try result.get() }
+    func cancelJob(id: UUID) async throws {
+        fatalError("the generate flow never cancels")
+    }
     func downloadTrackData(trackID: UUID) async throws -> Data {
         fatalError("the generate flow never downloads")
     }

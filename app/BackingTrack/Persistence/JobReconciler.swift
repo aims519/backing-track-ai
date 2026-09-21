@@ -103,7 +103,13 @@ struct JobReconciler {
             }
             return .unchanged
         }
-        let disposition: JobDisposition = job.status.isSuccess ? .ready : .serverFailed
+        let disposition: JobDisposition = if job.status.isSuccess {
+            .ready
+        } else if job.status == .cancelled {
+            .cancelled
+        } else {
+            .serverFailed
+        }
         record { try historyStore.recordDisposition(jobID: jobID, disposition, job: job, error: nil) }
         return .advanced(disposition)
     }

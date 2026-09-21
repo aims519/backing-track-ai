@@ -25,6 +25,10 @@ final class FakeTrackAPIClient: BackingTrackAPIClient, @unchecked Sendable {
         fatalError("FakeTrackAPIClient never polls")
     }
 
+    func cancelJob(id: UUID) async throws {
+        fatalError("FakeTrackAPIClient never cancels")
+    }
+
     func downloadTrackData(trackID: UUID) async throws -> Data {
         downloadCalls += 1
         lastTrackID = trackID

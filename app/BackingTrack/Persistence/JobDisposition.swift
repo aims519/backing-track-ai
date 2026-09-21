@@ -24,6 +24,8 @@ enum JobDisposition: Equatable, Sendable {
     case lost
     /// The client gave up after repeated poll errors, or an error that wouldn't self-heal.
     case pollError
+    /// The user cancelled the job (`POST /tracks/cancel/{jobId}`).
+    case cancelled
 
     var rawValue: String {
         switch self {
@@ -33,6 +35,7 @@ enum JobDisposition: Equatable, Sendable {
         case .timedOut: "timedOut"
         case .lost: "lost"
         case .pollError: "pollError"
+        case .cancelled: "cancelled"
         }
     }
 
@@ -45,6 +48,7 @@ enum JobDisposition: Equatable, Sendable {
         case "timedOut": .timedOut
         case "lost": .lost
         case "pollError": .pollError
+        case "cancelled": .cancelled
         default: .inFlight
         }
     }

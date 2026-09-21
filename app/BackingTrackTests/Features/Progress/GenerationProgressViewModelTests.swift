@@ -221,6 +221,36 @@ struct GenerationProgressViewModelTests {
         #expect(model.phase == .polling)
     }
 
+    // MARK: - Cancel
+
+    @Test func cancelStopsPollingRecordsCancelledAndCallsTheServer() async {
+        let id = UUID()
+        let store = RecordingJobHistoryStore()
+        let client = ScriptedStatusClient.statuses([.pending], id: id)
+        let model = makeModel(id: id, client: client, historyStore: store)
+
+        let pollTask = Task { await model.startPolling() }
+        try? await Task.sleep(for: .milliseconds(5)) // let a poll or two land while still .polling
+        await model.cancel()
+        await pollTask.value
+
+        #expect(model.phase == .cancelled)
+        #expect(store.lastDisposition == .cancelled)
+        #expect(await client.cancelJobCalls == [id])
+    }
+
+    @Test func cancelIsANoOpOnceAlreadyTerminal() async {
+        let id = UUID()
+        let store = RecordingJobHistoryStore()
+        let client = ScriptedStatusClient.statuses([.complete], id: id)
+        let model = makeModel(id: id, client: client, startStatus: .complete, historyStore: store)
+
+        await model.cancel()
+
+        #expect(model.phase.readyJob?.status == .complete) // unchanged
+        #expect(await client.cancelJobCalls == [])
+    }
+
     @Test func progressCaptionMapsStatus() {
         let id = UUID()
         let client = ScriptedStatusClient.statuses([.pending], id: id)

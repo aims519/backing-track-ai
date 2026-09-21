@@ -5,10 +5,12 @@ import SwiftUI
 /// "Track ready" or failure state.
 ///
 /// Presented with `.fullScreenCover` rather than a navigation push: generation is a modal
-/// interruption of the form, and there's no half-submitted state to swipe back to. The toolbar
-/// button ("Dismiss" while polling, "Done" once terminal) dismisses back to the still-populated
-/// form; cancelling just stops polling — the backend job has no cancel endpoint and may still
-/// finish (ADR 0023).
+/// interruption of the form, and there's no half-submitted state to swipe back to. While polling,
+/// the toolbar offers two distinct actions: "Dismiss" leaves the server job running and just
+/// closes the screen (the job may still finish with nowhere to see it, per ADR 0023); "Cancel"
+/// actually stops the server-side job (`POST /tracks/cancel`, ADR 0037) and records it as
+/// cancelled in history. Once the phase is terminal (including `.cancelled`), the toolbar swaps to
+/// a single "Done".
 struct GenerationProgressView: View {
     @State private var model: GenerationProgressViewModel
     @Environment(\.dismiss) private var dismiss
@@ -42,9 +44,15 @@ struct GenerationProgressView: View {
                     }
                 } else {
                     // A generation in progress must still be abandonable — the pre-cover flow let
-                    // the user dismiss the acceptance alert immediately.
+                    // the user dismiss the acceptance alert immediately. "Dismiss" leaves the
+                    // server job running (ADR 0023); "Cancel" actually stops it (ADR 0037).
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Dismiss") { dismiss() }
+                    }
+                    ToolbarItem(placement: .destructiveAction) {
+                        Button("Cancel", role: .destructive) {
+                            Task { await model.cancel() }
+                        }
                     }
                 }
             }
@@ -73,6 +81,8 @@ struct GenerationProgressView: View {
             failureView(failure)
         case .timedOut:
             timedOutView
+        case .cancelled:
+            cancelledView
         }
     }
 
@@ -159,6 +169,14 @@ struct GenerationProgressView: View {
         )
     }
 
+    private var cancelledView: some View {
+        messageView(
+            systemImage: "xmark.circle",
+            title: "Generation cancelled",
+            message: "You cancelled this track before it finished."
+        )
+    }
+
     /// Shared layout for the failed / timed-out states — a muted icon, a title and a sentence.
     private func messageView(systemImage: String, title: String, message: String) -> some View {
         VStack(spacing: 16) {
@@ -240,6 +258,7 @@ struct GenerationProgressView: View {
         case .ready: "Track Ready"
         case .failed: "Generation Failed"
         case .timedOut: "Still Working"
+        case .cancelled: "Cancelled"
         }
     }
 
@@ -289,6 +308,8 @@ struct GenerationProgressView: View {
             announce(failureMessage(failure))
         case .timedOut:
             announce("Generation is taking longer than expected")
+        case .cancelled:
+            announce("Generation cancelled")
         }
     }
 }
@@ -316,5 +337,9 @@ struct GenerationProgressView: View {
 
 #Preview("Timed out") {
     GenerationProgressView(model: .preview(.timedOut))
+}
+
+#Preview("Cancelled") {
+    GenerationProgressView(model: .preview(.cancelled))
 }
 #endif

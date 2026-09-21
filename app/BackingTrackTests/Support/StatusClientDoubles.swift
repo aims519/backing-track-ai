@@ -12,6 +12,7 @@ actor ScriptedStatusClient: BackingTrackAPIClient {
     /// Optional per-call delay, so a test can cancel a poll while it's in flight.
     private let delay: Duration
     private(set) var jobStatusCalls = 0
+    private(set) var cancelJobCalls: [UUID] = []
 
     init(_ script: [Result<GenerationJob, APIClientError>], delay: Duration = .zero) {
         precondition(!script.isEmpty, "script needs at least one entry")
@@ -21,6 +22,10 @@ actor ScriptedStatusClient: BackingTrackAPIClient {
 
     func submitGeneration(_ request: GenerationRequest) async throws -> GenerationJob {
         fatalError("these tests never submit")
+    }
+
+    func cancelJob(id: UUID) async throws {
+        cancelJobCalls.append(id)
     }
 
     func downloadTrackData(trackID: UUID) async throws -> Data {

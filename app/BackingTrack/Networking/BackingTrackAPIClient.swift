@@ -12,6 +12,10 @@ protocol BackingTrackAPIClient: Sendable {
     /// flow itself — it's here for the status-polling task that builds on this.
     func jobStatus(id: UUID) async throws -> GenerationJob
 
+    /// Requests cancellation of a job (`POST /tracks/cancel/{jobId}`). The server marks it
+    /// `Cancelled` before this call returns (see ADR 0037), so a caller need not poll to confirm.
+    func cancelJob(id: UUID) async throws
+
     /// Raw bytes of `GET /tracks/download/{trackId}`. Not decoded here: for a Precise track the
     /// body is the note-event JSON, and it's the *bytes* that get cached
     /// (`JobHistoryEntry.preciseContentData`) and later re-decoded for offline replay. The
@@ -60,6 +64,11 @@ struct LiveBackingTrackAPIClient: BackingTrackAPIClient {
         return try await sendForData(urlRequest)
     }
 
+    func cancelJob(id: UUID) async throws {
+        let urlRequest = try makeRequest(path: "tracks/cancel/\(id.uuidString)", method: "POST")
+        try await sendExpectingNoContent(urlRequest)
+    }
+
     // MARK: - Request building
 
     private func makeRequest(path: String, method: String) throws -> URLRequest {
@@ -101,6 +110,15 @@ struct LiveBackingTrackAPIClient: BackingTrackAPIClient {
             throw Self.failure(status: http.statusCode, data: data, http: http)
         }
         return data
+    }
+
+    /// Sends a request expecting `204 No Content` — for `POST /tracks/cancel`, which has nothing
+    /// to decode either way.
+    private func sendExpectingNoContent(_ urlRequest: URLRequest) async throws {
+        let (data, http) = try await perform(urlRequest)
+        guard http.statusCode == 204 else {
+            throw Self.failure(status: http.statusCode, data: data, http: http)
+        }
     }
 
     /// Runs the request and unwraps the HTTP response, mapping the two transport-level failures
