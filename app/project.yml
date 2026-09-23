@@ -94,7 +94,7 @@ targets:
         # PollingConfiguration. Set in `base` so Release is covered without a Config/Local.xcconfig
         # entry (unlike API_BASE_URL, a poll cadence has no per-machine reason to differ); Debug
         # overrides it below for tighter local iteration.
-        STATUS_POLL_INTERVAL: "2"
+        STATUS_POLL_INTERVAL: "1"
       configs:
         # Base URL of the backing-track API. Surfaced to the app as the APIBaseURL Info.plist key
         # (see BackingTrack/Info.plist) and read at launch by APIConfiguration.

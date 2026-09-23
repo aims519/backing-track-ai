@@ -62,6 +62,9 @@ final class GenerationProgressViewModel {
     private(set) var phase: Phase = .polling
     /// The most recent status seen from the server — drives `progressCaption` while `.polling`.
     private(set) var latestStatus: JobStatus
+    /// The most recent `feedbackItems` seen from the server, for `GenerationTimelineView`. Grows
+    /// across polls; never shrinks (mirrors the DTO contract — see `GenerationJob.feedbackItems`).
+    private(set) var feedbackItems: [JobFeedback]
     private(set) var pollCount = 0
 
     init(
@@ -78,6 +81,7 @@ final class GenerationProgressViewModel {
         self.config = config
         self.historyStore = historyStore
         self.latestStatus = job.status
+        self.feedbackItems = job.feedbackItems
         // A job already terminal on arrival (an instant failure, say) must never start the loop.
         if job.status.isTerminal {
             transition(to: job.status.isSuccess ? .ready(job) : .failed(.jobFailed), job: job)
@@ -137,6 +141,7 @@ final class GenerationProgressViewModel {
                 pollCount += 1
                 let statusChanged = job.status != latestStatus
                 latestStatus = job.status
+                feedbackItems = job.feedbackItems
 
                 if job.status.isTerminal {
                     transition(to: job.status.isSuccess ? .ready(job) : .failed(.jobFailed), job: job)
@@ -295,12 +300,13 @@ extension GenerationProgressViewModel {
     /// loop, so the interval is set absurdly long: one harmless poll, then it parks.
     static func preview(
         _ phase: Phase,
-        latestStatus: JobStatus = .inProgress
+        latestStatus: JobStatus = .inProgress,
+        feedbackItems: [JobFeedback] = []
     ) -> GenerationProgressViewModel {
         let model = GenerationProgressViewModel(
             job: .preview(status: .pending),
             styleSummary: "Blues — slow, brushes not sticks",
-            apiClient: PreviewStatusClient(held: latestStatus),
+            apiClient: PreviewStatusClient(held: latestStatus, feedbackItems: feedbackItems),
             config: PollingConfiguration(
                 interval: .seconds(3600),
                 timeout: .seconds(3600),
@@ -310,6 +316,7 @@ extension GenerationProgressViewModel {
         )
         model.phase = phase
         model.latestStatus = latestStatus
+        model.feedbackItems = feedbackItems
         return model
     }
 }
@@ -317,12 +324,13 @@ extension GenerationProgressViewModel {
 /// Stand-in `BackingTrackAPIClient` for previews — answers every status poll with `held`.
 private struct PreviewStatusClient: BackingTrackAPIClient {
     var held: JobStatus = .pending
+    var feedbackItems: [JobFeedback] = []
 
     func submitGeneration(_ request: GenerationRequest) async throws -> GenerationJob {
         fatalError("the progress screen never submits")
     }
     func jobStatus(id: UUID) async throws -> GenerationJob {
-        .preview(status: held)
+        .preview(status: held, feedbackItems: feedbackItems)
     }
     func cancelJob(id: UUID) async throws {}
     func downloadTrackData(trackID: UUID) async throws -> Data {

@@ -87,7 +87,7 @@ struct JobHistoryStoreTests {
             id: id, status: .pending, startTime: nil, endTime: nil, trackId: nil,
             audioLocation: nil, mode: "Precise", tempo: 120, chords: ["C"], keyRoot: "C",
             keyMode: "Ionian", keyModeWarnings: [],
-            timeSignatureBeatCount: 4, timeSignatureBeatUnit: 4
+            timeSignatureBeatCount: 4, timeSignatureBeatUnit: 4, feedbackItems: []
         )
         try store.upsertOnSubmit(job: submitted, style: "Rock")
         let done = GenerationJob.preview(id: id, status: .complete)  // fixture sets startTime

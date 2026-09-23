@@ -27,6 +27,22 @@ struct GenerationProgressView: View {
                     .frame(maxWidth: .infinity)
             }
             .background(Color(.systemGroupedBackground))
+            // Pinned outside the scroll content, not just placed last inside it - a long timeline
+            // (a job with several validate/repair/critic loops) would otherwise push the primary
+            // action below the fold, and this is the button people actually came here to press.
+            .safeAreaInset(edge: .bottom) {
+                if let playerInput {
+                    NavigationLink(value: PlayerRoute.player(playerInput)) {
+                        Label("Play", systemImage: "play.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(.bar)
+                }
+            }
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             // The cover has its own NavigationStack — "Generate → Ready → Play" reads as a push
@@ -111,6 +127,7 @@ struct GenerationProgressView: View {
 
             trackSummaryCard
             keyModeWarningsNote
+            GenerationTimelineView(items: model.feedbackItems)
         }
     }
 
@@ -140,16 +157,7 @@ struct GenerationProgressView: View {
 
             trackSummaryCard
             keyModeWarningsNote
-
-            if let input = PlayerInput.from(job: job, style: model.styleSummary), input.isPrecise {
-                NavigationLink(value: PlayerRoute.player(input)) {
-                    Label("Play", systemImage: "play.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .padding(.horizontal, 16)
-            }
+            GenerationTimelineView(items: model.feedbackItems, finishedAt: job.endTime)
         }
     }
 
@@ -252,6 +260,14 @@ struct GenerationProgressView: View {
 
     // MARK: - Helpers
 
+    /// The pinned Play button's destination - `nil` unless the job is ready with a precise track,
+    /// which also keeps the button itself out of every other phase.
+    private var playerInput: PlayerInput? {
+        guard case .ready(let job) = model.phase else { return nil }
+        guard let input = PlayerInput.from(job: job, style: model.styleSummary), input.isPrecise else { return nil }
+        return input
+    }
+
     private var navigationTitle: String {
         switch model.phase {
         case .polling: "Generating"
@@ -320,11 +336,18 @@ struct GenerationProgressView: View {
 }
 
 #Preview("Polling – in progress") {
-    GenerationProgressView(model: .preview(.polling, latestStatus: .inProgress))
+    GenerationProgressView(model: .preview(
+        .polling,
+        latestStatus: .inProgress,
+        feedbackItems: Array(JobFeedback.previewSequence.prefix(5))
+    ))
 }
 
 #Preview("Ready") {
-    GenerationProgressView(model: .preview(.ready(.preview(status: .complete))))
+    GenerationProgressView(model: .preview(
+        .ready(.preview(status: .complete)),
+        feedbackItems: JobFeedback.previewSequence
+    ))
 }
 
 #Preview("Ready – fallback") {
