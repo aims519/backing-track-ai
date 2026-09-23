@@ -1,5 +1,6 @@
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Runtime.InteropServices.JavaScript;
 
 using BackingTrack.Generation.Jobs;
 
@@ -7,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BackingTrack.Generation.Notifications;
 
-internal class PushNotificationEmitter(HttpClient httpClient, ILogger<PushNotificationEmitter> logger) : IPushNotificationEmitter
+internal class PushNotificationEmitter(HttpClient httpClient, ApnsTokenProvider tokenProvider, ILogger<PushNotificationEmitter> logger) : IPushNotificationEmitter
 {
     private static readonly JobStates[] ValidStatesForNotification = [JobStates.Complete, JobStates.CompletedViaFallback, JobStates.Failed];
 
@@ -30,10 +31,14 @@ internal class PushNotificationEmitter(HttpClient httpClient, ILogger<PushNotifi
             string title = BuildAlertTitle(job);
             string message = BuildAlertBody(job);
             ApnsPayload payload = new(new ApnsAps(new ApnsAlert(title, message)), job.Id);
-            JsonContent content = JsonContent.Create(payload, ApnsJsonContext.Default.ApnsPayload);
-            using HttpResponseMessage
-                response = await httpClient.PostAsync($"/3/device/{job.ApnsDeviceToken}", content);
 
+            using HttpRequestMessage request = new(HttpMethod.Post, $"/3/device/{job.ApnsDeviceToken}");
+            request.Version = HttpVersion.Version20;
+            request.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+            request.Content = JsonContent.Create(payload, ApnsJsonContext.Default.ApnsPayload);
+            request.Headers.Authorization = new AuthenticationHeaderValue("bearer", tokenProvider.GetToken());
+
+            using HttpResponseMessage response = await httpClient.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
                 string responseBody = await response.Content.ReadAsStringAsync();

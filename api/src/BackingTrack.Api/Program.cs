@@ -4,7 +4,6 @@ using BackingTrack.Api.Errors;
 using BackingTrack.Api.Extensions;
 using BackingTrack.Api.Serialization;
 using BackingTrack.Generation;
-using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.Notifications;
 using BackingTrack.Generation.Steps.Critic;
