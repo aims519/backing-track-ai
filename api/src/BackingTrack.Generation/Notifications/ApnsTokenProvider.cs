@@ -22,7 +22,7 @@ internal class ApnsTokenProvider(IOptions<ApnsSettings> settings, TimeProvider t
         lock (_tokenLock)
         {
             DateTimeOffset now = timeProvider.GetUtcNow();
-            if (_currentToken is null || (now - _tokenLastIssuedAt) > TokenLifetime)
+            if (_currentToken is null || (now - _tokenLastIssuedAt) >= TokenLifetime)
             {
                 _tokenLastIssuedAt = now;
                 _currentToken = CreateToken(now.ToUnixTimeSeconds());
