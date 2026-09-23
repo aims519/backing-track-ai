@@ -43,3 +43,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0036](0036-per-step-model-tier-split-for-cost.md) | Per-step model and Flex-tier split for LLM cost, over a single model everywhere |
 | [0037](0037-streaming-run-for-cancellable-generation-jobs.md) | Streaming run API (`RunStreamingAsync`/`StreamingRun.CancelRunAsync`) for cancellable generation jobs |
 | [0038](0038-direct-status-emitter-over-workflow-messaging.md) | Direct status emitter over workflow-graph messaging for progress feedback |
+| [0039](0039-apns-push-from-api-on-terminal-job-state.md) | APNs push from the API on terminal job state, over client-side background completion |
