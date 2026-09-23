@@ -75,6 +75,17 @@ struct PlayableTrack: Sendable, Equatable {
         return min(barCount - 1, max(0, Int(loopBeat / beatsPerBar)))
     }
 
+    /// Whole beats in a bar — `beatsPerBar` rounded, since odd data can make that fractional.
+    /// Sizes the count-in and the beat indicator.
+    var beatsInBar: Int { max(1, Int(beatsPerBar.rounded())) }
+
+    /// The beat (0-based) within its bar at `loopBeat`, clamped to `0..<beatsInBar` so a
+    /// fractional `beatsPerBar` never produces a beat the indicator has no dot for.
+    func beat(atLoopBeat loopBeat: Double) -> Int {
+        let beatInBar = loopBeat - Double(bar(atLoopBeat: loopBeat)) * beatsPerBar
+        return min(beatsInBar - 1, max(0, Int(beatInBar)))
+    }
+
     /// Seconds one loop lasts at `bpm`.
     func loopDuration(atTempo bpm: Double) -> Double {
         guard bpm > 0 else { return 0 }

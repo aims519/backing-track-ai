@@ -30,6 +30,8 @@ final class PlayerViewModel {
     private(set) var playbackState: PlaybackState = .idle
     /// Current bar in the loop (0-based), derived from the sequencer play head while playing.
     private(set) var currentBar: Int = 0
+    /// Beat within the current bar (0-based), for the beat indicator. Same source as `currentBar`.
+    private(set) var currentBeatInBar: Int = 0
     private(set) var tempoBpm: Int
     /// One bar of clicks before playback starts. Applied to the engine on the next start.
     private(set) var isCountInEnabled = false
@@ -147,6 +149,7 @@ final class PlayerViewModel {
     func stop() {
         engine?.stop()
         currentBar = 0
+        currentBeatInBar = 0
     }
 
     func setCountIn(_ enabled: Bool) {
@@ -197,11 +200,11 @@ final class PlayerViewModel {
 
     /// Run from the view's `.task` while `.loaded`. Polls the sequencer play head (which climbs
     /// forever — plan Risk 1), reduces it into the loop, and publishes the current bar for the
-    /// chord-progression highlight. Cancelled when the loaded view goes away.
+    /// chord-progression highlight and beat indicator. Cancelled when the loaded view goes away.
     ///
-    /// `currentBar` is only assigned when it actually changes: `@Observable` notifies on every
-    /// set, and re-rendering the whole screen ~7×/second for an unchanged value is wasted main-
-    /// thread work that can disturb playback.
+    /// `currentBar` / `currentBeatInBar` are only assigned when they actually change:
+    /// `@Observable` notifies on every set, and re-rendering for an unchanged value at the poll
+    /// rate is wasted main-thread work that can disturb playback.
     func trackPlayHead() async {
         guard case .loaded(let playable) = phase, let engine else { return }
         let loopLength = playable.track.lengthInBeats
@@ -215,14 +218,25 @@ final class PlayerViewModel {
                 let loopBeat = engine.currentBeat.truncatingRemainder(dividingBy: loopLength)
                 let bar = playable.bar(atLoopBeat: loopBeat)
                 if bar != currentBar { currentBar = bar }
+                let beat = playable.beat(atLoopBeat: loopBeat)
+                if beat != currentBeatInBar { currentBeatInBar = beat }
                 // Re-anchor the lock-screen scrubber whenever the loop restarts (the beat
                 // position drops); the system extrapolates from the rate in between. Detecting
                 // the wrap on the beat rather than the bar works for a one-bar loop too.
                 if loopBeat < previousLoopBeat { syncNowPlaying() }
                 previousLoopBeat = loopBeat
             }
-            try? await Task.sleep(for: .milliseconds(250))
+            try? await Task.sleep(for: pollInterval)
         }
+    }
+
+    /// A sixth of a beat at the current tempo, capped at 250 ms. The beat indicator needs to
+    /// land close to the audible beat — a fixed 250 ms would lag up to a whole beat at 240 BPM —
+    /// while a slow tempo keeps the old bar-highlight rate rather than reading the sequencer
+    /// (which contends with its timing thread) more than it needs to.
+    private var pollInterval: Duration {
+        let secondsPerBeat = 60.0 / Double(max(tempoBpm, 1))
+        return .seconds(min(0.25, secondsPerBeat / 6))
     }
 
     /// Pushes the current position to the Now Playing surface. Called on transport / tempo
@@ -259,7 +273,8 @@ extension PlayerViewModel {
     static func preview(
         _ phase: LoadPhase = .loaded(.preview()),
         playbackState: PlaybackState = .idle,
-        currentBar: Int = 0
+        currentBar: Int = 0,
+        currentBeatInBar: Int = 0
     ) -> PlayerViewModel {
         let model = PlayerViewModel(
             input: .preview(),
@@ -269,6 +284,7 @@ extension PlayerViewModel {
         model.phase = phase
         model.playbackState = playbackState
         model.currentBar = currentBar
+        model.currentBeatInBar = currentBeatInBar
         return model
     }
 }
