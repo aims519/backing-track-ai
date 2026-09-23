@@ -165,9 +165,11 @@ struct PlayerView: View {
 
     private func chordsCard(_ track: PlayableTrack) -> some View {
         SectionCard("Chords") {
-            LiveCurrentChord(model: model, track: track)
-            Divider()
-            ChordProgressionStrip(symbols: track.chordSymbols, currentBar: model.currentBar)
+            VStack(spacing: 0) {
+                LiveCurrentChord(model: model, track: track)
+                Divider().padding(.leading, 16)
+                ChordProgressionStrip(symbols: track.chordSymbols, currentBar: model.currentBar)
+            }
         }
     }
 
