@@ -46,6 +46,7 @@ extension GenerationJob {
     static func preview(
         id: UUID = UUID(),
         status: JobStatus = .inProgress,
+        keyMode: String = "Ionian",
         feedbackItems: [JobFeedback] = []
     ) -> GenerationJob {
         GenerationJob(
@@ -59,7 +60,7 @@ extension GenerationJob {
             tempo: 120,
             chords: ["C", "Amin", "F", "G"],
             keyRoot: "C",
-            keyMode: "Ionian",
+            keyMode: keyMode,
             keyModeWarnings: [],
             timeSignatureBeatCount: 4,
             timeSignatureBeatUnit: 4,

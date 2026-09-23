@@ -14,6 +14,7 @@ struct PlayableTrackTests {
             track: .preview(lengthInBeats: lengthInBeats),
             originalTempo: 120,
             keyRoot: .c,
+            keyMode: "Ionian",
             timeSignature: timeSignature,
             chordSymbols: chordSymbols,
             title: nil
@@ -61,6 +62,28 @@ struct PlayableTrackTests {
         #expect(track.bar(atLoopBeat: 4) == 1)
         #expect(track.bar(atLoopBeat: 15.9) == 3)
         #expect(track.bar(atLoopBeat: 99) == 3)   // clamped, not wrapped — caller reduces first
+    }
+
+    @Test func beatAtLoopBeatIsThePositionWithinTheBar() {
+        let track = make(chordSymbols: ["C", "Amin", "F", "G7"], lengthInBeats: 16)
+
+        #expect(track.beatsInBar == 4)
+        #expect(track.beat(atLoopBeat: 0) == 0)
+        #expect(track.beat(atLoopBeat: 1.5) == 1)
+        #expect(track.beat(atLoopBeat: 4) == 0)      // downbeat of bar 2
+        #expect(track.beat(atLoopBeat: 15.9) == 3)
+        #expect(track.beat(atLoopBeat: 99) == 3)     // last bar clamps, so its beat does too
+    }
+
+    @Test func beatAtLoopBeatStaysInRangeForAFractionalBar() {
+        // 14 beats over 4 bars = 3.5 beats/bar → rounds to 4 dots; the half-beat tail of each
+        // bar must still land on a real dot.
+        let track = make(chordSymbols: ["C", "Amin", "F", "G7"], lengthInBeats: 14)
+
+        #expect(track.beatsInBar == 4)
+        #expect(track.beat(atLoopBeat: 3.4) == 3)
+        #expect(track.beat(atLoopBeat: 3.5) == 0)    // bar 2 starts at 3.5
+        #expect(track.beat(atLoopBeat: 13.9) == 3)
     }
 
     @Test func loopDurationScalesWithTempo() {

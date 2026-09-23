@@ -74,8 +74,8 @@ struct PlayerView: View {
             VStack(spacing: 22) {
                 trackInfoCard(track)
                 transportCard(track)
-                tempoCard
                 chordsCard(track)
+                tempoCard
                 instrumentsCard
             }
             .padding(.vertical, 16)
@@ -87,7 +87,7 @@ struct PlayerView: View {
     private func trackInfoCard(_ track: PlayableTrack) -> some View {
         SectionCard("Track") {
             VStack(spacing: 0) {
-                infoRow("Key", track.keyRoot?.displayName ?? model.input.keyRoot)
+                infoRow("Key", "\(track.keyRoot?.displayName ?? model.input.keyRoot) \(track.keyMode)")
                 Divider().padding(.leading, 16)
                 infoRow("Time", track.timeSignature.displayName)
                 Divider().padding(.leading, 16)
@@ -165,7 +165,11 @@ struct PlayerView: View {
 
     private func chordsCard(_ track: PlayableTrack) -> some View {
         SectionCard("Chords") {
-            ChordProgressionStrip(symbols: track.chordSymbols, currentBar: model.currentBar)
+            VStack(spacing: 0) {
+                LiveCurrentChord(model: model, track: track)
+                Divider().padding(.leading, 16)
+                ChordProgressionStrip(symbols: track.chordSymbols, currentBar: model.currentBar)
+            }
         }
     }
 
@@ -243,6 +247,21 @@ struct PlayerView: View {
         case .notPrecise:
             "This is a Vibe-mode track. Playback for those isn't available yet."
         }
+    }
+}
+
+/// Reads the beat in its own body so only this view redraws on each beat, not the whole screen.
+private struct LiveCurrentChord: View {
+    let model: PlayerViewModel
+    let track: PlayableTrack
+
+    var body: some View {
+        CurrentChordView(
+            symbols: track.chordSymbols,
+            currentBar: model.currentBar,
+            currentBeat: (model.playbackState == .playing || model.playbackState == .paused) ? model.currentBeatInBar : nil,
+            beatsInBar: track.beatsInBar
+        )
     }
 }
 

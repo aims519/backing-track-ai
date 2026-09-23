@@ -91,7 +91,7 @@ final class AudioEngine {
     }()
     init(playableTrack: PlayableTrack){
         self.playableTrack = playableTrack
-        self.beatsInBar = max(1, Int(playableTrack.beatsPerBar.rounded()))
+        self.beatsInBar = playableTrack.beatsInBar
         self.voiceVolumes = [.bass: 1, .drums: 1, .chords: 1]
         setUp()
     }

@@ -34,7 +34,7 @@ struct ChordProgressionStrip: View {
 
     private func cell(_ symbol: String, active: Bool) -> some View {
         Text(label(for: symbol))
-            .font(.callout.weight(active ? .semibold : .regular))
+            .font(.title3.weight(active ? .semibold : .regular))
             .foregroundStyle(active ? Color.white : Color.primary)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
