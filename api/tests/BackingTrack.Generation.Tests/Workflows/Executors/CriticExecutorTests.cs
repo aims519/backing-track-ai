@@ -17,8 +17,9 @@ namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class CriticExecutorTests
 {
-    private static CriticExecutor CreateExecutor(ICriticStep criticStepMock, int maxAttempts) =>
+    private static CriticExecutor CreateExecutor(ICriticStep criticStepMock, int maxAttempts, IJobStatusEmitter? statusEmitter = null) =>
         new(criticStepMock, Options.Create(new CriticSettings { PassingScoreThreshold = 66d, MaxAttempts = maxAttempts }),
+            statusEmitter ?? Substitute.For<IJobStatusEmitter>(),
             NullLogger<CriticExecutor>.Instance);
 
     private static CriticInput CreateInput(CandidateTrack track, GenerationJob job, int validationAttempts, int criticAttempts) =>
@@ -33,19 +34,19 @@ public class CriticExecutorTests
         criticStepMock.ReviewCandidateTrackAsync(track, job, Arg.Any<MatchedStyle>(), Arg.Any<IReadOnlyList<MatchedChord>>(),
                 Arg.Any<IReadOnlyList<MatchedScale>>(), Arg.Any<CancellationToken>())
             .Returns(new CriticFinalReview(true, 100d, []));
+        IJobStatusEmitter statusEmitterMock = Substitute.For<IJobStatusEmitter>();
         FakeWorkflowContext context = new();
 
-        await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(CreateInput(track, job, validationAttempts: 2, criticAttempts: 1), context, CancellationToken.None);
+        await CreateExecutor(criticStepMock, maxAttempts: 3, statusEmitterMock).HandleAsync(CreateInput(track, job, validationAttempts: 2, criticAttempts: 1), context, CancellationToken.None);
 
-        PersistCandidateTrackInput sent = Assert.IsType<PersistCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
+        PersistCandidateTrackInput sent = Assert.IsType<PersistCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(track, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal(2, sent.ValidationAttempts);
         Assert.Equal(1, sent.CriticAttempts);
         Assert.Empty(context.YieldedOutputs);
 
-        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
-        Assert.Equal(job.Id, statusUpdate.JobId);
+        statusEmitterMock.Received(1).Emit(job.Id, "Critic Review", 1, "Critic review passed with score 100%");
     }
 
     [Fact]
@@ -62,7 +63,7 @@ public class CriticExecutorTests
 
         await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(CreateInput(track, job, validationAttempts: 2, criticAttempts: 1), context, CancellationToken.None);
 
-        GenerateCandidateTrackInput sent = Assert.IsType<GenerateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
+        GenerateCandidateTrackInput sent = Assert.IsType<GenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(job, sent.GenerationJob);
         Assert.Same(review, sent.CriticReview);
         Assert.Same(track, sent.PreviousAttempt);
@@ -84,7 +85,7 @@ public class CriticExecutorTests
 
         await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(CreateInput(track, job, validationAttempts: 2, criticAttempts: 3), context, CancellationToken.None);
 
-        FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
+        FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(job, sent.GenerationJob);
         Assert.Empty(context.YieldedOutputs);
     }
@@ -104,7 +105,7 @@ public class CriticExecutorTests
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("critic blew up", failed.Reason);
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 
     [Fact]
@@ -123,6 +124,6 @@ public class CriticExecutorTests
         await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(CreateInput(track, job, validationAttempts: 2, criticAttempts: 1), context, cts.Token);
 
         Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 }

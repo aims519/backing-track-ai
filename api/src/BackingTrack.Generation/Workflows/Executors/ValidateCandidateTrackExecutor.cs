@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 using BackingTrack.Core.Config;
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
 using BackingTrack.Generation.Workflows.Inputs;
@@ -15,6 +16,7 @@ namespace BackingTrack.Generation.Workflows.Executors;
 internal sealed class ValidateCandidateTrackExecutor(
     IValidateStep validateStep,
     IOptions<TrackGenerationWorkflowSettings> trackGenerationWorkflowSettings,
+    IJobStatusEmitter statusEmitter,
     ILogger<ValidateCandidateTrackExecutor> logger) : Executor("ValidateCandidateTrackExecutor")
 {
     internal async ValueTask HandleAsync(ValidateCandidateTrackInput input, IWorkflowContext context,
@@ -22,11 +24,16 @@ internal sealed class ValidateCandidateTrackExecutor(
     {
         try
         {
-            await context.SendMessageAsync(new StatusUpdateInput(input.GenerationJob.Id, DateTime.UtcNow, "Validation",
-                input.ValidationAttempts, "Validating candidate track..."), cancellationToken);
+            statusEmitter.Emit(input.GenerationJob.Id, "Validation", input.ValidationAttempts,
+                $"Validating candidate track (attempt {input.ValidationAttempts})...");
 
             TrackValidationResult trackValidationResult = validateStep.ValidateCandidateTrack(input.CandidateTrack,
                 input.GenerationJob, input.MatchedChords, input.MatchedScales);
+
+            string outcomeMessage = trackValidationResult.IsValid
+                ? "Validation passed"
+                : $"Validation failed with {trackValidationResult.Failures.Count} issue{(trackValidationResult.Failures.Count == 1 ? "" : "s")}";
+            statusEmitter.Emit(input.GenerationJob.Id, "Validation", input.ValidationAttempts, outcomeMessage);
 
             // Pass validation on a regular, non-fallback track
             if (trackValidationResult.IsValid && !input.IsFallbackTrack)
@@ -97,6 +104,5 @@ internal sealed class ValidateCandidateTrackExecutor(
             .SendsMessage<CriticInput>()
             .SendsMessage<FallbackGenerateCandidateTrackInput>()
             .SendsMessage<PersistCandidateTrackInput>()
-            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

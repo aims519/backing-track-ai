@@ -1,3 +1,4 @@
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Retrieval;
 using BackingTrack.Generation.Workflows.Inputs;
@@ -10,13 +11,13 @@ namespace BackingTrack.Generation.Workflows.Executors;
 
 internal sealed class RetrieveScalesExecutor(
     IRetrieveStep retrieveStep,
+    IJobStatusEmitter statusEmitter,
     ILogger<RetrieveScalesExecutor> logger) : Executor("RetrieveScalesExecutor")
 {
     internal async ValueTask HandleAsync(RetrieveScalesInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
-        await context.SendMessageAsync(new StatusUpdateInput(input.GenerationJob.Id, DateTime.UtcNow, "Retrieval", 1,
-            "Retrieving scales..."), cancellationToken);
+        statusEmitter.Emit(input.GenerationJob.Id, "Retrieval", 1, "Retrieving matching scales for track chords...");
 
         IReadOnlyList<MatchedScale> matchingScaleEntries;
         try
@@ -53,6 +54,5 @@ internal sealed class RetrieveScalesExecutor(
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<RetrieveScalesInput>(HandleAsync))
             .SendsMessage<GenerateCandidateTrackInput>()
-            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

@@ -14,8 +14,8 @@ namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class RetrieveScalesExecutorTests
 {
-    private static RetrieveScalesExecutor CreateExecutor(IRetrieveStep retrieveStepMock) =>
-        new(retrieveStepMock, NullLogger<RetrieveScalesExecutor>.Instance);
+    private static RetrieveScalesExecutor CreateExecutor(IRetrieveStep retrieveStepMock, IJobStatusEmitter? statusEmitter = null) =>
+        new(retrieveStepMock, statusEmitter ?? Substitute.For<IJobStatusEmitter>(), NullLogger<RetrieveScalesExecutor>.Instance);
 
     [Fact]
     public async Task HandleAsync_ScalesMatched_SendsGenerateCandidateTrackInputPreservingStyleAndChords()
@@ -27,20 +27,20 @@ public class RetrieveScalesExecutorTests
         IRetrieveStep retrieveStepMock = Substitute.For<IRetrieveStep>();
         retrieveStepMock.RetrieveMatchingScales(job.KeyRoot, job.KeyMode, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<CancellationToken>())
             .Returns(matchedScales);
+        IJobStatusEmitter statusEmitterMock = Substitute.For<IJobStatusEmitter>();
         FakeWorkflowContext context = new();
 
-        await CreateExecutor(retrieveStepMock).HandleAsync(
+        await CreateExecutor(retrieveStepMock, statusEmitterMock).HandleAsync(
             new RetrieveScalesInput([chord], matchedStyle, job), context, CancellationToken.None);
 
-        GenerateCandidateTrackInput sent = Assert.IsType<GenerateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
+        GenerateCandidateTrackInput sent = Assert.IsType<GenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(job, sent.GenerationJob);
         Assert.Same(matchedStyle, sent.MatchedStyle);
         Assert.Equal([chord], sent.MatchedChords);
         Assert.Equal(matchedScales, sent.MatchedScales);
         Assert.Empty(context.YieldedOutputs);
 
-        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
-        Assert.Equal(job.Id, statusUpdate.JobId);
+        statusEmitterMock.Received(1).Emit(job.Id, "Retrieval", 1, Arg.Any<string>());
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class RetrieveScalesExecutorTests
         await CreateExecutor(retrieveStepMock).HandleAsync(
             new RetrieveScalesInput([chord], WorkflowTestFixtures.CreateMatchedStyle(), job), context, CancellationToken.None);
 
-        GenerateCandidateTrackInput sent = Assert.IsType<GenerateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
+        GenerateCandidateTrackInput sent = Assert.IsType<GenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Empty(sent.MatchedScales);
         Assert.Empty(context.YieldedOutputs);
     }
@@ -76,7 +76,7 @@ public class RetrieveScalesExecutorTests
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("scale lookup failed", failed.Reason);
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 
     [Fact]
@@ -95,6 +95,6 @@ public class RetrieveScalesExecutorTests
             new RetrieveScalesInput([chord], WorkflowTestFixtures.CreateMatchedStyle(), job), context, cts.Token);
 
         Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 }

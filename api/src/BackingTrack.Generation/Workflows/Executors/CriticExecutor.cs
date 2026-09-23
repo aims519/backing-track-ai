@@ -1,4 +1,5 @@
 using BackingTrack.Core.Config;
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.Steps.Critic;
 using BackingTrack.Generation.Workflows.Inputs;
 using BackingTrack.Generation.Workflows.Outputs;
@@ -9,15 +10,16 @@ using Microsoft.Extensions.Options;
 
 namespace BackingTrack.Generation.Workflows.Executors;
 
-internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSettings> criticSettings, ILogger<CriticExecutor> logger) : Executor("CriticExecutor")
+internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSettings> criticSettings,
+    IJobStatusEmitter statusEmitter, ILogger<CriticExecutor> logger) : Executor("CriticExecutor")
 {
     internal async ValueTask HandleAsync(CriticInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
         try
         {
-            await context.SendMessageAsync(new StatusUpdateInput(input.GenerationJob.Id, DateTime.UtcNow, "Critic Review",
-                input.CriticAttempts, "Reviewing candidate track..."), cancellationToken);
+            statusEmitter.Emit(input.GenerationJob.Id, "Critic Review", input.CriticAttempts,
+                "Final musical review of candidate track...");
 
             CriticFinalReview review = await criticStep.ReviewCandidateTrackAsync(input.CandidateTrack,
                 input.GenerationJob,
@@ -25,6 +27,11 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
                 input.MatchedChords,
                 input.MatchedScales,
                 cancellationToken);
+
+            string outcomeMessage = review.Pass
+                ? $"Critic review passed with score {review.Score:0}%"
+                : $"Critic review failed with score {review.Score:0}% and {review.Citations.Count} citation{(review.Citations.Count == 1 ? "" : "s")}";
+            statusEmitter.Emit(input.GenerationJob.Id, "Critic Review", input.CriticAttempts, outcomeMessage);
 
             if (!review.Pass)
             {
@@ -60,7 +67,10 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
 
             // Critic review passed, persist the track
             logger.LogInformation("Critic review passed with score of {Score}", review.Score);
-            logger.LogDebug("Citations:\n{Citations}", string.Join('\n', review.Citations.Select(c => $"{c.Dimension}: {c.Violation}")));
+            if (review.Citations.Count > 0)
+            {
+                logger.LogDebug("Citations:\n{Citations}", string.Join('\n', review.Citations.Select(c => $"{c.Dimension}: {c.Violation}")));
+            }
 
             await context.SendMessageAsync(new PersistCandidateTrackInput(input.CandidateTrack, input.GenerationJob, input.ValidationAttempts, input.CriticAttempts), cancellationToken);
         }
@@ -82,6 +92,5 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
             .SendsMessage<GenerateCandidateTrackInput>()
             .SendsMessage<PersistCandidateTrackInput>()
             .SendsMessage<FallbackGenerateCandidateTrackInput>()
-            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

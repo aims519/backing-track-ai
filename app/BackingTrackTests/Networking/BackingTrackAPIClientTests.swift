@@ -51,7 +51,8 @@ struct BackingTrackAPIClientTests {
           "keyMode": "Ionian",
           "keyModeWarnings": [],
           "timeSignatureBeatCount": 4,
-          "timeSignatureBeatUnit": 4
+          "timeSignatureBeatUnit": 4,
+          "feedbackItems": []
         }
         """.utf8)
     }
@@ -89,7 +90,7 @@ struct BackingTrackAPIClientTests {
           "id": "\(UUID().uuidString)", "status": "Pending", "startTime": "\(startTime)",
           "endTime": null, "trackId": null, "audioLocation": null, "mode": "Precise", "tempo": 120,
           "chords": ["C"], "keyRoot": "C", "keyMode": "Ionian", "keyModeWarnings": [],
-          "timeSignatureBeatCount": 4, "timeSignatureBeatUnit": 4
+          "timeSignatureBeatCount": 4, "timeSignatureBeatUnit": 4, "feedbackItems": []
         }
         """.utf8)
         StubURLProtocol.handler = { _ in (200, [:], body) }

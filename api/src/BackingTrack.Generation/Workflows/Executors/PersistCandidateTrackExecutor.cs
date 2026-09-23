@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 
 using BackingTrack.Core.Config;
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.Steps;
 using BackingTrack.Generation.Steps.TrackPersistence;
 using BackingTrack.Generation.Steps.Types;
@@ -16,6 +17,7 @@ namespace BackingTrack.Generation.Workflows.Executors;
 
 internal sealed class PersistCandidateTrackExecutor(
     IOptions<TrackStorageSettings> trackStorageSettings,
+    IJobStatusEmitter statusEmitter,
     ILogger<PersistCandidateTrackExecutor> logger) : Executor("PersistCandidateTrackExecutor")
 {
     internal async ValueTask HandleAsync(PersistCandidateTrackInput input, IWorkflowContext context,
@@ -27,8 +29,7 @@ internal sealed class PersistCandidateTrackExecutor(
         Guid trackId = Guid.NewGuid();
         activity?.SetTag("track.id", trackId);
 
-        await context.SendMessageAsync(new StatusUpdateInput(input.GenerationJob.Id, DateTime.UtcNow, "Persistence",
-            1, "Persisting candidate track..."), cancellationToken);
+        statusEmitter.Emit(input.GenerationJob.Id, "Persistence", 1, "Saving candidate track to persistent storage...");
 
         try
         {
@@ -60,6 +61,5 @@ internal sealed class PersistCandidateTrackExecutor(
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<PersistCandidateTrackInput>(HandleAsync))
-            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

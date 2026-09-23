@@ -42,3 +42,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0035](0035-hand-authored-repair-schema-for-responses-api.md) | Hand-authored JSON schema for the repair step, over auto-generation |
 | [0036](0036-per-step-model-tier-split-for-cost.md) | Per-step model and Flex-tier split for LLM cost, over a single model everywhere |
 | [0037](0037-streaming-run-for-cancellable-generation-jobs.md) | Streaming run API (`RunStreamingAsync`/`StreamingRun.CancelRunAsync`) for cancellable generation jobs |
+| [0038](0038-direct-status-emitter-over-workflow-messaging.md) | Direct status emitter over workflow-graph messaging for progress feedback |

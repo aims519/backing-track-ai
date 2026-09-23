@@ -11,6 +11,7 @@ namespace BackingTrack.Generation.Workflows.Executors;
 
 internal sealed class GenerateCandidateTrackExecutor(
     IGenerateStep generateStep,
+    IJobStatusEmitter statusEmitter,
     ILogger<GenerateCandidateTrackExecutor> logger) : Executor("GenerateCandidateTrackExecutor")
 {
     internal async ValueTask HandleAsync(GenerateCandidateTrackInput input, IWorkflowContext context,
@@ -19,8 +20,8 @@ internal sealed class GenerateCandidateTrackExecutor(
         GenerationJob generationJob = input.GenerationJob;
         Guid jobId = input.GenerationJob.Id;
 
-        await context.SendMessageAsync(new StatusUpdateInput(jobId, DateTime.UtcNow, "Generation", input.CriticAttempts,
-            "Generating candidate track..."), cancellationToken);
+        statusEmitter.Emit(jobId, "Generation", input.CriticAttempts,
+            $"Generating {generationJob.Chords.Count} bar candidate track in {generationJob.KeyRoot} {generationJob.KeyMode}...");
 
         CandidateTrack candidateTrack;
         try
@@ -75,6 +76,5 @@ internal sealed class GenerateCandidateTrackExecutor(
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<GenerateCandidateTrackInput>(HandleAsync))
             .SendsMessage<ValidateCandidateTrackInput>()
-            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }
