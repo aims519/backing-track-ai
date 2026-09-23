@@ -14,6 +14,7 @@ public sealed record GenerationRequestDto
     public string? Style { get; init; }
     public int TimeSignatureBeatCount { get; init; }
     public int TimeSignatureBeatUnit { get; init; }
+    public string? ApnsDeviceToken { get; init; }
 }
 
 internal static class GenerationRequestDtoExtensions
@@ -63,6 +64,14 @@ internal static class GenerationRequestDtoExtensions
         if (string.IsNullOrWhiteSpace(request.Style))
             validationProblemDetails.Errors.Add(nameof(request.Style), ["Style guidance must be provided"]);
 
+        if (!string.IsNullOrEmpty(request.ApnsDeviceToken) && !IsApnsDeviceTokenValid(request.ApnsDeviceToken))
+            validationProblemDetails.Errors.Add(nameof(request.ApnsDeviceToken), ["ApnsDeviceToken is invalid must be a hex-encoded APNs device token"]);
+
         return validationProblemDetails.Errors.Count > 0 ? validationProblemDetails : null;
     }
+
+    private static bool IsApnsDeviceTokenValid(string apnsDeviceToken) =>
+        apnsDeviceToken.Length is >= 64 and <= 200
+        && apnsDeviceToken.Length % 2 == 0
+        && apnsDeviceToken.All(char.IsAsciiHexDigit);
 }

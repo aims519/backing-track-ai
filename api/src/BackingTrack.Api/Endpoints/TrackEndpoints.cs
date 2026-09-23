@@ -49,7 +49,8 @@ internal static class TrackEndpoints
             Style = requestDto.Style!,
             TimeSignatureBeatCount = requestDto.TimeSignatureBeatCount,
             TimeSignatureBeatUnit = requestDto.TimeSignatureBeatUnit,
-            FeedbackItems = []
+            FeedbackItems = [],
+            ApnsDeviceToken = requestDto.ApnsDeviceToken
         };
 
         jobStore.AddOrUpdate(job);

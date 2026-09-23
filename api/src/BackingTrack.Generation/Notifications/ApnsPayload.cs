@@ -1,3 +1,5 @@
 namespace BackingTrack.Generation.Notifications;
 
-public record ApnsPayload();
+internal record ApnsPayload(ApnsAps Aps, Guid JobId);
+internal record ApnsAps(ApnsAlert Alert, string Sound = "default");
+internal record ApnsAlert(string Title, string Body);

@@ -18,6 +18,7 @@ public sealed record GenerationJob
     public required int TimeSignatureBeatCount { get; init; }
     public required int TimeSignatureBeatUnit { get; init; }
     public required IReadOnlyList<JobFeedback> FeedbackItems { get; init; }
+    public string? ApnsDeviceToken { get; init; }
 }
 
 public sealed record JobFeedback(DateTime Timestamp, string Stage, string Message, int Attempt);
