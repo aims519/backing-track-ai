@@ -8,12 +8,15 @@ using BackingTrack.Generation.Workflows.Outputs;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
+using NSubstitute;
+
 namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class PersistCandidateTrackExecutorTests
 {
-    private static PersistCandidateTrackExecutor CreateExecutor(string baseFolderPath) =>
+    private static PersistCandidateTrackExecutor CreateExecutor(string baseFolderPath, IJobStatusEmitter? statusEmitter = null) =>
         new(Options.Create(new TrackStorageSettings { BaseFolderPath = baseFolderPath }),
+            statusEmitter ?? Substitute.For<IJobStatusEmitter>(),
             NullLogger<PersistCandidateTrackExecutor>.Instance);
 
     [Fact]
@@ -24,18 +27,18 @@ public class PersistCandidateTrackExecutorTests
         {
             GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
             CandidateTrack track = new(16, [], [], []);
+            IJobStatusEmitter statusEmitterMock = Substitute.For<IJobStatusEmitter>();
             FakeWorkflowContext context = new();
 
-            await CreateExecutor(baseFolderPath).HandleAsync(new PersistCandidateTrackInput(track, job, 3, 1), context, CancellationToken.None);
+            await CreateExecutor(baseFolderPath, statusEmitterMock).HandleAsync(new PersistCandidateTrackInput(track, job, 3, 1), context, CancellationToken.None);
 
             GenerationSucceeded succeeded = Assert.IsType<GenerationSucceeded>(Assert.Single(context.YieldedOutputs));
             Assert.Same(track, succeeded.CandidateTrack);
             Assert.Equal(3, succeeded.Attempts);
             Assert.Equal(1, succeeded.CriticAttempts);
-            Assert.Empty(context.WorkflowMessages);
+            Assert.Empty(context.SentMessages);
 
-            StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
-            Assert.Equal(job.Id, statusUpdate.JobId);
+            statusEmitterMock.Received(1).Emit(job.Id, "Persistence", 1, Arg.Any<string>());
 
             string expectedFilePath = Path.Combine(baseFolderPath, $"{succeeded.TrackId}.json");
             Assert.True(File.Exists(expectedFilePath));
@@ -86,7 +89,7 @@ public class PersistCandidateTrackExecutorTests
 
             GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
             Assert.Equal(4, failed.Attempts);
-            Assert.Empty(context.WorkflowMessages);
+            Assert.Empty(context.SentMessages);
         }
         finally
         {
@@ -109,7 +112,7 @@ public class PersistCandidateTrackExecutorTests
             await CreateExecutor(baseFolderPath).HandleAsync(new PersistCandidateTrackInput(track, job, 3, 1), context, cts.Token);
 
             Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-            Assert.Empty(context.WorkflowMessages);
+            Assert.Empty(context.SentMessages);
         }
         finally
         {

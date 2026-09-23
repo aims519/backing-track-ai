@@ -11,6 +11,7 @@ namespace BackingTrack.Generation.Workflows.Executors;
 
 internal sealed class RetrieveChordsExecutor(
     IRetrieveStep retrieveStep,
+    IJobStatusEmitter statusEmitter,
     ILogger<RetrieveChordsExecutor> logger) : Executor("RetrieveChordsExecutor")
 {
     internal async ValueTask HandleAsync(RetrieveChordsInput input, IWorkflowContext context,
@@ -18,8 +19,7 @@ internal sealed class RetrieveChordsExecutor(
     {
         GenerationJob job = input.Job;
 
-        await context.SendMessageAsync(new StatusUpdateInput(job.Id, DateTime.UtcNow, "Retrieval", 1,
-            "Retrieving chords..."), cancellationToken);
+        statusEmitter.Emit(job.Id, "Retrieval", 1, "Retrieving chord information...");
 
         IReadOnlyList<MatchedChord> matchingChords;
         try
@@ -40,6 +40,5 @@ internal sealed class RetrieveChordsExecutor(
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<RetrieveChordsInput>(HandleAsync))
             .SendsMessage<RetrieveScalesInput>()
-            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

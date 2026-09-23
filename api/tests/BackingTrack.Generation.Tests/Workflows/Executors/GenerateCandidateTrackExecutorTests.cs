@@ -17,8 +17,8 @@ namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class GenerateCandidateTrackExecutorTests
 {
-    private static GenerateCandidateTrackExecutor CreateExecutor(IGenerateStep generateStepMock) =>
-        new(generateStepMock, NullLogger<GenerateCandidateTrackExecutor>.Instance);
+    private static GenerateCandidateTrackExecutor CreateExecutor(IGenerateStep generateStepMock, IJobStatusEmitter? statusEmitter = null) =>
+        new(generateStepMock, statusEmitter ?? Substitute.For<IJobStatusEmitter>(), NullLogger<GenerateCandidateTrackExecutor>.Instance);
 
     [Fact]
     public async Task HandleAsync_TrackGenerated_SendsValidateCandidateTrackInputStartingAtAttemptOne()
@@ -32,19 +32,19 @@ public class GenerateCandidateTrackExecutorTests
         generateStepMock.GenerateCandidateTrackAsync(job.KeyRoot, job.KeyMode, job.Tempo, job.TimeSignatureBeatCount,
                 job.TimeSignatureBeatUnit, matchedStyle, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>(),
                 null, null, Arg.Any<CancellationToken>()).Returns(candidateTrack);
+        IJobStatusEmitter statusEmitterMock = Substitute.For<IJobStatusEmitter>();
         FakeWorkflowContext context = new();
 
-        await CreateExecutor(generateStepMock).HandleAsync(
+        await CreateExecutor(generateStepMock, statusEmitterMock).HandleAsync(
             new GenerateCandidateTrackInput(job, matchedStyle, [chord], [scale], CriticAttempts: 1), context, CancellationToken.None);
 
-        ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
+        ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(candidateTrack, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal(1, sent.ValidationAttempts);
         Assert.Empty(context.YieldedOutputs);
 
-        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
-        Assert.Equal(job.Id, statusUpdate.JobId);
+        statusEmitterMock.Received(1).Emit(job.Id, "Generation", 1, Arg.Any<string>());
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class GenerateCandidateTrackExecutorTests
             Arg.Any<MatchedStyle>(), Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>(),
             Arg.Any<CandidateTrack?>(), Arg.Any<IReadOnlyList<ValidationFailure>?>(), Arg.Any<CancellationToken>());
 
-        ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
+        ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(regeneratedTrack, sent.CandidateTrack);
         Assert.Equal(1, sent.ValidationAttempts);
         Assert.Equal(2, sent.CriticAttempts);
@@ -99,7 +99,7 @@ public class GenerateCandidateTrackExecutorTests
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("generation failed", failed.Reason);
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 
     [Fact]
@@ -121,6 +121,6 @@ public class GenerateCandidateTrackExecutorTests
             new GenerateCandidateTrackInput(job, matchedStyle, [chord], [scale], CriticAttempts: 1), context, cts.Token);
 
         Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 }

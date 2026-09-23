@@ -85,7 +85,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<RepairCandidateTrackExecutor>();
         services.AddScoped<CriticExecutor>();
         services.AddScoped<PersistCandidateTrackExecutor>();
-        services.AddScoped<StatusUpdateExecutor>();
 
         return services;
     }
@@ -93,6 +92,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddJobProcessing(this IServiceCollection services)
     {
         services.AddSingleton<JobStore>();
+        services.AddSingleton<IJobStatusEmitter, JobStatusEmitter>();
 
         Channel<Guid> jobChannel = Channel.CreateUnbounded<Guid>();
         services.AddSingleton(new GenerationJobQueue(jobChannel));

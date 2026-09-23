@@ -14,8 +14,8 @@ namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class RetrieveChordsExecutorTests
 {
-    private static RetrieveChordsExecutor CreateExecutor(IRetrieveStep retrieveStepMock) =>
-        new(retrieveStepMock, NullLogger<RetrieveChordsExecutor>.Instance);
+    private static RetrieveChordsExecutor CreateExecutor(IRetrieveStep retrieveStepMock, IJobStatusEmitter? statusEmitter = null) =>
+        new(retrieveStepMock, statusEmitter ?? Substitute.For<IJobStatusEmitter>(), NullLogger<RetrieveChordsExecutor>.Instance);
 
     [Fact]
     public async Task HandleAsync_ChordsMatched_SendsRetrieveScalesInputPreservingJobAndStyle()
@@ -25,18 +25,18 @@ public class RetrieveChordsExecutorTests
         MatchedChord[] matchedChords = [WorkflowTestFixtures.CreateMatchedChord()];
         IRetrieveStep retrieveStepMock = Substitute.For<IRetrieveStep>();
         retrieveStepMock.RetrieveMatchingChords(job.Chords).Returns(matchedChords);
+        IJobStatusEmitter statusEmitterMock = Substitute.For<IJobStatusEmitter>();
         FakeWorkflowContext context = new();
 
-        await CreateExecutor(retrieveStepMock).HandleAsync(new RetrieveChordsInput(job, matchedStyle), context, CancellationToken.None);
+        await CreateExecutor(retrieveStepMock, statusEmitterMock).HandleAsync(new RetrieveChordsInput(job, matchedStyle), context, CancellationToken.None);
 
-        RetrieveScalesInput sent = Assert.IsType<RetrieveScalesInput>(Assert.Single(context.WorkflowMessages));
+        RetrieveScalesInput sent = Assert.IsType<RetrieveScalesInput>(Assert.Single(context.SentMessages));
         Assert.Same(job, sent.GenerationJob);
         Assert.Same(matchedStyle, sent.MatchedStyle);
         Assert.Same(matchedChords, sent.MatchedChords);
         Assert.Empty(context.YieldedOutputs);
 
-        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
-        Assert.Equal(job.Id, statusUpdate.JobId);
+        statusEmitterMock.Received(1).Emit(job.Id, "Retrieval", 1, Arg.Any<string>());
     }
 
     [Fact]
@@ -53,6 +53,6 @@ public class RetrieveChordsExecutorTests
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("chord lookup failed", failed.Reason);
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 }

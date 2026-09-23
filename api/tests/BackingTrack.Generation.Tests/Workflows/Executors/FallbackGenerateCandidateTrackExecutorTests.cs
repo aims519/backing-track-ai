@@ -15,8 +15,8 @@ namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class FallbackGenerateCandidateTrackExecutorTests
 {
-    private static FallbackGenerateCandidateTrackExecutor CreateExecutor(IFallbackGenerationStep fallbackGenerationStepMock) =>
-        new(fallbackGenerationStepMock, NullLogger<FallbackGenerateCandidateTrackExecutor>.Instance);
+    private static FallbackGenerateCandidateTrackExecutor CreateExecutor(IFallbackGenerationStep fallbackGenerationStepMock, IJobStatusEmitter? statusEmitter = null) =>
+        new(fallbackGenerationStepMock, statusEmitter ?? Substitute.For<IJobStatusEmitter>(), NullLogger<FallbackGenerateCandidateTrackExecutor>.Instance);
 
     [Fact]
     public async Task HandleAsync_FallbackGenerationSucceeds_SendsValidateCandidateTrackInputMarkedAsFallback()
@@ -30,12 +30,13 @@ public class FallbackGenerateCandidateTrackExecutorTests
         fallbackGenerationStepMock.GenerateFallbackCandidateTrackAsync(job.TimeSignatureBeatCount, job.TimeSignatureBeatUnit,
                 matchedStyle, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<CancellationToken>())
             .Returns(fallbackTrack);
+        IJobStatusEmitter statusEmitterMock = Substitute.For<IJobStatusEmitter>();
         FakeWorkflowContext context = new();
 
-        await CreateExecutor(fallbackGenerationStepMock).HandleAsync(
+        await CreateExecutor(fallbackGenerationStepMock, statusEmitterMock).HandleAsync(
             new FallbackGenerateCandidateTrackInput(job, matchedStyle, [chord], [scale]), context, CancellationToken.None);
 
-        ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
+        ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(fallbackTrack, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal(1, sent.ValidationAttempts);
@@ -43,8 +44,7 @@ public class FallbackGenerateCandidateTrackExecutorTests
         Assert.True(sent.IsFallbackTrack);
         Assert.Empty(context.YieldedOutputs);
 
-        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
-        Assert.Equal(job.Id, statusUpdate.JobId);
+        statusEmitterMock.Received(1).Emit(job.Id, "Fallback Generation", 1, Arg.Any<string>());
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class FallbackGenerateCandidateTrackExecutorTests
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("fallback generation failed", failed.Reason);
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 
     [Fact]
@@ -87,6 +87,6 @@ public class FallbackGenerateCandidateTrackExecutorTests
             new FallbackGenerateCandidateTrackInput(job, matchedStyle, [chord], [scale]), context, cts.Token);
 
         Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 }

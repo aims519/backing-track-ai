@@ -14,8 +14,8 @@ namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class RetrieveStyleExecutorTests
 {
-    private static RetrieveStyleExecutor CreateExecutor(IRetrieveStep retrieveStepMock) =>
-        new(retrieveStepMock, NullLogger<RetrieveStyleExecutor>.Instance);
+    private static RetrieveStyleExecutor CreateExecutor(IRetrieveStep retrieveStepMock, IJobStatusEmitter? statusEmitter = null) =>
+        new(retrieveStepMock, statusEmitter ?? Substitute.For<IJobStatusEmitter>(), NullLogger<RetrieveStyleExecutor>.Instance);
 
     [Fact]
     public async Task HandleAsync_StyleMatched_SendsRetrieveChordsInputWithJobAndMatchedStyle()
@@ -24,17 +24,17 @@ public class RetrieveStyleExecutorTests
         MatchedStyle matchedStyle = WorkflowTestFixtures.CreateMatchedStyle();
         IRetrieveStep retrieveStepMock = Substitute.For<IRetrieveStep>();
         retrieveStepMock.RetrieveTopMatchingStyles(job.Style, Arg.Any<CancellationToken>()).Returns(matchedStyle);
+        IJobStatusEmitter statusEmitterMock = Substitute.For<IJobStatusEmitter>();
         FakeWorkflowContext context = new();
 
-        await CreateExecutor(retrieveStepMock).HandleAsync(job, context, CancellationToken.None);
+        await CreateExecutor(retrieveStepMock, statusEmitterMock).HandleAsync(job, context, CancellationToken.None);
 
-        RetrieveChordsInput sent = Assert.IsType<RetrieveChordsInput>(Assert.Single(context.WorkflowMessages));
+        RetrieveChordsInput sent = Assert.IsType<RetrieveChordsInput>(Assert.Single(context.SentMessages));
         Assert.Same(job, sent.Job);
         Assert.Same(matchedStyle, sent.MatchedStyle);
         Assert.Empty(context.YieldedOutputs);
 
-        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
-        Assert.Equal(job.Id, statusUpdate.JobId);
+        statusEmitterMock.Received(1).Emit(job.Id, "Retrieval", 1, Arg.Any<string>());
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class RetrieveStyleExecutorTests
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Contains(job.Style, failed.Reason);
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class RetrieveStyleExecutorTests
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("style lookup failed", failed.Reason);
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 
     [Fact]
@@ -82,6 +82,6 @@ public class RetrieveStyleExecutorTests
         await CreateExecutor(retrieveStepMock).HandleAsync(job, context, cts.Token);
 
         Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 }

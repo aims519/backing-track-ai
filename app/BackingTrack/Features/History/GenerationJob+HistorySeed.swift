@@ -5,8 +5,9 @@ extension GenerationJob {
     /// `GenerationProgressViewModel` (and the summary card it renders) when the user taps
     /// "Watch progress" on a job that's still running. `nil` if the row's id didn't round-trip.
     ///
-    /// `audioLocation` is always `nil` — the DTO field is never populated server-side, and the
-    /// history row doesn't keep it.
+    /// `audioLocation` and `feedbackItems` are always empty — neither DTO field is kept in the
+    /// history row (the latter is re-fetched live by the first poll once the screen resumes
+    /// watching, not reconstructed from history).
     static func seed(from entry: JobHistoryEntry) -> GenerationJob? {
         guard let id = entry.jobID else { return nil }
         return GenerationJob(
@@ -23,7 +24,8 @@ extension GenerationJob {
             keyMode: entry.keyMode,
             keyModeWarnings: [],
             timeSignatureBeatCount: entry.timeSignatureBeatCount,
-            timeSignatureBeatUnit: entry.timeSignatureBeatUnit
+            timeSignatureBeatUnit: entry.timeSignatureBeatUnit,
+            feedbackItems: []
         )
     }
 }
