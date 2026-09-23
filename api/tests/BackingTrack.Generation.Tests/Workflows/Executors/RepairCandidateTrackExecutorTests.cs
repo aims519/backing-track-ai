@@ -15,8 +15,8 @@ namespace BackingTrack.Generation.Tests.Workflows.Executors;
 
 public class RepairCandidateTrackExecutorTests
 {
-    private static RepairCandidateTrackExecutor CreateExecutor(IRepairStep repairStepMock) =>
-        new(repairStepMock, NullLogger<RepairCandidateTrackExecutor>.Instance);
+    private static RepairCandidateTrackExecutor CreateExecutor(IRepairStep repairStepMock, IJobStatusEmitter? statusEmitter = null) =>
+        new(repairStepMock, statusEmitter ?? Substitute.For<IJobStatusEmitter>(), NullLogger<RepairCandidateTrackExecutor>.Instance);
 
     private static RepairCandidateTrackInput CreateInput(CandidateTrack track, GenerationJob job, IReadOnlyList<ValidationFailure> failures, int attempts, int criticAttempts = 1) =>
         new(track, new TrackValidationResult(false, failures), job, WorkflowTestFixtures.CreateMatchedStyle(), [], [], attempts, criticAttempts);
@@ -30,18 +30,18 @@ public class RepairCandidateTrackExecutorTests
         ValidationFailure failure = new(ValidationFailureType.PartEmpty, null, "no drum notes");
         IRepairStep repairStepMock = Substitute.For<IRepairStep>();
         repairStepMock.RepairCandidateTrackAsync(originalTrack, Arg.Is<IReadOnlyList<ValidationFailure>>(f => f.Contains(failure)), Arg.Any<CancellationToken>()).Returns(repairedTrack);
+        IJobStatusEmitter statusEmitterMock = Substitute.For<IJobStatusEmitter>();
         FakeWorkflowContext context = new();
 
-        await CreateExecutor(repairStepMock).HandleAsync(CreateInput(originalTrack, job, [failure], attempts: 2), context, CancellationToken.None);
+        await CreateExecutor(repairStepMock, statusEmitterMock).HandleAsync(CreateInput(originalTrack, job, [failure], attempts: 2), context, CancellationToken.None);
 
-        ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.WorkflowMessages));
+        ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(repairedTrack, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal(3, sent.ValidationAttempts);
         Assert.Empty(context.YieldedOutputs);
 
-        StatusUpdateInput statusUpdate = Assert.IsType<StatusUpdateInput>(Assert.Single(context.SentMessages.OfType<StatusUpdateInput>()));
-        Assert.Equal(job.Id, statusUpdate.JobId);
+        statusEmitterMock.Received(1).Emit(job.Id, "Repair", 2, Arg.Any<string>());
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class RepairCandidateTrackExecutorTests
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("repair failed", failed.Reason);
         Assert.Equal(2, failed.Attempts);
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 
     [Fact]
@@ -78,6 +78,6 @@ public class RepairCandidateTrackExecutorTests
         await CreateExecutor(repairStepMock).HandleAsync(CreateInput(track, job, [failure], attempts: 2), context, cts.Token);
 
         Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
-        Assert.Empty(context.WorkflowMessages);
+        Assert.Empty(context.SentMessages);
     }
 }

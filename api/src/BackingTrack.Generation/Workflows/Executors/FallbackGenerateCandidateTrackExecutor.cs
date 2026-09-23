@@ -9,7 +9,8 @@ using Microsoft.Extensions.Logging;
 
 namespace BackingTrack.Generation.Workflows.Executors;
 
-public class FallbackGenerateCandidateTrackExecutor(IFallbackGenerationStep fallbackGenerationStep, ILogger<FallbackGenerateCandidateTrackExecutor> logger) : Executor("FallbackGenerateCandidateTrackExecutor")
+public class FallbackGenerateCandidateTrackExecutor(IFallbackGenerationStep fallbackGenerationStep,
+    IJobStatusEmitter statusEmitter, ILogger<FallbackGenerateCandidateTrackExecutor> logger) : Executor("FallbackGenerateCandidateTrackExecutor")
 {
     internal async ValueTask HandleAsync(FallbackGenerateCandidateTrackInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
@@ -18,8 +19,7 @@ public class FallbackGenerateCandidateTrackExecutor(IFallbackGenerationStep fall
         {
             GenerationJob job = input.GenerationJob;
 
-            await context.SendMessageAsync(new StatusUpdateInput(job.Id, DateTime.UtcNow, "Fallback Generation", 1,
-                "Generating a fallback candidate track..."), cancellationToken);
+            statusEmitter.Emit(job.Id, "Fallback Generation", 1, "Generating a fallback candidate track...");
 
             CandidateTrack track = await fallbackGenerationStep.GenerateFallbackCandidateTrackAsync(job.TimeSignatureBeatCount,
                 job.TimeSignatureBeatUnit,
@@ -52,6 +52,5 @@ public class FallbackGenerateCandidateTrackExecutor(IFallbackGenerationStep fall
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<FallbackGenerateCandidateTrackInput>(HandleAsync))
             .SendsMessage<ValidateCandidateTrackInput>()
-            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

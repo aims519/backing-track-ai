@@ -18,7 +18,6 @@ public static class GenerationWorkflowBuilder
         RepairCandidateTrackExecutor repair = scopedProvider.GetRequiredService<RepairCandidateTrackExecutor>();
         CriticExecutor critic = scopedProvider.GetRequiredService<CriticExecutor>();
         PersistCandidateTrackExecutor persist = scopedProvider.GetRequiredService<PersistCandidateTrackExecutor>();
-        StatusUpdateExecutor statusUpdate = scopedProvider.GetRequiredService<StatusUpdateExecutor>();
 
         return new WorkflowBuilder(style)
             .AddEdge(style, chords)
@@ -35,17 +34,6 @@ public static class GenerationWorkflowBuilder
             .AddEdge(critic, generate)
             .AddEdge(critic, fallback)
             .WithOutputFrom(style, chords, scales, generate, validate, fallback, repair, critic, persist)
-
-            // Status update edges
-            .AddEdge(style, statusUpdate)
-            .AddEdge(chords, statusUpdate)
-            .AddEdge(scales, statusUpdate)
-            .AddEdge(generate, statusUpdate)
-            .AddEdge(validate, statusUpdate)
-            .AddEdge(fallback, statusUpdate)
-            .AddEdge(repair, statusUpdate)
-            .AddEdge(critic, statusUpdate)
-            .AddEdge(persist, statusUpdate)
             .Build();
     }
 }

@@ -1,3 +1,4 @@
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.Steps.TrackRepair;
 using BackingTrack.Generation.Steps.Types;
 using BackingTrack.Generation.Workflows.Inputs;
@@ -10,13 +11,15 @@ namespace BackingTrack.Generation.Workflows.Executors;
 
 internal sealed class RepairCandidateTrackExecutor(
     IRepairStep repairStep,
+    IJobStatusEmitter statusEmitter,
     ILogger<RepairCandidateTrackExecutor> logger) : Executor("RepairCandidateTrackExecutor")
 {
     internal async ValueTask HandleAsync(RepairCandidateTrackInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
-        await context.SendMessageAsync(new StatusUpdateInput(input.GenerationJob.Id, DateTime.UtcNow, "Repair",
-            input.ValidationAttempts, "Repairing candidate track..."), cancellationToken);
+        int fixCount = input.ValidationResult.Failures.Count;
+        statusEmitter.Emit(input.GenerationJob.Id, "Repair", input.ValidationAttempts,
+            $"Applying repair patch with {fixCount} fix{(fixCount == 1 ? "" : "es")}...");
 
         CandidateTrack repairedTrack;
         try
@@ -46,6 +49,5 @@ internal sealed class RepairCandidateTrackExecutor(
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<RepairCandidateTrackInput>(HandleAsync))
             .SendsMessage<ValidateCandidateTrackInput>()
-            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }

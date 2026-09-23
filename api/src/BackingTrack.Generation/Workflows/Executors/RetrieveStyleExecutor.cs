@@ -10,13 +10,13 @@ using Microsoft.Extensions.Logging;
 namespace BackingTrack.Generation.Workflows.Executors;
 
 internal sealed class RetrieveStyleExecutor(IRetrieveStep retrieveStep,
+    IJobStatusEmitter statusEmitter,
     ILogger<RetrieveStyleExecutor> logger) : Executor("RetrieveStyleExecutor")
 {
     internal async ValueTask HandleAsync(GenerationJob job, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
-        await context.SendMessageAsync(new StatusUpdateInput(job.Id, DateTime.UtcNow, "Retrieval", 1,
-            "Retrieving style information..."), cancellationToken);
+        statusEmitter.Emit(job.Id, "Retrieval", 1, "Retrieving musical style information...");
 
         MatchedStyle? matchedStyle;
         try
@@ -51,6 +51,5 @@ internal sealed class RetrieveStyleExecutor(IRetrieveStep retrieveStep,
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<GenerationJob>(HandleAsync))
             .SendsMessage<RetrieveChordsInput>()
-            .SendsMessage<StatusUpdateInput>()
             .YieldsOutput<GenerationOutcome>();
 }
