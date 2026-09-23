@@ -61,16 +61,26 @@ public class JobStore(ILogger<JobStore> logger)
 
     public void AppendJobFeedback(Guid jobId, JobFeedback newFeedbackItem)
     {
+        UpdateJob(jobId, existing => existing with { FeedbackItems = [.. existing.FeedbackItems, newFeedbackItem] });
+    }
+
+    /// Atomically applies `update` to whatever's currently stored for `jobId`. Unlike `AddOrUpdate`,
+    /// which replaces the entry with a caller-supplied snapshot regardless of what's there, this
+    /// reads-and-writes as one operation - so it can't lose a concurrent `AppendJobFeedback` call the
+    /// way a `TryGet` snapshot followed by `AddOrUpdate` can. Use this for any transition made after
+    /// the job has started running, since `IJobStatusEmitter` can still be appending feedback for as
+    /// long as the workflow is executing.
+    public void UpdateJob(Guid jobId, Func<GenerationJob, GenerationJob> update)
+    {
         try
         {
             _generationJobs.AddOrUpdate(jobId,
                 _ => throw new KeyNotFoundException($"Job {jobId} was not found"),
-                (_, existing) => existing with { FeedbackItems = [.. existing.FeedbackItems, newFeedbackItem] });
+                (_, existing) => update(existing));
         }
         catch (KeyNotFoundException e)
         {
             logger.LogError(e, "Job {Id} was not found", jobId);
         }
-
     }
 }

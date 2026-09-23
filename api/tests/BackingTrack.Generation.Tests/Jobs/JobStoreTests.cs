@@ -53,4 +53,26 @@ public class JobStoreTests
 
         Assert.Equal(JobStates.Complete, store.TryGet(job.Id)?.State);
     }
+
+    [Fact]
+    public void UpdateJob_ConcurrentWithAppendJobFeedback_LosesNeitherWrite()
+    {
+        // Regression for a race in GenerationJobWorkerHostedService: a `TryGet` snapshot followed by
+        // `AddOrUpdate(snapshot with { ... })` can land between two `AppendJobFeedback` calls and
+        // silently discard whichever one raced with it, since the overwrite doesn't merge - it just
+        // replaces. `UpdateJob` closes that window by reading-and-writing as one atomic operation.
+        JobStore store = CreateStore();
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        store.AddOrUpdate(job);
+
+        Parallel.Invoke(
+            () => store.AppendJobFeedback(job.Id, new JobFeedback(DateTime.UtcNow, "Retrieval", "Retrieving...", 1)),
+            () => store.UpdateJob(job.Id, current => current with { State = JobStates.Complete, EndTime = DateTimeOffset.UtcNow }),
+            () => store.AppendJobFeedback(job.Id, new JobFeedback(DateTime.UtcNow, "Persistence", "Saving...", 1)));
+
+        GenerationJob? result = store.TryGet(job.Id);
+        Assert.NotNull(result);
+        Assert.Equal(JobStates.Complete, result.State);
+        Assert.Equal(2, result.FeedbackItems.Count);
+    }
 }

@@ -80,17 +80,16 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
             switch (outcome)
             {
                 case GenerationSucceeded succeeded when !alreadyCancelled:
-                    // Base this on the job store's current copy, not the `updatedJob` snapshot taken
-                    // before the workflow ran - StatusUpdateExecutor has been appending FeedbackItems
-                    // to the stored job throughout the run, and `updatedJob with { ... }` would discard
-                    // all of them.
-                    GenerationJob completedJob = (jobStore.TryGet(jobId) ?? updatedJob) with
+                    // `UpdateJob`, not a `TryGet` snapshot plus `AddOrUpdate` - IJobStatusEmitter
+                    // can still be appending FeedbackItems while this runs, and a snapshot-then-
+                    // overwrite has a window where a concurrent append lands after the snapshot was
+                    // read but before this write lands, and gets silently discarded.
+                    jobStore.UpdateJob(jobId, current => current with
                     {
                         State = succeeded.WasFallback ? JobStates.CompletedViaFallback : JobStates.Complete,
                         EndTime = DateTimeOffset.UtcNow,
                         TrackId = succeeded.TrackId
-                    };
-                    jobStore.AddOrUpdate(completedJob);
+                    });
 
                     logger.LogDebug("Job {Id} completed track saved: {Track}", generationJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
                     logger.LogInformation("Job {Id} completed", jobId);
@@ -99,8 +98,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     break;
 
                 case GenerationFailed failed when !alreadyCancelled:
-                    GenerationJob failedJob = (jobStore.TryGet(jobId) ?? updatedJob) with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
-                    jobStore.AddOrUpdate(failedJob);
+                    jobStore.UpdateJob(jobId, current => current with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow });
 
                     activity?.SetStatus(ActivityStatusCode.Error, failed.Reason);
                     logger.LogError("Job {Id} failed: {Reason}", jobId, failed.Reason);
@@ -129,8 +127,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     logger.LogError("Job {Id} failed unexpectedly without a given reason", jobId);
                     activity?.SetStatus(ActivityStatusCode.Error);
 
-                    GenerationJob failedJobNoExp = (jobStore.TryGet(jobId) ?? updatedJob) with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow };
-                    jobStore.AddOrUpdate(failedJobNoExp);
+                    jobStore.UpdateJob(jobId, current => current with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow });
                     break;
             }
         }
