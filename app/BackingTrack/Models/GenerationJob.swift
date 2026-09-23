@@ -40,7 +40,7 @@ extension GenerationJob: Identifiable {}
 extension GenerationJob {
     /// A representative job for `#Preview`s and tests — `endTime`/`trackId` are filled in to match
     /// `status` so a `.complete` fixture looks like a real completed job.
-    static func preview(id: UUID = UUID(), status: JobStatus = .inProgress) -> GenerationJob {
+    static func preview(id: UUID = UUID(), status: JobStatus = .inProgress, keyMode: String = "Ionian") -> GenerationJob {
         GenerationJob(
             id: id,
             status: status,
@@ -52,7 +52,7 @@ extension GenerationJob {
             tempo: 120,
             chords: ["C", "Amin", "F", "G"],
             keyRoot: "C",
-            keyMode: "Ionian",
+            keyMode: keyMode,
             keyModeWarnings: [],
             timeSignatureBeatCount: 4,
             timeSignatureBeatUnit: 4

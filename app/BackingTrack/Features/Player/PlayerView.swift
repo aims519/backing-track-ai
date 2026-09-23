@@ -87,7 +87,7 @@ struct PlayerView: View {
     private func trackInfoCard(_ track: PlayableTrack) -> some View {
         SectionCard("Track") {
             VStack(spacing: 0) {
-                infoRow("Key", track.keyRoot?.displayName ?? model.input.keyRoot)
+                infoRow("Key", "\(track.keyRoot?.displayName ?? model.input.keyRoot) \(track.keyMode)")
                 Divider().padding(.leading, 16)
                 infoRow("Time", track.timeSignature.displayName)
                 Divider().padding(.leading, 16)

@@ -13,6 +13,7 @@ struct PlayableTrack: Sendable, Equatable {
     /// `nil` when the stored root isn't one of the 12 known spellings (shouldn't happen for a
     /// real job, but `keyRoot` is a free string on the wire).
     let keyRoot: NoteName?
+    let keyMode: String
     let timeSignature: TimeSignature
     /// One symbol per bar, in progression order (`job.chords`).
     let chordSymbols: [String]
@@ -30,6 +31,7 @@ struct PlayableTrack: Sendable, Equatable {
         track: CandidateTrack,
         originalTempo: Int,
         keyRoot: NoteName?,
+        keyMode: String,
         timeSignature: TimeSignature,
         chordSymbols: [String],
         title: String?
@@ -38,6 +40,7 @@ struct PlayableTrack: Sendable, Equatable {
         self.track = track
         self.originalTempo = originalTempo
         self.keyRoot = keyRoot
+        self.keyMode = keyMode
         self.timeSignature = timeSignature
         self.chordSymbols = chordSymbols
         self.chords = chordSymbols.map { Chord(apiSymbol: $0) }
@@ -92,6 +95,7 @@ extension PlayableTrack {
             track: track,
             originalTempo: originalTempo,
             keyRoot: .c,
+            keyMode: "Ionian",
             timeSignature: timeSignature,
             chordSymbols: chordSymbols,
             title: "Blues — slow, brushes"

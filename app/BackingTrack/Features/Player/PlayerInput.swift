@@ -11,6 +11,7 @@ struct PlayerInput: Hashable {
     var trackID: UUID
     var tempo: Int
     var keyRoot: String
+    var keyMode: String
     var chordSymbols: [String]
     var timeSignature: TimeSignature
     /// The job's generation mode, as the wire string. Vibe playback isn't built — `load()` fails
@@ -33,6 +34,7 @@ extension PlayerInput {
             trackID: trackID,
             tempo: job.tempo,
             keyRoot: job.keyRoot,
+            keyMode: job.keyMode,
             chordSymbols: job.chords,
             timeSignature: TimeSignature(
                 beatCount: job.timeSignatureBeatCount,
@@ -52,6 +54,7 @@ extension PlayerInput {
             trackID: trackID,
             tempo: entry.tempo,
             keyRoot: entry.keyRoot,
+            keyMode: entry.keyMode,
             chordSymbols: entry.chordSymbols,
             timeSignature: TimeSignature(
                 beatCount: entry.timeSignatureBeatCount,
@@ -80,6 +83,7 @@ extension PlayerInput {
             trackID: UUID(),
             tempo: tempo,
             keyRoot: "C",
+            keyMode: "Ionian",
             chordSymbols: chordSymbols,
             timeSignature: .fourFour,
             mode: mode,

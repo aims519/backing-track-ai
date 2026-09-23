@@ -14,6 +14,7 @@ struct PlayableTrackTests {
             track: .preview(lengthInBeats: lengthInBeats),
             originalTempo: 120,
             keyRoot: .c,
+            keyMode: "Ionian",
             timeSignature: timeSignature,
             chordSymbols: chordSymbols,
             title: nil

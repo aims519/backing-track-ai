@@ -98,6 +98,7 @@ final class PlayerViewModel {
                 track: candidate,
                 originalTempo: input.tempo,
                 keyRoot: NoteName(rawValue: input.keyRoot),
+                keyMode: input.keyMode,
                 timeSignature: input.timeSignature,
                 chordSymbols: input.chordSymbols,
                 title: input.title
