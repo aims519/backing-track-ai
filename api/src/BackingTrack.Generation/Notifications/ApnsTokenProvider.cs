@@ -11,7 +11,7 @@ namespace BackingTrack.Generation.Notifications;
 
 internal class ApnsTokenProvider(IOptions<ApnsSettings> settings, TimeProvider timeProvider) : IDisposable
 {
-    private readonly ECDsa _key = CreateKey(settings.Value.P8Key);
+    private readonly ECDsa _key = CreateKey(settings.Value.P8Key!);
     private readonly Lock _tokenLock = new();
     private string? _currentToken;
     private DateTimeOffset _tokenLastIssuedAt;
@@ -41,9 +41,9 @@ internal class ApnsTokenProvider(IOptions<ApnsSettings> settings, TimeProvider t
     private string CreateToken(long issuedAt)
     {
         string header = Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(
-            new ApnsJwtHeader("ES256", settings.Value.P8KeyId), ApnsJsonContext.Default.ApnsJwtHeader));
+            new ApnsJwtHeader("ES256", settings.Value.P8KeyId!), ApnsJsonContext.Default.ApnsJwtHeader));
         string claims = Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(
-            new ApnsJwtClaims(settings.Value.TeamId, issuedAt), ApnsJsonContext.Default.ApnsJwtClaims));
+            new ApnsJwtClaims(settings.Value.TeamId!, issuedAt), ApnsJsonContext.Default.ApnsJwtClaims));
 
         string signingInput = $"{header}.{claims}";
 

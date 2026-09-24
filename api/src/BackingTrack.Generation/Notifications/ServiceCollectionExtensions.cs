@@ -1,4 +1,5 @@
-using System.Net;
+using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 
 using BackingTrack.Core.Config;
 
@@ -13,8 +14,11 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddPushNotifications(this IServiceCollection services, IConfiguration configuration)
     {
         ApnsSettings? apnsSettings = configuration.GetSection("Apns").Get<ApnsSettings>();
-        if (apnsSettings == null)
+        if (!IsApnsConfigUsable(apnsSettings))
+        {
+            services.AddScoped<IPushNotificationEmitter, NoOpPushNotificationEmitter>();
             return services;
+        }
 
         services.AddHttpClient<IPushNotificationEmitter, PushNotificationEmitter>(options =>
         {
@@ -31,5 +35,28 @@ public static class ServiceCollectionExtensions
         services.Configure<ApnsSettings>(configuration.GetSection("Apns"));
 
         return services;
+    }
+
+    private static bool IsApnsConfigUsable([NotNullWhen(true)] ApnsSettings? apnsSettings)
+    {
+        if (apnsSettings is null)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(apnsSettings.TeamId)
+            || string.IsNullOrWhiteSpace(apnsSettings.P8KeyId)
+            || string.IsNullOrWhiteSpace(apnsSettings.P8Key)
+            || string.IsNullOrWhiteSpace(apnsSettings.ServerUrl))
+            return false;
+
+        try
+        {
+            using ECDsa key = ECDsa.Create();
+            key.ImportFromPem(apnsSettings.P8Key);
+            return true;
+        }
+        catch (Exception ex) when (ex is ArgumentException or CryptographicException)
+        {
+            return false;
+        }
     }
 }
