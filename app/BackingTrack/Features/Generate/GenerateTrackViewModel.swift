@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Observation
 
 /// Backing state for `GenerateTrackView` — the parameters of a Precise-mode backing track and
@@ -6,6 +7,7 @@ import Observation
 @MainActor
 @Observable
 final class GenerateTrackViewModel {
+    @ObservationIgnored private let log = Logger(subsystem: "com.andrewsavory.backingtrack", category: "generate")
     @ObservationIgnored private let apiClient: BackingTrackAPIClient
 
     /// Durable job/track history. The default writes to the real on-disk store, so a test that
@@ -126,6 +128,9 @@ final class GenerateTrackViewModel {
         await requestNotificationPermission()
         do {
             let job = try await apiClient.submitGeneration(buildRequest())
+            // `.public`: a job id isn't sensitive, and it's what you need to match a push or an
+            // API log line to this submission (Logger redacts interpolated strings by default).
+            log.info("Job \(job.id.uuidString, privacy: .public) accepted")
             submissionState = .submitted(job)
             // Written at acceptance, not at completion, so the job is in history even if the
             // progress screen times out or the app is killed first. Style is passed explicitly —
@@ -148,6 +153,16 @@ final class GenerateTrackViewModel {
     func acknowledgeSubmissionResult() {
         submissionState = .idle
         progressViewModel = nil
+    }
+
+    // MARK: - Opening a job from a notification
+
+    /// The history row for a tapped job-finished notification, or `nil` if it isn't in local
+    /// history. Also closes the progress cover if one is up, so the navigation the caller does
+    /// underneath it is actually visible.
+    func openJobFromNotification(_ jobID: UUID) -> JobHistoryEntry? {
+        if acceptedJob != nil { acknowledgeSubmissionResult() }
+        return try? historyStore.entry(jobID: jobID)
     }
 
     // MARK: - Seeding from history

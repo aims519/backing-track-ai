@@ -8,6 +8,7 @@ struct BackingTrackApp: App {
     var body: some Scene {
         WindowGroup {
             GenerateTrackView()
+                .environment(appDelegate.notificationRouter)
         }
         // `.modelContainer(_:)` (not `.modelContainer(for:)`, which would build a *second*
         // container) puts the same store `JobHistoryStore` writes into the environment, so

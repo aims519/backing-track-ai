@@ -281,6 +281,47 @@ struct GenerateTrackViewModelTests {
         #expect(model.submissionState == .idle)
     }
 
+    // MARK: - Opening a job from a notification
+
+    @Test func openingANotifiedJobReturnsItsHistoryRow() {
+        let store = RecordingJobHistoryStore()
+        let entry = JobHistoryEntry.preview()
+        store.stubbedEntry = entry
+        let model = readyModel(historyStore: store)
+
+        #expect(model.openJobFromNotification(UUID()) === entry)
+    }
+
+    @Test func openingANotifiedJobIsNilWhenHistoryCantBeRead() {
+        let store = RecordingJobHistoryStore()
+        store.errorToThrow = RecordingJobHistoryStore.StoreFailure()
+        let model = readyModel(historyStore: store)
+
+        // The view falls back to the history list rather than failing the tap.
+        #expect(model.openJobFromNotification(UUID()) == nil)
+    }
+
+    @Test func openingANotifiedJobClosesTheProgressCover() async {
+        let model = readyModel(client: StubAPIClient.succeeding(status: .inProgress))
+        await model.generate()
+        #expect(model.acceptedJob != nil) // cover is up
+
+        _ = model.openJobFromNotification(UUID())
+
+        #expect(model.acceptedJob == nil)
+        #expect(model.submissionState == .idle)
+    }
+
+    @Test func openingANotifiedJobLeavesAFailedSubmissionAlone() async {
+        let model = readyModel(client: StubAPIClient.failing(.unauthorized))
+        await model.generate()
+
+        _ = model.openJobFromNotification(UUID())
+
+        // Only the progress cover is dismissed; a failure alert isn't the cover's to clear.
+        #expect(model.submissionState == .failed(.unauthorized))
+    }
+
     // MARK: - Style decomposition (inverse of `composedStyle`)
 
     @Test func decomposeStyleSplitsThePickedStyleFromTheNotes() {

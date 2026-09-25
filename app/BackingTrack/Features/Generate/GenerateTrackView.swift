@@ -19,6 +19,8 @@ private let chordFlowCoordinateSpace = "chordFlow"
 struct GenerateTrackView: View {
     // Injectable (same idea as `SettingsView`'s store) so previews can seed a populated form.
     @State private var model: GenerateTrackViewModel
+    // Optional so previews (which have no app delegate) don't need one injected.
+    @Environment(NotificationRouter.self) private var notificationRouter: NotificationRouter?
 
     init(model: GenerateTrackViewModel = GenerateTrackViewModel()) {
         _model = State(initialValue: model)
@@ -77,6 +79,28 @@ struct GenerateTrackView: View {
                     isShowingVibeComingSoon: $isShowingVibeComingSoon
                 ))
         }
+        // `onChange`, not `.task(id:)`: a task is cancelled while the progress cover hides this
+        // view, and that's exactly when a notification tap needs handling. `initial` covers a
+        // cold launch, where the tap lands before this view first renders.
+        .onChange(of: notificationRouter?.pendingJobID, initial: true) {
+            openPendingNotificationJob()
+        }
+    }
+
+    /// A tapped job-finished notification: History ▸ that job's detail, whose own `.task` refreshes
+    /// a stale in-flight row. Falls back to the history list if the job isn't in local history.
+    private func openPendingNotificationJob() {
+        guard let router = notificationRouter, let jobID = router.pendingJobID else { return }
+        router.pendingJobID = nil
+        isShowingSettings = false
+        isShowingAddChord = false
+
+        var newPath = NavigationPath()
+        newPath.append(HistoryRoute.list)
+        if let entry = model.openJobFromNotification(jobID) {
+            newPath.append(entry)
+        }
+        path = newPath
     }
 
     /// "Use these settings" on a history row: seed the form from that job, then pop back to it.

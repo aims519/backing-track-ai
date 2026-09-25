@@ -14,6 +14,8 @@ import SwiftUI
 struct GenerationProgressView: View {
     @State private var model: GenerationProgressViewModel
     @Environment(\.dismiss) private var dismiss
+    // Optional so previews (which have no app delegate) don't need one injected.
+    @Environment(NotificationRouter.self) private var notificationRouter: NotificationRouter?
 
     init(model: GenerationProgressViewModel) {
         _model = State(initialValue: model)
@@ -45,6 +47,12 @@ struct GenerationProgressView: View {
             }
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
+            // While this screen is up it already shows the job's outcome, so a foreground push for
+            // it would only repeat that. Pushing the player counts as leaving — onDisappear fires.
+            .onAppear { notificationRouter?.watchedJobID = model.jobID }
+            .onDisappear {
+                if notificationRouter?.watchedJobID == model.jobID { notificationRouter?.watchedJobID = nil }
+            }
             // The cover has its own NavigationStack — "Generate → Ready → Play" reads as a push
             // inside this self-contained modal. Back returns to Ready; "Done" dismisses the cover.
             .navigationDestination(for: PlayerRoute.self) { route in
