@@ -6,19 +6,22 @@ import Observation
 @MainActor
 @Observable
 final class GenerateTrackViewModel {
-
     @ObservationIgnored private let apiClient: BackingTrackAPIClient
 
     /// Durable job/track history. The default writes to the real on-disk store, so a test that
     /// drives `generate()` must pass a fake.
     @ObservationIgnored private let historyStore: JobHistoryStore
+    
+    @ObservationIgnored private let requestNotificationPermission: () async -> Void
 
     init(
         apiClient: BackingTrackAPIClient = LiveBackingTrackAPIClient(),
-        historyStore: JobHistoryStore = SwiftDataJobHistoryStore()
+        historyStore: JobHistoryStore = SwiftDataJobHistoryStore(),
+        requestNotificationPermission: @escaping () async -> Void = NotificationPermission.request
     ) {
         self.apiClient = apiClient
         self.historyStore = historyStore
+        self.requestNotificationPermission = requestNotificationPermission
     }
 
     // MARK: - Form state
@@ -95,7 +98,8 @@ final class GenerateTrackViewModel {
             keyMode: keyMode.apiValue,
             style: composedStyle,
             timeSignatureBeatCount: timeSignature.beatCount,
-            timeSignatureBeatUnit: timeSignature.beatUnit
+            timeSignatureBeatUnit: timeSignature.beatUnit,
+            apnsDeviceToken: PushTokenStore.deviceToken
         )
     }
 
@@ -119,6 +123,7 @@ final class GenerateTrackViewModel {
         guard canGenerate, submissionState != .submitting else { return }
         seedWarning = nil
         submissionState = .submitting
+        await requestNotificationPermission()
         do {
             let job = try await apiClient.submitGeneration(buildRequest())
             submissionState = .submitted(job)

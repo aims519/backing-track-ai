@@ -3,6 +3,8 @@ import SwiftUI
 
 @main
 struct BackingTrackApp: App {
+    @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
+    
     var body: some Scene {
         WindowGroup {
             GenerateTrackView()
