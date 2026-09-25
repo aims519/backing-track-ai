@@ -5,6 +5,7 @@ using BackingTrack.Api.Extensions;
 using BackingTrack.Api.Serialization;
 using BackingTrack.Generation;
 using BackingTrack.Generation.KnowledgeBase;
+using BackingTrack.Generation.Notifications;
 using BackingTrack.Generation.Steps.Critic;
 using BackingTrack.Generation.Steps.FallbackGeneration;
 using BackingTrack.Generation.Steps.Retrieval;
@@ -41,6 +42,7 @@ builder.Services.AddRateLimits(builder.Configuration);
 
 // Job Processing
 builder.Services.AddJobProcessing();
+builder.Services.AddPushNotifications(builder.Configuration);
 
 // Vector Store Initialisation
 builder.Services.AddKnowledgeBase(builder.Configuration);

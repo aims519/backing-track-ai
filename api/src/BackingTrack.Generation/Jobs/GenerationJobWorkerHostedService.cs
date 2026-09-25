@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Threading.Channels;
 
+using BackingTrack.Generation.Notifications;
 using BackingTrack.Generation.Steps.Types;
 using BackingTrack.Generation.Workflows;
 using BackingTrack.Generation.Workflows.Outputs;
@@ -58,6 +59,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
         using IServiceScope scope = serviceScopeFactory.CreateScope();
 
         Workflow generationWorkflow = GenerationWorkflowBuilder.Build(scope.ServiceProvider);
+        IPushNotificationEmitter pushNotificationEmitter = scope.ServiceProvider.GetRequiredService<IPushNotificationEmitter>();
 
         StreamingRun? run = null;
         try
@@ -91,6 +93,9 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                         TrackId = succeeded.TrackId
                     });
 
+                    if (jobStore.TryGet(jobId) is { } completedJob)
+                        await pushNotificationEmitter.SendApnsPushNotificationAsync(completedJob);
+
                     logger.LogDebug("Job {Id} completed track saved: {Track}", generationJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
                     logger.LogInformation("Job {Id} completed", jobId);
 
@@ -99,6 +104,9 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
 
                 case GenerationFailed failed when !alreadyCancelled:
                     jobStore.UpdateJob(jobId, current => current with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow });
+
+                    if (jobStore.TryGet(jobId) is { } failedJob)
+                        await pushNotificationEmitter.SendApnsPushNotificationAsync(failedJob);
 
                     activity?.SetStatus(ActivityStatusCode.Error, failed.Reason);
                     logger.LogError("Job {Id} failed: {Reason}", jobId, failed.Reason);
@@ -128,6 +136,9 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     activity?.SetStatus(ActivityStatusCode.Error);
 
                     jobStore.UpdateJob(jobId, current => current with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow });
+
+                    if (jobStore.TryGet(jobId) is { } unexpectedFailedJob)
+                        await pushNotificationEmitter.SendApnsPushNotificationAsync(unexpectedFailedJob);
                     break;
             }
         }
