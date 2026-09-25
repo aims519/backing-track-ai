@@ -9,6 +9,19 @@ private actor CallLog {
     func recordSubmit() { submitCount += 1 }
 }
 
+/// Records calls to the injected notification-permission request, and whether the API had already
+/// been hit at that point — the prompt must come before the submit, not race it.
+@MainActor
+private final class PermissionRequestLog {
+    private(set) var requestCount = 0
+    private(set) var submitCountAtFirstRequest: Int?
+
+    func record(submitCountSoFar: Int) {
+        requestCount += 1
+        if submitCountAtFirstRequest == nil { submitCountAtFirstRequest = submitCountSoFar }
+    }
+}
+
 /// A `BackingTrackAPIClient` that returns a canned result — no network. `result` is set per test.
 private struct StubAPIClient: BackingTrackAPIClient {
     var result: Result<GenerationJob, APIClientError>
@@ -39,12 +52,18 @@ private struct StubAPIClient: BackingTrackAPIClient {
 struct GenerateTrackViewModelTests {
 
     /// A ready-to-submit model. The history store must be passed — the model's real default would
-    /// write to the on-disk SwiftData store.
+    /// write to the on-disk SwiftData store. Likewise the permission request: the real one puts up
+    /// the system prompt in the test host and waits for an answer nobody gives.
     private func readyModel(
         client: BackingTrackAPIClient = StubAPIClient.succeeding(),
-        historyStore: JobHistoryStore = RecordingJobHistoryStore()
+        historyStore: JobHistoryStore = RecordingJobHistoryStore(),
+        requestNotificationPermission: @escaping () async -> Void = {}
     ) -> GenerateTrackViewModel {
-        let model = GenerateTrackViewModel(apiClient: client, historyStore: historyStore)
+        let model = GenerateTrackViewModel(
+            apiClient: client,
+            historyStore: historyStore,
+            requestNotificationPermission: requestNotificationPermission
+        )
         model.addChord(root: .c, quality: .major)
         model.selectedStyle = .pop
         return model
@@ -72,7 +91,12 @@ struct GenerateTrackViewModelTests {
     @Test func generateDoesNothingWhileIncomplete() async {
         let client = StubAPIClient.succeeding()
         let store = RecordingJobHistoryStore()
-        let model = GenerateTrackViewModel(apiClient: client, historyStore: store)
+        let permissionLog = PermissionRequestLog()
+        let model = GenerateTrackViewModel(
+            apiClient: client,
+            historyStore: store,
+            requestNotificationPermission: { permissionLog.record(submitCountSoFar: 0) }
+        )
         model.addChord(root: .c, quality: .major) // still no style
 
         await model.generate()
@@ -80,6 +104,7 @@ struct GenerateTrackViewModelTests {
         #expect(model.submissionState == .idle)
         #expect(await client.callLog.submitCount == 0) // never reached the API
         #expect(store.upserts.isEmpty)                 // nothing written to history either
+        #expect(permissionLog.requestCount == 0)       // and no permission prompt for a no-op tap
     }
 
     @Test func buildRequestMapsFormStateOntoTheApiContract() {
@@ -219,6 +244,34 @@ struct GenerateTrackViewModelTests {
         }
     }
 
+    @Test func generateAsksForNotificationPermissionBeforeSubmitting() async {
+        let client = StubAPIClient.succeeding()
+        let permissionLog = PermissionRequestLog()
+        let model = readyModel(client: client, requestNotificationPermission: {
+            permissionLog.record(submitCountSoFar: await client.callLog.submitCount)
+        })
+
+        await model.generate()
+
+        #expect(permissionLog.requestCount == 1)
+        #expect(permissionLog.submitCountAtFirstRequest == 0)
+        #expect(await client.callLog.submitCount == 1)
+    }
+
+    @Test func buildRequestSendsTheCurrentDeviceToken() {
+        // PushTokenStore is app-global, and the test host's AppDelegate may already have set it
+        // from a real registration — restore whatever was there.
+        let previous = PushTokenStore.deviceToken
+        defer { PushTokenStore.deviceToken = previous }
+        let model = GenerateTrackViewModel()
+
+        PushTokenStore.deviceToken = "ab12"
+        #expect(model.buildRequest().apnsDeviceToken == "ab12")
+
+        PushTokenStore.deviceToken = nil
+        #expect(model.buildRequest().apnsDeviceToken == nil)
+    }
+
     @Test func acknowledgingTheResultReturnsToIdle() async {
         let model = readyModel(client: StubAPIClient.failing(.rateLimited(retryAfter: 30)))
         await model.generate()
@@ -226,6 +279,47 @@ struct GenerateTrackViewModelTests {
         model.acknowledgeSubmissionResult()
 
         #expect(model.submissionState == .idle)
+    }
+
+    // MARK: - Opening a job from a notification
+
+    @Test func openingANotifiedJobReturnsItsHistoryRow() {
+        let store = RecordingJobHistoryStore()
+        let entry = JobHistoryEntry.preview()
+        store.stubbedEntry = entry
+        let model = readyModel(historyStore: store)
+
+        #expect(model.openJobFromNotification(UUID()) === entry)
+    }
+
+    @Test func openingANotifiedJobIsNilWhenHistoryCantBeRead() {
+        let store = RecordingJobHistoryStore()
+        store.errorToThrow = RecordingJobHistoryStore.StoreFailure()
+        let model = readyModel(historyStore: store)
+
+        // The view falls back to the history list rather than failing the tap.
+        #expect(model.openJobFromNotification(UUID()) == nil)
+    }
+
+    @Test func openingANotifiedJobClosesTheProgressCover() async {
+        let model = readyModel(client: StubAPIClient.succeeding(status: .inProgress))
+        await model.generate()
+        #expect(model.acceptedJob != nil) // cover is up
+
+        _ = model.openJobFromNotification(UUID())
+
+        #expect(model.acceptedJob == nil)
+        #expect(model.submissionState == .idle)
+    }
+
+    @Test func openingANotifiedJobLeavesAFailedSubmissionAlone() async {
+        let model = readyModel(client: StubAPIClient.failing(.unauthorized))
+        await model.generate()
+
+        _ = model.openJobFromNotification(UUID())
+
+        // Only the progress cover is dismissed; a failure alert isn't the cover's to clear.
+        #expect(model.submissionState == .failed(.unauthorized))
     }
 
     // MARK: - Style decomposition (inverse of `composedStyle`)

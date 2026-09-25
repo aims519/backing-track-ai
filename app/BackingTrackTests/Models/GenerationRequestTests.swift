@@ -32,4 +32,24 @@ struct GenerationRequestTests {
         #expect(json["KeyRoot"] as? String == "C")
         #expect(json["TimeSignatureBeatUnit"] as? Int == 4)
     }
+
+    @Test func encodesTheDeviceTokenUnderItsPascalCaseKey() throws {
+        let request = GenerationRequest(
+            mode: "Precise",
+            tempo: 120,
+            chords: ["C"],
+            keyRoot: "C",
+            keyMode: "Ionian",
+            style: "rock",
+            timeSignatureBeatCount: 4,
+            timeSignatureBeatUnit: 4,
+            apnsDeviceToken: "ab12"
+        )
+
+        let data = try JSONEncoder().encode(request)
+        let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        // The test above pins the other side: with no token, the key is left out entirely.
+        #expect(json["ApnsDeviceToken"] as? String == "ab12")
+    }
 }

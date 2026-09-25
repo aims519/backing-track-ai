@@ -42,7 +42,7 @@ final class GenerationProgressViewModel {
 
     @ObservationIgnored private let apiClient: BackingTrackAPIClient
     @ObservationIgnored private let config: PollingConfiguration
-    @ObservationIgnored private let jobID: UUID
+    @ObservationIgnored let jobID: UUID
     /// Durable job/track history. Every `phase` change is mirrored here (via `transition(to:)`),
     /// so a job the screen stops following — timed out, or lost to an API restart — still has a
     /// row the user can find later (ADR 0023). A write failure is swallowed; see `recordToHistory`.

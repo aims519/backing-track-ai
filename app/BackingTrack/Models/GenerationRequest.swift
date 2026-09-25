@@ -16,6 +16,7 @@ struct GenerationRequest: Codable, Hashable, Sendable {
     var style: String
     var timeSignatureBeatCount: Int
     var timeSignatureBeatUnit: Int
+    var apnsDeviceToken: String?
 
     enum CodingKeys: String, CodingKey {
         case mode = "Mode"
@@ -26,5 +27,6 @@ struct GenerationRequest: Codable, Hashable, Sendable {
         case style = "Style"
         case timeSignatureBeatCount = "TimeSignatureBeatCount"
         case timeSignatureBeatUnit = "TimeSignatureBeatUnit"
+        case apnsDeviceToken = "ApnsDeviceToken"
     }
 }
