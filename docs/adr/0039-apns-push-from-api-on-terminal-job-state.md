@@ -38,7 +38,12 @@ ordered to unblock this.
   API ([ADR 0007](0007-source-generated-json-for-aot-endpoints.md)).
 - The payload carries the `jobId`, so tapping the notification opens that job in the app.
 - Debug builds get sandbox tokens and production builds get production tokens, so the APNs host
-  (`api.sandbox.push.apple.com` / `api.push.apple.com`) is chosen per environment.
+  (`api.sandbox.push.apple.com` / `api.push.apple.com`) is chosen per environment. That's the
+  API's ASP.NET environment, via `Apns:ServerUrl`: Development (`appsettings.json`) uses sandbox,
+  matching the Debug builds that talk to a local API; Production (`appsettings.Production.json`,
+  the Pi) uses production, matching TestFlight builds. The mismatched pairing, a
+  development-signed build pointed at the Pi, gets `BadDeviceToken` and no push. That's
+  accepted; retrying on the other host was considered and not needed.
 
 ## Alternatives considered
 
