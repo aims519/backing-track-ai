@@ -102,8 +102,16 @@ increases, and is fine for a build number nobody reads.
   affecting anything else.
 - The archive step signs with a development identity before export re-signs it for
   distribution. On this self-hosted Mac that comes from the owner's login keychain, so the
-  runner depends on that keychain being available to the launchd-run service. A clean,
-  ephemeral runner would need an extra step to handle that.
+  runner depends on that keychain being available to the launchd-run service. The runner's
+  LaunchAgent plist had `SessionCreate = true` (the default in GitHub's `svc.sh` template),
+  which gives jobs a fresh security session where the login keychain is locked, so `codesign`
+  failed with `errSecInternalComponent`. The key was removed, so jobs run in the logged-in GUI
+  session, where the keychain is already unlocked. Two costs follow. Every job on the runner,
+  including PR runs of `ios-ci.yml`, can use that unlocked keychain. And reinstalling the
+  runner with `svc.sh install` puts the key back and breaks signing again. The rejected
+  alternative was unlocking the keychain in the workflow, which needs the Mac login password
+  stored as a GitHub secret. A clean, ephemeral runner would need a dedicated CI keychain
+  instead.
 - Build numbers aren't reproducible from a commit: re-running the workflow produces a new,
   higher build number. This is intended, because a re-run is a new upload.
 - The scope doc's "no App Store distribution" non-goal still holds for the public App Store,
