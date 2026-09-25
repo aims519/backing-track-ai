@@ -276,6 +276,11 @@ struct GenerateTrackView: View {
                 ChordChip(chord: chord) {
                     withAnimation { model.removeChord(chord) }
                 }
+                .onTapGesture(count: 2) {
+                    withAnimation(.snappy) { model.duplicateChord(chord) }
+                }
+                // VoiceOver claims double-tap for activation, so offer duplicate as an action too.
+                .accessibilityAction(named: "Duplicate") { model.duplicateChord(chord) }
                 .draggable(chord.id.uuidString)
                 .onGeometryChange(for: CGRect.self) { proxy in
                     proxy.frame(in: .named(chordFlowCoordinateSpace))
@@ -290,7 +295,7 @@ struct GenerateTrackView: View {
     private var chordsFooter: Text? {
         guard !model.chords.isEmpty else { return nil }
         let count = model.chords.count
-        return Text("\(count) chord\(count == 1 ? "" : "s") — drag to reorder, tap \(Image(systemName: "xmark.circle.fill")) to remove.")
+        return Text("\(count) chord\(count == 1 ? "" : "s") — drag to reorder, double-tap to duplicate, tap \(Image(systemName: "xmark.circle.fill")) to remove.")
     }
 
     private var tempoCard: some View {

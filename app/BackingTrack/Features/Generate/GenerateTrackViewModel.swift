@@ -81,6 +81,14 @@ final class GenerateTrackViewModel {
         chords.removeAll { $0.id == chord.id }
     }
 
+    /// Inserts a copy of `chord` straight after it, so holding a chord for several bars is a
+    /// double-tap per bar rather than a trip through the add sheet. The copy needs its own id —
+    /// drag, delete and the chip-frame map all key on it.
+    func duplicateChord(_ chord: Chord) {
+        guard let index = chords.firstIndex(where: { $0.id == chord.id }) else { return }
+        chords.insert(Chord(root: chord.root, quality: chord.quality), at: index + 1)
+    }
+
     /// Moves a chord to `targetIndex` in reading order. The index maths lives in the pure
     /// `[Chord].movingChord(withID:toIndex:)` helper so it can be tested without a model.
     func moveChord(withID id: UUID, toIndex targetIndex: Int) {
