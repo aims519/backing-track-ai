@@ -173,6 +173,18 @@ struct GenerateTrackViewModelTests {
         #expect(model.chords.map(\.apiSymbol) == ["F", "G", "C"])
     }
 
+    @Test func duplicateChordInsertsACopyStraightAfterTheOriginal() {
+        let model = GenerateTrackViewModel()
+        model.addChord(root: .c, quality: .major)
+        model.addChord(root: .a, quality: .minor)
+        model.addChord(root: .g, quality: .dominant7)
+
+        model.duplicateChord(model.chords[1])
+
+        #expect(model.chords.map(\.apiSymbol) == ["C", "Amin", "Amin", "G7"])
+        #expect(model.chords[1].id != model.chords[2].id)
+    }
+
     @Test func styleAloneIsSentWhenNoNotesAreAdded() {
         let model = GenerateTrackViewModel()
         model.selectedStyle = .reggae
