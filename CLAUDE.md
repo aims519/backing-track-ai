@@ -54,6 +54,11 @@ so running it locally catches drift before a failed CI round-trip. Run the plain
 also applies analyzer-driven code fixes CI doesn't check for, which pulls unrelated files into an
 otherwise-unrelated diff.
 
+Before opening a PR that touches the iOS app (`app/`), ask the owner whether `MARKETING_VERSION`
+in `app/project.yml` should be bumped. The merge to `main` ships it to TestFlight (ADR 0040), so
+this is the last easy moment to decide. Don't bump it without asking. Leave the build number
+alone: CI sets it.
+
 ## Swift conventions
 
 Assume the reader knows SwiftUI. Comment the *why*, never the *what*:
