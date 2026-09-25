@@ -44,3 +44,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0037](0037-streaming-run-for-cancellable-generation-jobs.md) | Streaming run API (`RunStreamingAsync`/`StreamingRun.CancelRunAsync`) for cancellable generation jobs |
 | [0038](0038-direct-status-emitter-over-workflow-messaging.md) | Direct status emitter over workflow-graph messaging for progress feedback |
 | [0039](0039-apns-push-from-api-on-terminal-job-state.md) | APNs push from the API on terminal job state, over client-side background completion |
+| [0040](0040-testflight-on-every-main-push-with-xcodebuild-cloud-signing.md) | TestFlight upload on every push to main with plain `xcodebuild` and cloud signing, over fastlane / Xcode Cloud / tag-triggered releases |

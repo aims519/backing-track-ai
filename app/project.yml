@@ -77,6 +77,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.andrewsavory.backingtrack
         PRODUCT_NAME: BackingTrack
+        # Bump MARKETING_VERSION by commit when a change deserves a new version number; every
+        # push to main uploads it to TestFlight. CURRENT_PROJECT_VERSION is for local builds only:
+        # ios-release.yml overrides it with the workflow run number (ADR 0040).
         MARKETING_VERSION: "0.1"
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1" # iPhone only for MVP — see docs/backing-track-generator-scope.md
@@ -92,6 +95,11 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: BackingTrack
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        # Declares up front that the app uses no non-exempt encryption (only what iOS provides;
+        # the API is plain HTTP inside Tailscale, ADR 0022). Without it, every uploaded build
+        # sits at "Missing Compliance" in App Store Connect until the question is answered by
+        # hand, which also blocks automatic distribution to the TestFlight group.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         # Seconds between polls of GET /tracks/status on the generation progress screen. Surfaced
         # as the StatusPollInterval Info.plist key (see BackingTrack/Info.plist), read by
         # PollingConfiguration. Set in `base` so Release is covered without a Config/Local.xcconfig
