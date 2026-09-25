@@ -2,8 +2,8 @@ namespace BackingTrack.Core.Config;
 
 public class ApnsSettings
 {
-    public required string ServerUrl { get; set; }
-    public required string BundleId { get; set; }
+    public string ServerUrl { get; set; } = string.Empty;
+    public string BundleId { get; set; } = string.Empty;
 
     // Secrets absent unless set via user secrets/environment. 
     // If absent, push notifications are disabled using a no-op emitter

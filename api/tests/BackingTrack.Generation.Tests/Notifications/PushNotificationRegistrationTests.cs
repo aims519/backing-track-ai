@@ -87,6 +87,7 @@ public sealed class PushNotificationRegistrationTests : IDisposable
     [InlineData("Apns:P8KeyId")]
     [InlineData("Apns:TeamId")]
     [InlineData("Apns:ServerUrl")]
+    [InlineData("Apns:BundleId")]
     public void AddPushNotifications_ARequiredSettingIsBlank_RegistersTheNoOpEmitter(string key)
     {
         Dictionary<string, string?> settings = CompleteSettings();

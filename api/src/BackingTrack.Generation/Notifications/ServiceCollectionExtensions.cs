@@ -45,7 +45,8 @@ public static class ServiceCollectionExtensions
         if (string.IsNullOrWhiteSpace(apnsSettings.TeamId)
             || string.IsNullOrWhiteSpace(apnsSettings.P8KeyId)
             || string.IsNullOrWhiteSpace(apnsSettings.P8Key)
-            || string.IsNullOrWhiteSpace(apnsSettings.ServerUrl))
+            || string.IsNullOrWhiteSpace(apnsSettings.ServerUrl)
+            || string.IsNullOrWhiteSpace(apnsSettings.BundleId))
             return false;
 
         try

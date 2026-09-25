@@ -1,5 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <!-- The AOT publish turns this on for every project anyway; setting it here makes normal builds
+         and tests run the same generated binding code that ships, instead of the reflection binder
+         (which can silently disagree, e.g. over init-only settings properties). -->
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\BackingTrack.Core\BackingTrack.Core.csproj" />
   </ItemGroup>
