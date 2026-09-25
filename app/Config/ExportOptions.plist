@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Options for `xcodebuild -exportArchive` in .github/workflows/ios-release.yml. Equivalent to
+  Xcode Organizer's Distribute App → App Store Connect → Upload. See ADR 0040.
+
+  No teamID: it's taken from the archive, which was built with DEVELOPMENT_TEAM from the
+  IOS_DEVELOPMENT_TEAM repo variable — so no team ID is committed here.
+-->
+<plist version="1.0">
+<dict>
+	<key>method</key>
+	<string>app-store-connect</string>
+
+	<!-- Upload straight to App Store Connect as part of the export. -->
+	<key>destination</key>
+	<string>upload</string>
+
+	<key>signingStyle</key>
+	<string>automatic</string>
+
+	<!--
+	  Off: the version comes from project.yml and the build number from the workflow run number.
+	  If on, Xcode may silently bump the build number during export, so what's in TestFlight
+	  wouldn't match the workflow's summary.
+	-->
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+
+	<!-- Symbolicated crash reports in TestFlight / App Store Connect. -->
+	<key>uploadSymbols</key>
+	<true/>
+
+	<!--
+	  Leaves the build open to external testers and App Store submission later — "TestFlight
+	  Internal Only" would lock it to internal testing permanently.
+	-->
+	<key>testFlightInternalTestingOnly</key>
+	<false/>
+</dict>
+</plist>

@@ -1,0 +1,121 @@
+name: iOS Release
+
+# Archives the app and uploads it to TestFlight on every push to main that touches app/, so
+# the phone always has main's build via the internal group's automatic distribution — the iOS
+# counterpart of deploy.yml (see ADR 0040).
+#
+# Signing is automatic "cloud signing": xcodebuild authenticates to App Store Connect with an
+# API key and has Apple manage the distribution certificate, so no .p12 or provisioning profile
+# is exported into secrets or this Mac's keychain.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/ios-release.yml"
+      - ".github/workflows/ios-ci.yml"
+
+# Never cancel a running upload: one cut off partway can leave a half-processed build in App
+# Store Connect. GitHub keeps at most one run pending per group, so a burst of merges still
+# collapses to a single follow-up upload of the newest main.
+concurrency:
+  group: ios-release
+  cancel-in-progress: false
+
+env:
+  ARCHIVE_PATH: ${{ github.workspace }}/build/BackingTrack.xcarchive
+  EXPORT_PATH: ${{ github.workspace }}/build/export
+  # Build numbers must strictly increase per version in App Store Connect. github.run_number
+  # starts at 1 for this workflow, but builds were uploaded by hand from Xcode before it
+  # existed — the offset keeps CI numbers clear of those.
+  BUILD_NUMBER_OFFSET: 100
+
+jobs:
+  verify:
+    uses: ./.github/workflows/ios-ci.yml
+
+  release:
+    needs: verify
+    runs-on: [self-hosted, macOS]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Derive build number
+        # MARKETING_VERSION stays in project.yml, bumped by commit when a change deserves a
+        # new version number; only the build number comes from the workflow.
+        run: echo "BUILD_NUMBER=$((GITHUB_RUN_NUMBER + BUILD_NUMBER_OFFSET))" >> "$GITHUB_ENV"
+
+      - name: Check release configuration
+        # A Release build with no API_BASE_URL builds fine and only fails at launch
+        # (APIConfiguration) — i.e. on a tester's phone. Catch it here instead.
+        env:
+          DEVELOPMENT_TEAM: ${{ vars.IOS_DEVELOPMENT_TEAM }}
+          API_BASE_URL: ${{ vars.IOS_API_BASE_URL }}
+        run: |
+          missing=0
+          [[ -n "$DEVELOPMENT_TEAM" ]] || { echo "vars.IOS_DEVELOPMENT_TEAM is not set" >&2; missing=1; }
+          [[ -n "$API_BASE_URL" ]] || { echo "vars.IOS_API_BASE_URL is not set" >&2; missing=1; }
+          exit $missing
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Create local signing config
+        # xcodegen needs the file to exist (see ios-ci.yml). The real team ID and API URL are
+        # passed to xcodebuild on the command line below instead of written here: command-line
+        # build settings take precedence over an xcconfig, and don't need the http:/$()/
+        # escaping an xcconfig does for the // in a URL.
+        run: cp app/Config/Local.xcconfig.example app/Config/Local.xcconfig
+
+      - name: Generate Xcode project
+        run: cd app && xcodegen generate
+
+      - name: Write App Store Connect API key
+        run: |
+          echo "ASC_KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
+          install -m 600 /dev/null "$RUNNER_TEMP/AuthKey.p8"
+          printf '%s\n' "${{ secrets.ASC_KEY_P8 }}" > "$RUNNER_TEMP/AuthKey.p8"
+
+      - name: Archive
+        # -allowProvisioningUpdates plus the API key lets xcodebuild create or fetch
+        # provisioning profiles itself, with no Xcode account signed in for the runner.
+        run: >
+          xcodebuild archive
+          -project app/BackingTrack.xcodeproj -scheme BackingTrack
+          -configuration Release
+          -destination 'generic/platform=iOS'
+          -archivePath "$ARCHIVE_PATH"
+          -allowProvisioningUpdates
+          -authenticationKeyPath "$ASC_KEY_PATH"
+          -authenticationKeyID "${{ secrets.ASC_KEY_ID }}"
+          -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}"
+          DEVELOPMENT_TEAM="${{ vars.IOS_DEVELOPMENT_TEAM }}"
+          API_BASE_URL="${{ vars.IOS_API_BASE_URL }}"
+          CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
+
+      - name: Export and upload to TestFlight
+        # ExportOptions.plist's destination=upload makes -exportArchive send the build straight
+        # to App Store Connect — no separate altool/Transporter step.
+        run: >
+          xcodebuild -exportArchive
+          -archivePath "$ARCHIVE_PATH"
+          -exportPath "$EXPORT_PATH"
+          -exportOptionsPlist app/Config/ExportOptions.plist
+          -allowProvisioningUpdates
+          -authenticationKeyPath "$ASC_KEY_PATH"
+          -authenticationKeyID "${{ secrets.ASC_KEY_ID }}"
+          -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}"
+
+      - name: Summary
+        run: |
+          version=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
+            "$ARCHIVE_PATH/Products/Applications/BackingTrack.app/Info.plist")
+          echo "Uploaded **$version ($BUILD_NUMBER)** to App Store Connect." >> "$GITHUB_STEP_SUMMARY"
+          echo "It appears in TestFlight once Apple finishes processing (usually 5–30 min)." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Clean up
+        # Self-hosted: the workspace persists between runs, so don't leave the key or the
+        # archive lying around on this Mac.
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/AuthKey.p8" build

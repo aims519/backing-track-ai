@@ -11,11 +11,11 @@ on:
     paths:
       - "app/**"
       - ".github/workflows/ios-ci.yml"
-  push:
-    branches: [main]
-    paths:
-      - "app/**"
-      - ".github/workflows/ios-ci.yml"
+  # Pushes to main run this via ios-release.yml instead (the same pattern as deploy.yml calling
+  # verify.yml), so the exact SHA is tested before it's archived for TestFlight. There's no
+  # separate `push` trigger: it would test the same SHA twice on the one self-hosted runner, and
+  # both runs would share the concurrency group below, so each could cancel the other.
+  workflow_call:
 
 concurrency:
   group: ios-ci-${{ github.ref }}
