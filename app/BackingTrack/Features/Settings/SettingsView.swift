@@ -28,7 +28,13 @@ struct SettingsView: View {
                 Section {
                     // `SecureField` masks input like a password field — appropriate for a
                     // secret even though it isn't literally a password.
+                    //
+                    // `.textContentType(.password)` isn't about password-manager suggestions
+                    // here (there's no account, so nothing to suggest) — without it, a bare
+                    // `SecureField` doesn't reliably get the system edit menu on device, so
+                    // long-press paste silently does nothing. This is what makes paste work.
                     SecureField("API Key", text: $apiKey)
+                        .textContentType(.password)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 } footer: {
