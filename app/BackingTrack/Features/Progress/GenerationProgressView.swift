@@ -217,7 +217,7 @@ struct GenerationProgressView: View {
 
     /// The requested parameters, echoed from the job so the user can see what's being generated.
     private var trackSummaryCard: some View {
-        SectionCard("Track") {
+        SectionCard("Track Info") {
             VStack(spacing: 0) {
                 summaryRow("Key", "\(model.initialJob.keyRoot) \(model.initialJob.keyMode)")
                 rowDivider

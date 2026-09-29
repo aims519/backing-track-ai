@@ -305,7 +305,7 @@ extension GenerationProgressViewModel {
     ) -> GenerationProgressViewModel {
         let model = GenerationProgressViewModel(
             job: .preview(status: .pending),
-            styleSummary: "Blues — slow, brushes not sticks",
+            styleSummary: "Blues - slow, brushes not sticks",
             apiClient: PreviewStatusClient(held: latestStatus, feedbackItems: feedbackItems),
             config: PollingConfiguration(
                 interval: .seconds(3600),

@@ -14,7 +14,7 @@ struct PlayerView: View {
 
     var body: some View {
         content
-            .navigationTitle("Player")
+            .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .background(Color(.systemGroupedBackground))
             .task { await model.load() }
@@ -72,9 +72,9 @@ struct PlayerView: View {
     private func loadedView(_ track: PlayableTrack) -> some View {
         ScrollView {
             VStack(spacing: 22) {
-                trackInfoCard(track)
-                transportCard(track)
+                styleNotesLine
                 chordsCard(track)
+                transportCard(track)
                 tempoCard
                 instrumentsCard
             }
@@ -84,15 +84,17 @@ struct PlayerView: View {
         .task { await model.trackPlayHead() }
     }
 
-    private func trackInfoCard(_ track: PlayableTrack) -> some View {
-        SectionCard("Track") {
-            VStack(spacing: 0) {
-                infoRow("Key", "\(track.keyRoot?.displayName ?? model.input.keyRoot) \(track.keyMode)")
-                Divider().padding(.leading, 16)
-                infoRow("Time", track.timeSignature.displayName)
-                Divider().padding(.leading, 16)
-                infoRow("Original tempo", "\(model.originalTempoBpm) BPM")
-            }
+    /// Free-form style notes shape how the player plays over the track, so they sit above the
+    /// chords. Too long for the nav title, which carries the style name, key and time.
+    @ViewBuilder
+    private var styleNotesLine: some View {
+        if !styleNotes.isEmpty {
+            Text(styleNotes)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 20)
         }
     }
 
@@ -147,20 +149,53 @@ struct PlayerView: View {
                     Text("\(model.tempoBpm) BPM")
                         .font(.title3)
                         .monospacedDigit()
+                        // The slider's tick marks the original visually; VoiceOver gets it here.
+                        .accessibilityLabel("\(model.tempoBpm) BPM, original \(model.originalTempoBpm) BPM")
                     Spacer()
                     if model.tempoBpm != model.originalTempoBpm {
                         Button("Reset") { model.resetTempo() }
                             .font(.subheadline)
                     }
                 }
-                Slider(
-                    value: Binding(get: { Double(model.tempoBpm) }, set: { model.setTempo($0) }),
-                    in: Tempo.range,
-                    step: 1
-                )
+                tempoSlider
             }
             .padding(16)
         }
+        .sensoryFeedback(.selection, trigger: model.tempoBpm) { _, new in
+            new == model.originalTempoBpm
+        }
+    }
+
+    /// A marker under the slider at the original tempo. Hand-drawn because `Slider`'s native ticks
+    /// (iOS 26+) didn't render visibly, and it has to work on iOS 18 too.
+    private var tempoSlider: some View {
+        VStack(spacing: 2) {
+            Slider(
+                value: Binding(get: { Double(model.tempoBpm) }, set: { model.dragTempo($0) }),
+                in: Tempo.range,
+                step: 1
+            )
+            GeometryReader { geometry in
+                Capsule()
+                    .fill(Color.secondary)
+                    .frame(width: 2, height: 8)
+                    .position(x: originalTempoMarkerX(in: geometry.size.width), y: 4)
+            }
+            .frame(height: 8)
+            .accessibilityHidden(true)
+        }
+    }
+
+    /// The thumb's centre stops short of each end of the track by half the thumb's width, so the
+    /// marker is mapped onto that narrower span. `Slider` doesn't expose its thumb size; this is
+    /// tuned by eye (thumb resting on the original at load should sit centred over the marker).
+    private static let sliderThumbInset: CGFloat = 14
+
+    private func originalTempoMarkerX(in width: CGFloat) -> CGFloat {
+        let range = Tempo.range
+        let fraction = (Double(model.originalTempoBpm) - range.lowerBound) / (range.upperBound - range.lowerBound)
+        let inset = Self.sliderThumbInset
+        return inset + CGFloat(fraction) * (width - 2 * inset)
     }
 
     private func chordsCard(_ track: PlayableTrack) -> some View {
@@ -214,6 +249,16 @@ struct PlayerView: View {
 
     // MARK: - Derived
 
+    /// "Blues · C Ionian · 4/4". Built from the input rather than the loaded track so it's right
+    /// while loading too. The style is left out when it isn't one we recognise; `styleNotes`
+    /// then shows the whole stored string instead.
+    private var navigationTitle: String {
+        let input = model.input
+        let key = "\(NoteName(rawValue: input.keyRoot)?.displayName ?? input.keyRoot) \(input.keyMode)"
+        let style = decomposeStyle(input.title ?? "").0?.displayName
+        return [style, key, input.timeSignature.displayName].compactMap { $0 }.joined(separator: " · ")
+    }
+
     private var playButtonTitle: String {
         switch model.playbackState {
         case .playing: "Pause"
@@ -230,12 +275,12 @@ struct PlayerView: View {
         }
     }
 
-    private func infoRow(_ label: String, _ value: String) -> some View {
-        CardRow(label) {
-            Text(value)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-        }
+    /// Whatever `navigationTitle` doesn't show: the notes after a known style, or the whole
+    /// string when the style isn't one we recognise (the title then falls back to "Player").
+    private var styleNotes: String {
+        let stored = model.input.title ?? ""
+        let (style, notes) = decomposeStyle(stored)
+        return style == nil ? stored : notes
     }
 
     private func failureMessage(_ error: TrackLoadError) -> String {

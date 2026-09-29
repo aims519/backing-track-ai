@@ -87,7 +87,7 @@ extension PlayerInput {
             chordSymbols: chordSymbols,
             timeSignature: .fourFour,
             mode: mode,
-            title: "Blues — slow, brushes"
+            title: "Blues - slow, brushes"
         )
     }
 }

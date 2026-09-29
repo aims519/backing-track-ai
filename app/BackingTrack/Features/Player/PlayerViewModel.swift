@@ -181,6 +181,17 @@ final class PlayerViewModel {
 
     func resetTempo() { setTempo(Double(input.tempo)) }
 
+    /// How close (in BPM) a slider drag must come to the original tempo to snap onto it. The cost
+    /// is that the slider alone can't land on the values just either side of the original.
+    static let tempoSnapWindow = 2.0
+
+    /// The slider's setter: like `setTempo`, but pulls a drag that passes near the original tempo
+    /// onto it, so it can be found by feel (the view adds a haptic when it lands).
+    func dragTempo(_ bpm: Double) {
+        let original = Double(originalTempoBpm)
+        setTempo(abs(bpm - original) <= Self.tempoSnapWindow ? original : bpm)
+    }
+
     // MARK: - Mixer
 
     func isMuted(_ voice: PlaybackVoice) -> Bool { mutedVoices.contains(voice) }
