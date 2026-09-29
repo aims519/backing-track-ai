@@ -25,6 +25,7 @@ struct PlayableTrack: Sendable, Equatable {
     /// Number of bars in the loop (`chordSymbols.count`, or a derived fallback).
     let barCount: Int
     let title: String?
+    let style: MusicStyle?
 
     init(
         trackID: UUID,
@@ -34,7 +35,8 @@ struct PlayableTrack: Sendable, Equatable {
         keyMode: String,
         timeSignature: TimeSignature,
         chordSymbols: [String],
-        title: String?
+        title: String?,
+        style: MusicStyle?
     ) {
         self.trackID = trackID
         self.track = track
@@ -45,6 +47,7 @@ struct PlayableTrack: Sendable, Equatable {
         self.chordSymbols = chordSymbols
         self.chords = chordSymbols.map { Chord(apiSymbol: $0) }
         self.title = title
+        self.style = style
 
         // The chord list is one symbol per bar, so it's the reliable bar count. Fall back to the
         // time signature only when the progression didn't round-trip (empty).
@@ -109,7 +112,8 @@ extension PlayableTrack {
             keyMode: "Ionian",
             timeSignature: timeSignature,
             chordSymbols: chordSymbols,
-            title: "Blues — slow, brushes"
+            title: "Blues - slow, brushes",
+            style: decomposeStyle("Blues - slow, brushes").0
         )
     }
 }

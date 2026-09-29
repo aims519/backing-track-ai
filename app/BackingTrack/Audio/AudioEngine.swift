@@ -14,12 +14,23 @@ final class AudioEngine {
     
     private let engine = AVAudioEngine()
     private let bassSampler = AVAudioUnitSampler()
+    private let bassReverb = AVAudioUnitReverb()
     private let bassMixer = AVAudioMixerNode()
     private let drumSampler = AVAudioUnitSampler()
+    private let drumReverb = AVAudioUnitReverb()
     private let drumMixer = AVAudioMixerNode()
     private let chordSampler = AVAudioUnitSampler()
+    private let chordEq = AVAudioUnitEQ(numberOfBands: 1)
+    private let chordReverb = AVAudioUnitReverb()
     private let chordMixer = AVAudioMixerNode()
     private var sequencer: AVAudioSequencer?
+    private let limiter = AVAudioUnitEffect(audioComponentDescription: AudioComponentDescription(
+        componentType: kAudioUnitType_Effect,
+        componentSubType: kAudioUnitSubType_PeakLimiter,
+        componentManufacturer: kAudioUnitManufacturer_Apple,
+        componentFlags: 0,
+        componentFlagsMask: 0
+    ))
 
     /// Two bars of woodblock clicks before playback starts, when `isCountInEnabled`. Scheduled by
     /// a `Task` off `play()` rather than baked into the sequence — the sequencer has no time
@@ -116,43 +127,83 @@ final class AudioEngine {
                 return
             }
 
-            // Load instruments
+            // Load instruments — per-style programs, see `InstrumentSet`.
+            let instrumentSet = InstrumentSet.forStyle(playableTrack.style)
             try bassSampler.loadSoundBankInstrument(
                 at: bankURL,
-                program: UInt8(33),                              // GM program 33 = Electric Bass (finger), 0-indexed
+                program: instrumentSet.bassProgram,
                 bankMSB: UInt8(kAUSampler_DefaultMelodicBankMSB), // 0x79 — standard melodic bank
                 bankLSB: UInt8(kAUSampler_DefaultBankLSB)         // 0x00
             )
-            
+
             try drumSampler.loadSoundBankInstrument(
                 at: bankURL,
-                program: UInt8(0),                              // Standard Kit 0
+                program: instrumentSet.drumProgram,
                 bankMSB: UInt8(kAUSampler_DefaultPercussionBankMSB), // 0x78 — standard percussion bank
                 bankLSB: UInt8(kAUSampler_DefaultBankLSB)         // 0x00
             )
-            
+
             try chordSampler.loadSoundBankInstrument(
                 at: bankURL,
-                program: UInt8(2),                              // Electric Grand Piano
+                program: instrumentSet.chordProgram,
                 bankMSB: UInt8(kAUSampler_DefaultMelodicBankMSB), // 0x79 — standard melodic bank
                 bankLSB: UInt8(kAUSampler_DefaultBankLSB)         // 0x00
             )
+
+            // High-pass the chords so the keyboard's left hand doesn't clash with the bass. Ahead
+            // of the reverb, so the reverb tail carries no low end either. Bands start bypassed.
+            let highPass = chordEq.bands[0]
+            highPass.filterType = .highPass
+            highPass.frequency = 140
+            highPass.bypass = false
+            
+            // Reverb config
+            drumReverb.loadFactoryPreset(.mediumRoom)
+            drumReverb.wetDryMix = 20
+            
+            bassReverb.loadFactoryPreset(.mediumRoom)
+            bassReverb.wetDryMix = 30
+            
+            chordReverb.loadFactoryPreset(.mediumRoom)
+            chordReverb.wetDryMix = 50
             
             // Connect samplers to engine
             engine.attach(bassSampler)
+            engine.attach(bassReverb)
             engine.attach(bassMixer)
-            engine.connect(bassSampler, to: bassMixer, format: nil)
+            engine.connect(bassSampler, to: bassReverb, format: nil)
+            engine.connect(bassReverb, to: bassMixer, format: nil)
             engine.connect(bassMixer, to: engine.mainMixerNode, format: nil)
             
             engine.attach(drumSampler)
+            engine.attach(drumReverb)
             engine.attach(drumMixer)
-            engine.connect(drumSampler, to: drumMixer, format: nil)
+            engine.connect(drumSampler, to: drumReverb, format: nil)
+            engine.connect(drumReverb, to: drumMixer, format: nil)
             engine.connect(drumMixer, to: engine.mainMixerNode, format: nil)
             
             engine.attach(chordSampler)
+            engine.attach(chordEq)
+            engine.attach(chordReverb)
             engine.attach(chordMixer)
-            engine.connect(chordSampler, to: chordMixer, format: nil)
+            engine.connect(chordSampler, to: chordEq, format: nil)
+            engine.connect(chordEq, to: chordReverb, format: nil)
+            engine.connect(chordReverb, to: chordMixer, format: nil)
             engine.connect(chordMixer, to: engine.mainMixerNode, format: nil)
+            
+            // Pan is a property of each mixer's connection into the main mixer, so it's set after
+            // those connections exist. Drums and bass stay centred; chords sit off to one side.
+            bassMixer.pan = 0
+            drumMixer.pan = 0
+            chordMixer.pan = -0.4
+
+            // Peak limiter between the main mixer and the output, to stop the summed voices
+            // clipping. Touching `mainMixerNode` auto-wires it straight to the output, so that
+            // link is broken first to put the limiter in between.
+            engine.attach(limiter)
+            engine.disconnectNodeOutput(engine.mainMixerNode)
+            engine.connect(engine.mainMixerNode, to: limiter, format: nil)
+            engine.connect(limiter, to: engine.outputNode, format: nil)
             
             
             // Count-in click — Standard Kit, played by note number (76/77 = wood block). Straight
