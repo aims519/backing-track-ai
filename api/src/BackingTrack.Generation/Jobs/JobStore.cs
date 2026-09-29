@@ -38,10 +38,9 @@ public class JobStore(ILogger<JobStore> logger)
             // event stream ends as soon as CancelRunAsync is called, racing ahead of the executor's
             // own cooperative GenerationCancelled yield - so the worker can't reliably infer
             // cancellation from the run's output alone.
-            GenerationJob? job = TryGet(jobId);
-            if (job is not null)
+            if (TryGet(jobId) is not null)
             {
-                AddOrUpdate(job with { State = JobStates.Cancelled, EndTime = DateTimeOffset.UtcNow });
+                UpdateJob(jobId, MarkCancelled);
             }
 
             logger.LogInformation("Cancellation requested for job {Id}", jobId);
@@ -50,14 +49,18 @@ public class JobStore(ILogger<JobStore> logger)
         }
 
         // No run registered yet means the worker hasn't picked the job up - mark it
-        // Cancelled directly so it gets skipped once it is dequeued.
-        GenerationJob? pendingJob = TryGet(jobId);
-        if (pendingJob is { State: JobStates.Pending })
+        // Cancelled directly so it gets skipped once it is dequeued. The Pending check is
+        // repeated inside the atomic update so a worker transition landing after the check
+        // isn't overwritten.
+        if (TryGet(jobId) is { State: JobStates.Pending })
         {
             logger.LogInformation("Cancellation requested for job {Id} before it started", jobId);
-            AddOrUpdate(pendingJob with { State = JobStates.Cancelled, EndTime = DateTimeOffset.UtcNow });
+            UpdateJob(jobId, job => job.State == JobStates.Pending ? MarkCancelled(job) : job);
         }
     }
+
+    private static GenerationJob MarkCancelled(GenerationJob job) =>
+        job with { State = JobStates.Cancelled, EndTime = DateTimeOffset.UtcNow };
 
     public void AppendJobFeedback(Guid jobId, JobFeedback newFeedbackItem)
     {
