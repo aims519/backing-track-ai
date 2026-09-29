@@ -1,5 +1,7 @@
 /// The bundled SoundFont presets each voice plays for a style. Mapped on the client from the
-/// picked `MusicStyle` rather than chosen by the API, so the track contract stays instrument-free.
+/// picked `MusicStyle` rather than chosen by the API, so the track contract stays instrument-free
+/// (ADR 0041). The API's `styles.jsonl` describes the same instrumentation so the generator
+/// writes parts to suit it — change a chord instrument here and check that text too.
 ///
 /// Numbers are 0-indexed General MIDI programs, checked against the bundled GeneralUser GS.
 /// `drumProgram` selects a kit in the percussion bank (loaded with
