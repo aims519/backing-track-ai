@@ -1,3 +1,5 @@
+using BackingTrack.Generation.Steps.Types;
+
 namespace BackingTrack.Generation.Eval.Running;
 
 /// <summary>The observable result of running one case through the generation pipeline.</summary>
@@ -16,6 +18,9 @@ public sealed record GenerationRunResult
     public int? CriticAttempts { get; init; }
 
     public Guid? TrackId { get; init; }
+
+    /// <summary>The generated track itself, for expectations that inspect its notes. Null when generation failed.</summary>
+    public CandidateTrack? Track { get; init; }
 
     public string? FailureReason { get; init; }
 

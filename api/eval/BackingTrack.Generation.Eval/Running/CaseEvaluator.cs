@@ -1,4 +1,6 @@
 using BackingTrack.Generation.Eval.Model;
+using BackingTrack.Generation.Steps.Critic;
+using BackingTrack.Generation.Steps.Types;
 
 namespace BackingTrack.Generation.Eval.Running;
 
@@ -29,6 +31,9 @@ public sealed record CaseOutcome
 /// </summary>
 public static class CaseEvaluator
 {
+    // General MIDI: closed, pedal and open hi-hat; ride 1, ride bell, ride 2.
+    private static readonly IReadOnlySet<int> TimekeepingMidiNotes = new HashSet<int> { 42, 44, 46, 51, 53, 59 };
+
     public static CaseOutcome Evaluate(EvalCase evalCase, GenerationRunResult result)
     {
         List<string> notes = [];
@@ -62,6 +67,13 @@ public static class CaseEvaluator
                 notes.Add($"expected ≤ {maxCritic} critic attempt(s), got {criticAttempts}");
         }
 
+        if (evalCase.Expect.MinAverageTimekeepingHitsPerBar is { } minTimekeeping && result.Track is { } track)
+        {
+            double average = AverageTimekeepingHitsPerBar(track, evalCase.Input.TimeSignatureBeatCount);
+            if (average < minTimekeeping)
+                notes.Add($"expected ≥ {minTimekeeping} timekeeping hit(s) per bar on average, got {average:0.##}");
+        }
+
         return new CaseOutcome
         {
             Case = evalCase,
@@ -69,5 +81,14 @@ public static class CaseEvaluator
             Result = result,
             Notes = notes
         };
+    }
+
+    public static double AverageTimekeepingHitsPerBar(CandidateTrack track, int beatsPerBar)
+    {
+        IReadOnlyList<Bar> bars = new CriticCandidateTrack(track, beatsPerBar).Bars;
+        if (bars.Count == 0)
+            return 0;
+
+        return bars.Average(bar => bar.Drums.Count(n => TimekeepingMidiNotes.Contains(n.MidiNote)));
     }
 }

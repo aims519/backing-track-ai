@@ -1,22 +1,12 @@
 using BackingTrack.Core.Config;
-
-using BackingTrack.Generation;
 using BackingTrack.Generation.Eval;
 using BackingTrack.Generation.Eval.Model;
 using BackingTrack.Generation.Eval.Reporting;
 using BackingTrack.Generation.Eval.Running;
 using BackingTrack.Generation.KnowledgeBase;
-using BackingTrack.Generation.Steps.Critic;
-using BackingTrack.Generation.Steps.FallbackGeneration;
-using BackingTrack.Generation.Steps.Retrieval;
-using BackingTrack.Generation.Steps.TrackGeneration;
-using BackingTrack.Generation.Steps.TrackPersistence;
-using BackingTrack.Generation.Steps.TrackRepair;
-using BackingTrack.Generation.Steps.TrackValidation;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -70,41 +60,7 @@ builder.Logging.AddSimpleConsole(options =>
 // The generation pipeline is chatty at Information; mute it below Warning unless -v is given.
 builder.Logging.AddFilter("BackingTrack.Generation", harnessArgs.Verbose ? LogLevel.Debug : LogLevel.Warning);
 
-// Generation pipeline — mirrors BackingTrack.Api/Program.cs, minus the web host, observability,
-// rate limiting and the background job worker. The harness runs the workflow directly through
-// WorkflowGenerationRunner, so AddJobProcessing() is deliberately not wired.
-builder.Services.AddOptions();
-builder.Services.AddKnowledgeBase(builder.Configuration);
-builder.Services.AddLlmChatClient(builder.Configuration);
-builder.Services.AddKnowledgeRetrieval();
-builder.Services.AddTrackGeneration(builder.Configuration);
-builder.Services.AddTrackValidation();
-
-// Wrap the real validator behind a fault-injecting decorator so Fallback cases can force
-// deterministic repair-budget exhaustion instead of hoping a "hard" input draws enough genuine
-// validation failures from the model. Only forces anything when a case sets
-// EvalCase.ForceValidationFailures > 0 — every other case still exercises the real validator
-// untouched.
-builder.Services.AddTransient<ValidateStep>();
-builder.Services.AddScoped<ValidationFaultInjectionState>();
-builder.Services.Replace(ServiceDescriptor.Transient<IValidateStep, FaultInjectingValidateStep>());
-
-builder.Services.AddTrackRepair(builder.Configuration);
-builder.Services.AddTrackPersistence(builder.Configuration);
-builder.Services.AddCritic(builder.Configuration);
-builder.Services.AddFallbackTrackGeneration();
-builder.Services.AddTrackGenerationWorkflow();
-
-// Wrap the real critic behind a fault-injecting decorator so CriticTriggering cases can force a
-// deterministic rejection instead of hoping the input draws a genuine one from the model. Only
-// forces anything when a case sets EvalCase.ForceCriticRejections > 0 — every other case still
-// exercises the real critic untouched.
-builder.Services.AddTransient<CriticStep>();
-builder.Services.AddScoped<CriticFaultInjectionState>();
-builder.Services.Replace(ServiceDescriptor.Transient<ICriticStep, FaultInjectingCriticStep>());
-
-builder.Services.AddSingleton<IGenerationRunner, WorkflowGenerationRunner>();
-builder.Services.AddSingleton<EvalRunner>();
+builder.Services.AddGenerationEvalHarness(builder.Configuration);
 
 using IHost host = builder.Build();
 
