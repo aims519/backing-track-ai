@@ -51,7 +51,9 @@ struct LiveBackingTrackAPIClient: BackingTrackAPIClient {
             // keeps every throw path out of this client an `APIClientError`.
             throw APIClientError.decoding(String(describing: error))
         }
-        return try await send(urlRequest)
+        // The server is moving `POST /tracks/generate` from 200 to 202 Accepted (the job is queued,
+        // not done). Accept both so this build works before and after that server change.
+        return try await send(urlRequest, acceptedStatuses: [200, 202])
     }
 
     func jobStatus(id: UUID) async throws -> GenerationJob {
@@ -88,10 +90,10 @@ struct LiveBackingTrackAPIClient: BackingTrackAPIClient {
 
     // MARK: - Sending & response mapping
 
-    /// Sends a request expecting a `GenerationJob` JSON body on 200.
-    private func send(_ urlRequest: URLRequest) async throws -> GenerationJob {
+    /// Sends a request expecting a `GenerationJob` JSON body on one of `acceptedStatuses`.
+    private func send(_ urlRequest: URLRequest, acceptedStatuses: Set<Int> = [200]) async throws -> GenerationJob {
         let (data, http) = try await perform(urlRequest)
-        guard http.statusCode == 200 else {
+        guard acceptedStatuses.contains(http.statusCode) else {
             throw Self.failure(status: http.statusCode, data: data, http: http)
         }
         do {

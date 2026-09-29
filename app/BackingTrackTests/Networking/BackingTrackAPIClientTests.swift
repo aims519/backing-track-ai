@@ -122,6 +122,23 @@ struct BackingTrackAPIClientTests {
         #expect(json["KeyRoot"] as? String == "C")
     }
 
+    @Test func submitAcceptsA202AsWellAs200() async throws {
+        let id = UUID()
+        StubURLProtocol.handler = { _ in (202, [:], self.jobJSON(id: id.uuidString, status: "Pending")) }
+
+        let job = try await makeClient().submitGeneration(sampleRequest)
+
+        #expect(job.id == id)
+    }
+
+    @Test func jobStatusStillRequiresExactly200() async {
+        StubURLProtocol.handler = { _ in (202, [:], self.jobJSON(id: UUID().uuidString, status: "Pending")) }
+
+        await #expect(throws: APIClientError.self) {
+            try await makeClient().jobStatus(id: UUID())
+        }
+    }
+
     @Test func missingKeyFailsBeforeSending() async {
         var handlerCalled = false
         StubURLProtocol.handler = { _ in
