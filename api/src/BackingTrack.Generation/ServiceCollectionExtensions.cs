@@ -48,7 +48,11 @@ public static class ServiceCollectionExtensions
 
         if (llmProvider == "OpenAi")
         {
-            services.Configure<OpenAiSettings>(configuration.GetSection("OpenAi"));
+            services.AddOptions<OpenAiSettings>()
+                .Bind(configuration.GetSection("OpenAi"))
+                .ValidateOnStart();
+            services.AddSingleton<IValidateOptions<OpenAiSettings>, OpenAiSettingsValidator>();
+
             services.AddKeyedSingleton<IChatClient>("generate", (sp, _) =>
             {
                 OpenAiSettings settings = sp.GetRequiredService<IOptions<OpenAiSettings>>().Value;
