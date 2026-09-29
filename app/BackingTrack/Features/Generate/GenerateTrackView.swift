@@ -451,7 +451,7 @@ private struct GenerateTrackModals: ViewModifier {
             .alert("Vibe Mode Coming Soon", isPresented: $isShowingVibeComingSoon) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Vibe mode renders realistic audio from a text prompt. It isn't available yet — Precise mode for now.")
+                Text("Vibe mode renders realistic audio from a text prompt using a third-party service. It isn't available yet.")
             }
             .alert(
                 submissionAlert?.title ?? "",
