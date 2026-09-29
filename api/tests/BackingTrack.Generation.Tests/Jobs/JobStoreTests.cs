@@ -97,4 +97,60 @@ public class JobStoreTests
             Assert.Single(result.FeedbackItems);
         }
     }
+
+    [Fact]
+    public void TryStartJob_PendingJob_MovesItToInProgress()
+    {
+        JobStore store = CreateStore();
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        store.AddOrUpdate(job);
+
+        bool started = store.TryStartJob(job.Id, out GenerationJob? startedJob);
+
+        Assert.True(started);
+        Assert.Equal(JobStates.InProgress, startedJob?.State);
+        Assert.Equal(JobStates.InProgress, store.TryGet(job.Id)?.State);
+    }
+
+    [Fact]
+    public async Task TryStartJob_JobCancelledBeforeStart_LeavesItCancelled()
+    {
+        JobStore store = CreateStore();
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        store.AddOrUpdate(job);
+        await store.CancelAsync(job.Id);
+
+        bool started = store.TryStartJob(job.Id, out GenerationJob? startedJob);
+
+        Assert.False(started);
+        Assert.Null(startedJob);
+        Assert.Equal(JobStates.Cancelled, store.TryGet(job.Id)?.State);
+    }
+
+    [Fact]
+    public void TryStartJob_UnknownJobId_ReturnsFalse()
+    {
+        JobStore store = CreateStore();
+
+        Assert.False(store.TryStartJob(Guid.NewGuid(), out _));
+    }
+
+    [Fact]
+    public void TryStartJob_ConcurrentWithAppendJobFeedback_LosesNeitherWrite()
+    {
+        for (int i = 0; i < 200; i++)
+        {
+            JobStore store = CreateStore();
+            GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+            store.AddOrUpdate(job);
+
+            Parallel.Invoke(
+                () => store.AppendJobFeedback(job.Id, new JobFeedback(DateTime.UtcNow, "Retrieval", "Retrieving...", 1)),
+                () => store.TryStartJob(job.Id, out _));
+
+            GenerationJob? result = store.TryGet(job.Id);
+            Assert.Equal(JobStates.InProgress, result?.State);
+            Assert.Single(result!.FeedbackItems);
+        }
+    }
 }
