@@ -144,6 +144,23 @@ struct PlayerViewModelTests {
         #expect(model.tempoBpm == model.originalTempoBpm)
     }
 
+    @Test func dragTempoSnapsOntoTheOriginalWithinTheWindow() async {
+        let (model, engine, _, _) = makeModel(apiClient: FakeTrackAPIClient(bytes: Self.trackJSON))
+        await model.load()
+        let original = Double(model.originalTempoBpm)
+        let window = PlayerViewModel.tempoSnapWindow
+
+        model.dragTempo(original + window)
+        #expect(model.tempoBpm == model.originalTempoBpm)
+        #expect(engine.tempoUpdates.last == original)
+
+        model.dragTempo(original - window)
+        #expect(model.tempoBpm == model.originalTempoBpm)
+
+        model.dragTempo(original + window + 1)
+        #expect(model.tempoBpm == model.originalTempoBpm + Int(window) + 1)
+    }
+
     @Test func stopForwardsToTheEngine() async {
         let (model, engine, _, _) = makeModel(apiClient: FakeTrackAPIClient(bytes: Self.trackJSON))
         await model.load()
