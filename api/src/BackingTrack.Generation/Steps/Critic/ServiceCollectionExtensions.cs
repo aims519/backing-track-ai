@@ -10,7 +10,10 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddCritic(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<CriticSettings>(configuration.GetSection("Critic"));
+        services.AddOptions<CriticSettings>()
+            .Bind(configuration.GetSection("Critic"))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<CriticSettings>, CriticSettingsValidator>();
 
         string? llmProvider = configuration.GetValue<string>("Llm:Provider");
         if (string.IsNullOrEmpty(llmProvider))

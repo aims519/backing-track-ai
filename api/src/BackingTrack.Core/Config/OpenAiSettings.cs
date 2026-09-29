@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace BackingTrack.Core.Config;
 
 public enum OpenAiApiKind
@@ -20,13 +22,21 @@ public enum OpenAiServiceTier
 
 public class OpenAiSettings
 {
+    [Required, Url]
     public required string BaseUrl { get; set; }
+    [Required]
     public required string GenerationModel { get; set; }
+    [Required]
     public required string RepairModel { get; set; }
+    [Required]
     public required string CriticModel { get; set; }
+    [Required]
     public required string ApiKey { get; set; }
+    [Range(1, int.MaxValue)]
     public required int GenerationMaxOutputTokens { get; set; }
+    [Range(1, int.MaxValue)]
     public required int RepairMaxOutputTokens { get; set; }
+    [Range(1, int.MaxValue)]
     public required int CriticMaxOutputTokens { get; set; }
 
     // Newer model families (e.g. gpt-5.6-terra) are Responses-API-only; older ones stay on
