@@ -26,7 +26,55 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
     {
         await foreach (Guid jobId in _jobReader.ReadAllAsync(stoppingToken))
         {
-            await ProcessGenerationJobAsync(jobId, stoppingToken);
+            try
+            {
+                await ProcessGenerationJobAsync(jobId, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Anything that escapes ProcessGenerationJobAsync (workflow construction, DI resolution,
+                // the engine itself, a failing push) would otherwise fault this BackgroundService, and
+                // the host's default behaviour is to stop the whole app - taking every queued job with it.
+                logger.LogError(ex, "Job {Id} failed with an unhandled exception", jobId);
+
+                // Only fail a job that hasn't reached a terminal state: a throw from the push
+                // notification after the job completed or was cancelled mustn't rewrite that outcome.
+                bool markedFailed = false;
+                jobStore.UpdateJob(jobId, current =>
+                {
+                    markedFailed = current.State is JobStates.Pending or JobStates.InProgress;
+                    return markedFailed ? current with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow } : current;
+                });
+
+                if (markedFailed)
+                {
+                    await TrySendFailurePushAsync(jobId);
+                }
+            }
+        }
+    }
+
+    // Best-effort: the exception being handled may well have come from the scope or the emitter,
+    // so use a fresh scope and swallow anything this throws. Only called when the catch-all itself
+    // failed the job - a job the normal path already failed has been pushed once, and shouldn't be again.
+    private async Task TrySendFailurePushAsync(Guid jobId)
+    {
+        try
+        {
+            using IServiceScope scope = serviceScopeFactory.CreateScope();
+            IPushNotificationEmitter emitter = scope.ServiceProvider.GetRequiredService<IPushNotificationEmitter>();
+            if (jobStore.TryGet(jobId) is { } failedJob)
+            {
+                await emitter.SendApnsPushNotificationAsync(failedJob);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not send the failure push notification for job {Id}", jobId);
         }
     }
 
