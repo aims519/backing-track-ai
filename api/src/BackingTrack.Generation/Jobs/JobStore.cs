@@ -31,8 +31,15 @@ public class JobStore(ILogger<JobStore> logger)
 
     public void UnregisterJobRun(Guid jobId) => _jobRuns.TryRemove(jobId, out _);
 
-    public async Task CancelAsync(Guid jobId)
+    /// Returns false if no such job exists (the endpoint maps that to 404); true otherwise, including
+    /// for a job that has already finished, so cancelling twice or too late stays idempotent.
+    public async Task<bool> CancelAsync(Guid jobId)
     {
+        if (TryGet(jobId) is null)
+        {
+            return false;
+        }
+
         if (_jobRuns.TryGetValue(jobId, out StreamingRun? run))
         {
             // Mark Cancelled here, before actually cancelling the run: the workflow engine's
@@ -46,7 +53,7 @@ public class JobStore(ILogger<JobStore> logger)
 
             logger.LogInformation("Cancellation requested for job {Id}", jobId);
             await run.CancelRunAsync();
-            return;
+            return true;
         }
 
         // No run registered yet means the worker hasn't picked the job up - mark it
@@ -58,6 +65,8 @@ public class JobStore(ILogger<JobStore> logger)
             logger.LogInformation("Cancellation requested for job {Id} before it started", jobId);
             UpdateJob(jobId, job => job.State == JobStates.Pending ? MarkCancelled(job) : job);
         }
+
+        return true;
     }
 
     private static GenerationJob MarkCancelled(GenerationJob job) =>
