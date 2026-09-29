@@ -13,9 +13,12 @@ updates:
       microsoft-extensions:
         patterns:
           - "Microsoft.Extensions.*"
+      # OpenAI rides with the agent framework: Microsoft.Agents.AI.OpenAI is compiled against a
+      # specific OpenAI SDK, and bumping the SDK alone breaks at runtime (TypeLoadException, #85).
       agent-framework:
         patterns:
           - "Microsoft.Agents.AI*"
+          - "OpenAI"
       xunit:
         patterns:
           - "xunit*"
