@@ -58,8 +58,9 @@ internal static class TrackEndpoints
 
         logger.LogInformation("Generation job {Id} created in a {State} state", job.Id, job.State);
 
+        // 202, not 200: the job is only queued. Location points at the status endpoint to poll.
         GenerationJobDto jobDto = job.ToDto();
-        return Results.Ok(jobDto);
+        return Results.Accepted($"/tracks/status/{job.Id}", jobDto);
     }
 
     private static IResult GetStatus(Guid jobId, JobStore jobStore)
@@ -74,8 +75,8 @@ internal static class TrackEndpoints
 
     private static async Task<IResult> CancelJobAsync(Guid jobId, JobStore jobStore)
     {
-        await jobStore.CancelAsync(jobId);
-        return Results.NoContent();
+        bool found = await jobStore.CancelAsync(jobId);
+        return found ? Results.NoContent() : Results.NotFound();
     }
 
     private static IResult DownloadTrack(Guid trackId, IOptions<TrackStorageSettings> trackStorageSettings)

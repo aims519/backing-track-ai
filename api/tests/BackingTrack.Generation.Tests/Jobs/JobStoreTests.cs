@@ -25,14 +25,21 @@ public class JobStoreTests
     }
 
     [Fact]
-    public async Task CancelAsync_UnknownJobId_IsANoOp()
+    public async Task CancelAsync_UnknownJobId_ReturnsFalse()
     {
         JobStore store = CreateStore();
 
-        await store.CancelAsync(Guid.NewGuid());
+        Assert.False(await store.CancelAsync(Guid.NewGuid()));
+    }
 
-        // Nothing to assert on the (nonexistent) job - this is really just confirming
-        // CancelAsync doesn't throw for a job id it's never seen.
+    [Fact]
+    public async Task CancelAsync_KnownJob_ReturnsTrue()
+    {
+        JobStore store = CreateStore();
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        store.AddOrUpdate(job);
+
+        Assert.True(await store.CancelAsync(job.Id));
     }
 
     [Fact]
@@ -49,7 +56,8 @@ public class JobStoreTests
         };
         store.AddOrUpdate(job);
 
-        await store.CancelAsync(job.Id);
+        // Still "found" - cancelling a finished job is a harmless no-op, not a 404.
+        Assert.True(await store.CancelAsync(job.Id));
 
         Assert.Equal(JobStates.Complete, store.TryGet(job.Id)?.State);
     }
