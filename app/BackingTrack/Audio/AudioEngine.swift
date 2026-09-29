@@ -127,29 +127,31 @@ final class AudioEngine {
                 return
             }
 
-            // Load instruments
+            // Load instruments — per-style programs, see `InstrumentSet`.
+            let instrumentSet = InstrumentSet.forStyle(playableTrack.style)
             try bassSampler.loadSoundBankInstrument(
                 at: bankURL,
-                program: UInt8(33),                              // GM program 33 = Electric Bass (finger), 0-indexed
+                program: instrumentSet.bassProgram,
                 bankMSB: UInt8(kAUSampler_DefaultMelodicBankMSB), // 0x79 — standard melodic bank
                 bankLSB: UInt8(kAUSampler_DefaultBankLSB)         // 0x00
             )
-            
+
             try drumSampler.loadSoundBankInstrument(
                 at: bankURL,
-                program: UInt8(0),                              // Standard Kit 0
+                program: instrumentSet.drumProgram,
                 bankMSB: UInt8(kAUSampler_DefaultPercussionBankMSB), // 0x78 — standard percussion bank
                 bankLSB: UInt8(kAUSampler_DefaultBankLSB)         // 0x00
             )
-            
+
             try chordSampler.loadSoundBankInstrument(
                 at: bankURL,
-                program: UInt8(2),                              // Electric Grand Piano
+                program: instrumentSet.chordProgram,
                 bankMSB: UInt8(kAUSampler_DefaultMelodicBankMSB), // 0x79 — standard melodic bank
                 bankLSB: UInt8(kAUSampler_DefaultBankLSB)         // 0x00
             )
-            
-            // EQ config
+
+            // High-pass the chords so the keyboard's left hand doesn't clash with the bass. Ahead
+            // of the reverb, so the reverb tail carries no low end either. Bands start bypassed.
             let highPass = chordEq.bands[0]
             highPass.filterType = .highPass
             highPass.frequency = 140
@@ -189,12 +191,15 @@ final class AudioEngine {
             engine.connect(chordReverb, to: chordMixer, format: nil)
             engine.connect(chordMixer, to: engine.mainMixerNode, format: nil)
             
-            // Mixer config
+            // Pan is a property of each mixer's connection into the main mixer, so it's set after
+            // those connections exist. Drums and bass stay centred; chords sit off to one side.
             bassMixer.pan = 0
             drumMixer.pan = 0
             chordMixer.pan = -0.4
-            
-            // Limiter to prevent clipping
+
+            // Peak limiter between the main mixer and the output, to stop the summed voices
+            // clipping. Touching `mainMixerNode` auto-wires it straight to the output, so that
+            // link is broken first to put the limiter in between.
             engine.attach(limiter)
             engine.disconnectNodeOutput(engine.mainMixerNode)
             engine.connect(engine.mainMixerNode, to: limiter, format: nil)

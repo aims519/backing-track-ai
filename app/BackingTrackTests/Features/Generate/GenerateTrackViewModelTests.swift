@@ -337,24 +337,24 @@ struct GenerateTrackViewModelTests {
     // MARK: - Style decomposition (inverse of `composedStyle`)
 
     @Test func decomposeStyleSplitsThePickedStyleFromTheNotes() {
-        #expect(GenerateTrackViewModel.decomposeStyle("Blues - slow, brushes not sticks").0 == .blues)
-        #expect(GenerateTrackViewModel.decomposeStyle("Blues - slow, brushes not sticks").1 == "slow, brushes not sticks")
+        #expect(decomposeStyle("Blues - slow, brushes not sticks").0 == .blues)
+        #expect(decomposeStyle("Blues - slow, brushes not sticks").1 == "slow, brushes not sticks")
     }
 
     @Test func decomposeStyleHandlesAStyleWithNoNotes() {
-        let (style, notes) = GenerateTrackViewModel.decomposeStyle("Rock")
+        let (style, notes) = decomposeStyle("Rock")
         #expect(style == .rock)
         #expect(notes.isEmpty)
     }
 
     @Test func decomposeStyleOnlySplitsOnTheFirstSeparator() {
-        let (style, notes) = GenerateTrackViewModel.decomposeStyle("Jazz - laid back - a touch of swing")
+        let (style, notes) = decomposeStyle("Jazz - laid back - a touch of swing")
         #expect(style == .jazz)
         #expect(notes == "laid back - a touch of swing")
     }
 
     @Test func decomposeStyleReturnsNilForANonPresetStyle() {
-        let (style, notes) = GenerateTrackViewModel.decomposeStyle("Sludgecore - down-tuned")
+        let (style, notes) = decomposeStyle("Sludgecore - down-tuned")
         #expect(style == nil)
         #expect(notes.isEmpty)
     }
@@ -365,7 +365,7 @@ struct GenerateTrackViewModelTests {
         model.selectedStyle = style
         model.styleNotes = "warm, roomy"
 
-        let (decomposed, notes) = GenerateTrackViewModel.decomposeStyle(model.composedStyle)
+        let (decomposed, notes) = decomposeStyle(model.composedStyle)
 
         #expect(decomposed == style)
         #expect(notes == "warm, roomy")

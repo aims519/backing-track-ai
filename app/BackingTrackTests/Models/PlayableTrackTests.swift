@@ -17,7 +17,8 @@ struct PlayableTrackTests {
             keyMode: "Ionian",
             timeSignature: timeSignature,
             chordSymbols: chordSymbols,
-            title: nil
+            title: nil,
+            style: nil
         )
     }
 

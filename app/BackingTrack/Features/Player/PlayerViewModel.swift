@@ -103,7 +103,8 @@ final class PlayerViewModel {
                 keyMode: input.keyMode,
                 timeSignature: input.timeSignature,
                 chordSymbols: input.chordSymbols,
-                title: input.title
+                title: input.title,
+                style: decomposeStyle(input.title ?? "").0
             )
 
             let engine = makeEngine(playable)
