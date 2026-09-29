@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.Logging;
@@ -61,6 +62,26 @@ public class JobStore(ILogger<JobStore> logger)
 
     private static GenerationJob MarkCancelled(GenerationJob job) =>
         job with { State = JobStates.Cancelled, EndTime = DateTimeOffset.UtcNow };
+
+    /// Atomically moves a job from Pending to InProgress. Returns false, leaving the job untouched,
+    /// if it is missing or in any other state - notably Cancelled, which a `TryGet` check followed by
+    /// `AddOrUpdate(snapshot with { State = InProgress })` would silently overwrite if `CancelAsync`
+    /// landed in between. `TryUpdate` compares by reference, so a concurrent `AppendJobFeedback`
+    /// (which swaps in a new instance) makes it retry instead of being discarded.
+    public bool TryStartJob(Guid jobId, [NotNullWhen(true)] out GenerationJob? startedJob)
+    {
+        while (_generationJobs.TryGetValue(jobId, out GenerationJob? existing) && existing.State == JobStates.Pending)
+        {
+            startedJob = existing with { State = JobStates.InProgress };
+            if (_generationJobs.TryUpdate(jobId, startedJob, existing))
+            {
+                return true;
+            }
+        }
+
+        startedJob = null;
+        return false;
+    }
 
     public void AppendJobFeedback(Guid jobId, JobFeedback newFeedbackItem)
     {

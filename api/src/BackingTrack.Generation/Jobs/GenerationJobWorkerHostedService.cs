@@ -32,25 +32,16 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
 
     private async Task ProcessGenerationJobAsync(Guid jobId, CancellationToken stoppingToken)
     {
-        GenerationJob? generationJob = jobStore.TryGet(jobId);
-        if (generationJob == null)
+        // Atomic Pending -> InProgress, so a /cancel landing after this check can't be overwritten.
+        if (!jobStore.TryStartJob(jobId, out GenerationJob? startedJob))
         {
-            logger.LogInformation("Job {Id} does not exist", jobId);
-            return;
-        }
-
-        if (generationJob.State == JobStates.Cancelled)
-        {
-            logger.LogInformation("Job {Id} was cancelled before it started", jobId);
+            logger.LogInformation("Job {Id} does not exist or was not pending (e.g. cancelled before it started), skipping", jobId);
             return;
         }
 
         using Activity? activity = GenerationJobActivitySource.Instance.StartActivity($"{nameof(GenerationJobWorkerHostedService)}.ProcessGenerationJobAsync");
-        activity?.SetTag("job.id", generationJob.Id);
-        activity?.SetTag("job.mode", generationJob.Mode);
-
-        GenerationJob updatedJob = generationJob with { State = JobStates.InProgress };
-        jobStore.AddOrUpdate(updatedJob);
+        activity?.SetTag("job.id", startedJob.Id);
+        activity?.SetTag("job.mode", startedJob.Mode);
 
         logger.LogInformation("Job {Id} started", jobId);
 
@@ -64,7 +55,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
         StreamingRun? run = null;
         try
         {
-            run = await InProcessExecution.RunStreamingAsync(generationWorkflow, generationJob, cancellationToken: stoppingToken);
+            run = await InProcessExecution.RunStreamingAsync(generationWorkflow, startedJob, cancellationToken: stoppingToken);
             jobStore.RegisterJobRun(jobId, run);
 
             GenerationOutcome? outcome = null;
@@ -96,7 +87,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     if (jobStore.TryGet(jobId) is { } completedJob)
                         await pushNotificationEmitter.SendApnsPushNotificationAsync(completedJob);
 
-                    logger.LogDebug("Job {Id} completed track saved: {Track}", generationJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
+                    logger.LogDebug("Job {Id} completed track saved: {Track}", startedJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
                     logger.LogInformation("Job {Id} completed", jobId);
 
                     generationJobMetrics.RecordAttempts(succeeded.Attempts, "success");
