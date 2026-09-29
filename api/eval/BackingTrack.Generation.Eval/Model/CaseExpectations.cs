@@ -29,6 +29,14 @@ public sealed record CaseExpectations
 
     /// <summary>Inclusive upper bound on the critic attempt count, when the case constrains it.</summary>
     public int? MaxCriticAttempts { get; init; }
+
+    /// <summary>
+    /// Inclusive lower bound on the average number of timekeeping hits (hi-hat or ride) per bar.
+    /// Averaged rather than checked per bar so a legitimate fill bar doesn't fail the case —
+    /// the failure this guards against is a whole groove with the timekeeping thinned out or
+    /// missing, which left a rock track sounding empty.
+    /// </summary>
+    public double? MinAverageTimekeepingHitsPerBar { get; init; }
 }
 
 public enum ExpectedOutcome

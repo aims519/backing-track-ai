@@ -51,6 +51,7 @@ public sealed class WorkflowGenerationRunner(IServiceScopeFactory scopeFactory) 
                 Attempts = succeeded.Attempts,
                 CriticAttempts = succeeded.CriticAttempts,
                 TrackId = succeeded.TrackId,
+                Track = succeeded.CandidateTrack,
                 Elapsed = elapsed
             },
             GenerationFailed failed => new GenerationRunResult
