@@ -75,4 +75,26 @@ public class JobStoreTests
         Assert.Equal(JobStates.Complete, result.State);
         Assert.Equal(2, result.FeedbackItems.Count);
     }
+
+    [Fact]
+    public async Task CancelAsync_ConcurrentWithAppendJobFeedback_LosesNeitherWrite()
+    {
+        // CancelAsync used to TryGet a snapshot then AddOrUpdate it with State = Cancelled, which
+        // could discard feedback appended in between. It now goes through UpdateJob.
+        for (int i = 0; i < 200; i++)
+        {
+            JobStore store = CreateStore();
+            GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+            store.AddOrUpdate(job);
+
+            Task cancel = Task.Run(() => store.CancelAsync(job.Id), TestContext.Current.CancellationToken);
+            Task append = Task.Run(() => store.AppendJobFeedback(job.Id, new JobFeedback(DateTime.UtcNow, "Retrieval", "Retrieving...", 1)), TestContext.Current.CancellationToken);
+            await Task.WhenAll(cancel, append);
+
+            GenerationJob? result = store.TryGet(job.Id);
+            Assert.NotNull(result);
+            Assert.Equal(JobStates.Cancelled, result.State);
+            Assert.Single(result.FeedbackItems);
+        }
+    }
 }
