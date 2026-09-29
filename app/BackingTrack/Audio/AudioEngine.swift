@@ -14,12 +14,23 @@ final class AudioEngine {
     
     private let engine = AVAudioEngine()
     private let bassSampler = AVAudioUnitSampler()
+    private let bassReverb = AVAudioUnitReverb()
     private let bassMixer = AVAudioMixerNode()
     private let drumSampler = AVAudioUnitSampler()
+    private let drumReverb = AVAudioUnitReverb()
     private let drumMixer = AVAudioMixerNode()
     private let chordSampler = AVAudioUnitSampler()
+    private let chordEq = AVAudioUnitEQ(numberOfBands: 1)
+    private let chordReverb = AVAudioUnitReverb()
     private let chordMixer = AVAudioMixerNode()
     private var sequencer: AVAudioSequencer?
+    private let limiter = AVAudioUnitEffect(audioComponentDescription: AudioComponentDescription(
+        componentType: kAudioUnitType_Effect,
+        componentSubType: kAudioUnitSubType_PeakLimiter,
+        componentManufacturer: kAudioUnitManufacturer_Apple,
+        componentFlags: 0,
+        componentFlagsMask: 0
+    ))
 
     /// Two bars of woodblock clicks before playback starts, when `isCountInEnabled`. Scheduled by
     /// a `Task` off `play()` rather than baked into the sequence — the sequencer has no time
@@ -138,21 +149,56 @@ final class AudioEngine {
                 bankLSB: UInt8(kAUSampler_DefaultBankLSB)         // 0x00
             )
             
+            // EQ config
+            let highPass = chordEq.bands[0]
+            highPass.filterType = .highPass
+            highPass.frequency = 140
+            highPass.bypass = false
+            
+            // Reverb config
+            drumReverb.loadFactoryPreset(.mediumRoom)
+            drumReverb.wetDryMix = 20
+            
+            bassReverb.loadFactoryPreset(.mediumRoom)
+            bassReverb.wetDryMix = 30
+            
+            chordReverb.loadFactoryPreset(.mediumRoom)
+            chordReverb.wetDryMix = 50
+            
             // Connect samplers to engine
             engine.attach(bassSampler)
+            engine.attach(bassReverb)
             engine.attach(bassMixer)
-            engine.connect(bassSampler, to: bassMixer, format: nil)
+            engine.connect(bassSampler, to: bassReverb, format: nil)
+            engine.connect(bassReverb, to: bassMixer, format: nil)
             engine.connect(bassMixer, to: engine.mainMixerNode, format: nil)
             
             engine.attach(drumSampler)
+            engine.attach(drumReverb)
             engine.attach(drumMixer)
-            engine.connect(drumSampler, to: drumMixer, format: nil)
+            engine.connect(drumSampler, to: drumReverb, format: nil)
+            engine.connect(drumReverb, to: drumMixer, format: nil)
             engine.connect(drumMixer, to: engine.mainMixerNode, format: nil)
             
             engine.attach(chordSampler)
+            engine.attach(chordEq)
+            engine.attach(chordReverb)
             engine.attach(chordMixer)
-            engine.connect(chordSampler, to: chordMixer, format: nil)
+            engine.connect(chordSampler, to: chordEq, format: nil)
+            engine.connect(chordEq, to: chordReverb, format: nil)
+            engine.connect(chordReverb, to: chordMixer, format: nil)
             engine.connect(chordMixer, to: engine.mainMixerNode, format: nil)
+            
+            // Mixer config
+            bassMixer.pan = 0
+            drumMixer.pan = 0
+            chordMixer.pan = -0.4
+            
+            // Limiter to prevent clipping
+            engine.attach(limiter)
+            engine.disconnectNodeOutput(engine.mainMixerNode)
+            engine.connect(engine.mainMixerNode, to: limiter, format: nil)
+            engine.connect(limiter, to: engine.outputNode, format: nil)
             
             
             // Count-in click — Standard Kit, played by note number (76/77 = wood block). Straight
