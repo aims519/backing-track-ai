@@ -26,7 +26,7 @@ updates:
         patterns:
           - "Microsoft.NET.Test.Sdk"
           - "coverlet.*"
-          - "Moq"
+          - "NSubstitute"
 
   - package-ecosystem: github-actions
     directory: "/"
