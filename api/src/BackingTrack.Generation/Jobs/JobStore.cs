@@ -116,4 +116,6 @@ public class JobStore(ILogger<JobStore> logger)
             logger.LogError(e, "Job {Id} was not found", jobId);
         }
     }
+
+    public int JobCount => _generationJobs.Count;
 }

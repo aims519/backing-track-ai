@@ -21,7 +21,7 @@ internal static class TrackEndpoints
         return group;
     }
 
-    private static IResult Generate(GenerationRequestDto requestDto, JobStore jobStore, GenerationJobQueue jobQueue, ChordSymbolParser chordSymbolParser, IRetrieveStep retrieveStep, ScaleMatcher scaleMatcher, ILoggerFactory loggerFactory)
+    private static IResult Generate(GenerationRequestDto requestDto, JobStore jobStore, GenerationJobQueue jobQueue, ChordSymbolParser chordSymbolParser, IRetrieveStep retrieveStep, ScaleMatcher scaleMatcher, ILoggerFactory loggerFactory, HttpContext context)
     {
         ILogger logger = loggerFactory.CreateLogger(nameof(TrackEndpoints));
 
@@ -54,7 +54,13 @@ internal static class TrackEndpoints
         };
 
         jobStore.AddOrUpdate(job);
-        jobQueue.Writer.TryWrite(job.Id);
+        if (!jobQueue.Writer.TryWrite(job.Id))
+        {
+            jobStore.Remove(job.Id);
+            logger.LogWarning("Job {JobId} could not be written to the processing queue", job.Id);
+            context.Response.Headers.RetryAfter = "30";
+            return Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable, title: "Generation queue is unavailable");
+        }
 
         logger.LogInformation("Generation job {Id} created in a {State} state", job.Id, job.State);
 
