@@ -38,20 +38,6 @@
 	<key>StatusPollInterval</key>
 	<string>$(STATUS_POLL_INTERVAL)</string>
 
-	<!--
-	  The API is plain HTTP: localhost in development, and the Pi over Tailscale otherwise —
-	  no TLS terminates on the Pi. App Transport Security blocks cleartext by default, so it's
-	  disabled here. Acceptable because the Tailscale (WireGuard) tunnel already encrypts every
-	  byte in transit, this is a single-user app with no App Store distribution
-	  (docs/backing-track-generator-scope.md), and a scoped NSExceptionDomains entry can't name
-	  the Pi host — it's per-machine in Config/Local.xcconfig. See ADR 0022.
-	-->
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-	</dict>
-
 	<!-- Prevent iOS suspending the audio engine on screen lock -->
 	<key>UIBackgroundModes</key>
 	<array>

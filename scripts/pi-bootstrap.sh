@@ -5,7 +5,9 @@
 # Idempotent: safe to re-run if a step failed partway through.
 #
 # What this does NOT do: start the service (no binary exists yet — that happens on the
-# first CI deploy), or touch Tailscale/GitHub — those are separate manual steps.
+# first CI deploy), or touch GitHub — that's a separate manual step. Tailscale is only
+# touched to publish the API over HTTPS via `tailscale serve` (ADR 0042); joining the
+# tailnet and enabling HTTPS certificates in the admin console are still manual.
 
 set -euo pipefail
 
@@ -96,6 +98,13 @@ EOF
 
 systemctl daemon-reload
 systemctl enable backingtrack-api.service
+
+echo "== Publishing the API over HTTPS via tailscale serve (ADR 0042) =="
+# The iOS app requires HTTPS (ATS is on). Tailscale terminates TLS on :443 with a cert for the
+# node's *.ts.net name and proxies to Kestrel's plain-HTTP listener. --bg persists the config
+# across reboots, and re-running it with the same target is a no-op, so this stays idempotent.
+# Needs HTTPS certificates enabled for the tailnet (admin console > DNS > HTTPS Certificates).
+tailscale serve --bg 5080
 
 echo
 echo "== Bootstrap done. Remaining manual steps (not done by this script): =="
