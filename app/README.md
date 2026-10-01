@@ -28,7 +28,7 @@ terminal state and showing a "Track ready" or failure result. Vibe mode is shown
 but disabled (its backend doesn't exist yet). See
 [ADR 0020](../docs/adr/0020-structured-chord-picker-over-free-text.md) for why chord entry is a
 constrained picker rather than a text field,
-[ADR 0022](../docs/adr/0022-plaintext-http-over-tailscale-ats-disabled.md) for the plain-HTTP /
+[ADR 0042](../docs/adr/0042-https-via-tailscale-serve-ats-enabled.md) for the HTTPS /
 ATS posture, and
 [ADR 0023](../docs/adr/0023-client-derived-generation-progress.md) for how the progress screen
 derives its feedback and handles a stuck job, and
@@ -68,8 +68,7 @@ The app reads the API's base URL from the `API_BASE_URL` build setting (surfaced
 — so the simulator works with no extra setup. For **Release** / on-device builds, set the Pi's
 Tailscale URL in `Config/Local.xcconfig` (gitignored, per-machine like `DEVELOPMENT_TEAM`);
 `Config/Local.xcconfig.example` shows the line and the `//`-escaping the xcconfig format needs.
-A Release build with no value set fails fast at launch. The transport is plain HTTP over the
-Tailscale tunnel — see [ADR 0022](../docs/adr/0022-plaintext-http-over-tailscale-ats-disabled.md).
+A Release build with no value set fails fast at launch. The transport uses HTTPS (certificate generated via `tailscale serve`) — see [ADR 0042](../docs/adr/0042-https-via-tailscale-serve-ats-enabled.md).
 
 Paste a matching `Auth:ApiKey` value into the app's Settings screen; it's stored in the
 Keychain and sent as `X-API-Key`.
