@@ -1,6 +1,6 @@
 # 0022. Plaintext HTTP to the API over Tailscale; App Transport Security disabled
 
-Status: Accepted
+Status: Superseded by [0042](0042-https-via-tailscale-serve-ats-enabled.md)
 
 ## Context
 
