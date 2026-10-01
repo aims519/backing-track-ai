@@ -16,7 +16,17 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     public const string ApiKey = "test-api-key";
 
     /// <summary>Low enough to trip in a test without a loop of dozens of requests.</summary>
-    public const int RateLimitPermits = 3;
+    public static int RateLimitPermits = 3;
+
+    // Program reads RateLimit and Otel eagerly from builder.Configuration, before ConfigureAppConfiguration
+    // sources exist, so those two have to arrive as environment variables - the one source that is both in
+    // place by then and layered above appsettings.Development.json. Constant values, so process-wide is safe.
+    static ApiFactory()
+    {
+        Environment.SetEnvironmentVariable("RateLimit__PermitLimit", RateLimitPermits.ToString());
+        Environment.SetEnvironmentVariable("RateLimit__WindowSeconds", "60");
+        Environment.SetEnvironmentVariable("Otel__IsEnabled", "false");
+    }
 
     private readonly string _trackFolder = Directory.CreateTempSubdirectory("backing-track-tests").FullName;
 
@@ -24,16 +34,18 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // UseSetting, not ConfigureAppConfiguration: Program reads RateLimit and Otel from
-        // builder.Configuration while building services, before later config sources are layered in.
+        // An in-memory source added here is layered last, so it beats appsettings.Development.json and
+        // the user secrets that Program adds unconditionally - the dev machine's real Auth:ApiKey would
+        // otherwise win over the test key. Plain UseSetting values sit below both of those.
+        // Only valid for settings read lazily via IOptions; see the static constructor for the eager ones.
         builder.UseEnvironment("Development");
-        builder.UseSetting("Auth:ApiKey", ApiKey);
-        builder.UseSetting("RateLimit:PermitLimit", RateLimitPermits.ToString());
-        builder.UseSetting("RateLimit:WindowSeconds", "60");
-        builder.UseSetting("Otel:IsEnabled", "false");
-        builder.UseSetting("TrackStorage:BaseFolderPath", _trackFolder);
-        builder.UseSetting("VoyageAi:ApiKey", "unused");
-        builder.UseSetting("OpenAi:ApiKey", "unused");
+        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Auth:ApiKey"] = ApiKey,
+            ["TrackStorage:BaseFolderPath"] = _trackFolder,
+            ["VoyageAi:ApiKey"] = "unused",
+            ["OpenAi:ApiKey"] = "unused",
+        }));
 
         builder.ConfigureServices(services =>
         {
