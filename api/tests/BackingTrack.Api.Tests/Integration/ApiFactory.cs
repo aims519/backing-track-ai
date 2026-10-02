@@ -26,6 +26,15 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("RateLimit__PermitLimit", RateLimitPermits.ToString());
         Environment.SetEnvironmentVariable("RateLimit__WindowSeconds", "60");
         Environment.SetEnvironmentVariable("Otel__IsEnabled", "false");
+
+        // AddPushNotifications also reads its section eagerly, and a developer's user secrets usually hold real
+        // APNs credentials that make it register the real emitter, so locally the tests would take a different
+        // path from CI (which has no secrets). Making the config unusable pins every machine to the NoOp emitter.
+        // User secrets are added after environment variables, so they win for any key they define: pin keys that
+        // normally come from appsettings.json (ServerUrl, BundleId), not the credentials (TeamId, P8Key*) that live
+        // in secrets. A whitespace value is needed - the binder ignores an empty one.
+        Environment.SetEnvironmentVariable("Apns__ServerUrl", " ");
+        Environment.SetEnvironmentVariable("Apns__BundleId", " ");
     }
 
     private readonly string _trackFolder = Directory.CreateTempSubdirectory("backing-track-tests").FullName;

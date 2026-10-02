@@ -1,5 +1,4 @@
 using System.ClientModel;
-using System.Net;
 using System.Threading.Channels;
 
 using BackingTrack.Core.Config;
@@ -9,6 +8,7 @@ using BackingTrack.Generation.Workflows.Executors;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 using OpenAI;
@@ -94,8 +94,14 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddJobProcessing(this IServiceCollection services)
+    public static IServiceCollection AddJobProcessing(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddOptions<JobEvictionSettings>()
+            .Bind(configuration.GetSection("JobEviction"))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<JobEvictionSettings>, JobEvictionSettingsValidator>();
+
+        services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<JobStore>();
         services.AddSingleton<IJobStatusEmitter, JobStatusEmitter>();
 
@@ -103,6 +109,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(new GenerationJobQueue(jobChannel));
         services.AddSingleton<GenerationJobMetrics>();
         services.AddHostedService<GenerationJobWorkerHostedService>();
+        services.AddHostedService<GenerationJobEvictionHostedService>();
 
         return services;
     }

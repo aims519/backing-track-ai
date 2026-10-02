@@ -15,3 +15,6 @@ internal sealed partial class CriticSettingsValidator : IValidateOptions<CriticS
 
 [OptionsValidator]
 internal sealed partial class TrackStorageSettingsValidator : IValidateOptions<TrackStorageSettings>;
+
+[OptionsValidator]
+internal sealed partial class JobEvictionSettingsValidator : IValidateOptions<JobEvictionSettings>;

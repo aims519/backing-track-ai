@@ -118,4 +118,27 @@ public class JobStore(ILogger<JobStore> logger)
     }
 
     public int JobCount => _generationJobs.Count;
+
+    public int EvictTerminatedJobs(DateTimeOffset cutoff)
+    {
+        int evictedJobsCount = 0;
+        IEnumerable<KeyValuePair<Guid, GenerationJob>> keyValuePairsToRemove =
+            _generationJobs
+                .Where(p => IsJobTerminated(p.Value))
+                .Where(p => p.Value.EndTime < cutoff);
+
+        foreach (KeyValuePair<Guid, GenerationJob> keyValuePair in keyValuePairsToRemove)
+        {
+            if (_generationJobs.TryRemove(keyValuePair))
+                evictedJobsCount++;
+        }
+
+        return evictedJobsCount;
+    }
+
+    private bool IsJobTerminated(GenerationJob job) =>
+        job.State is JobStates.Cancelled
+            or JobStates.Complete
+            or JobStates.CompletedViaFallback
+            or JobStates.Failed;
 }

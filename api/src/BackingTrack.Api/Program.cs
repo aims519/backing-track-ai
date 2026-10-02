@@ -41,7 +41,7 @@ builder.AddObservability();
 builder.Services.AddRateLimits(builder.Configuration);
 
 // Job Processing
-builder.Services.AddJobProcessing();
+builder.Services.AddJobProcessing(builder.Configuration);
 builder.Services.AddPushNotifications(builder.Configuration);
 
 // Vector Store Initialisation
