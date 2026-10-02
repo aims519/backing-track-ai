@@ -1,5 +1,4 @@
 using System.ClientModel;
-using System.Net;
 using System.Threading.Channels;
 
 using BackingTrack.Core.Config;
@@ -94,8 +93,13 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddJobProcessing(this IServiceCollection services)
+    public static IServiceCollection AddJobProcessing(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddOptions<JobEvictionSettings>()
+            .Bind(configuration.GetSection("JobEviction"))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<JobEvictionSettings>, JobEvictionSettingsValidator>();
+
         services.AddSingleton<JobStore>();
         services.AddSingleton<IJobStatusEmitter, JobStatusEmitter>();
 
@@ -103,6 +107,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(new GenerationJobQueue(jobChannel));
         services.AddSingleton<GenerationJobMetrics>();
         services.AddHostedService<GenerationJobWorkerHostedService>();
+        services.AddHostedService<GenerationJobEvictionHostedService>();
 
         return services;
     }

@@ -47,3 +47,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0040](0040-testflight-on-every-main-push-with-xcodebuild-cloud-signing.md) | TestFlight upload on every push to main with plain `xcodebuild` and cloud signing, over fastlane / Xcode Cloud / tag-triggered releases |
 | [0041](0041-client-side-per-style-instruments-and-effects-chain.md) | Client-side per-style instrument mapping and a fixed per-voice effects chain, over API-chosen instruments |
 | [0042](0042-https-via-tailscale-serve-ats-enabled.md) | HTTPS to the API via `tailscale serve`; App Transport Security left on |
+| [0043](0043-ttl-eviction-of-finished-jobs-from-the-in-memory-store.md) | TTL eviction of finished jobs from the in-memory job store, over evicting immediately or keeping them forever |
