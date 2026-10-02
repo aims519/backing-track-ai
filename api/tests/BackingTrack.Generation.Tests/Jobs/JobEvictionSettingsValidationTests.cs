@@ -63,4 +63,23 @@ public class JobEvictionSettingsValidationTests
         await Assert.ThrowsAsync<OptionsValidationException>(
             () => host.StartAsync(TestContext.Current.CancellationToken));
     }
+
+    [Fact]
+    public async Task StartAsync_NoTimeProviderRegisteredByTheCaller_StillStarts()
+    {
+        // BuildHost registers a fake clock, which would hide a missing TimeProvider registration. That
+        // registration used to live only in the APNs-configured branch of AddPushNotifications, so a host
+        // without APNs settings (CI, any deployment without push) failed to construct the eviction service.
+        HostApplicationBuilder builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["JobEviction:SweepIntervalSeconds"] = "60",
+            ["JobEviction:JobTtlSeconds"] = "3600",
+        });
+        builder.Services.AddJobProcessing(builder.Configuration);
+        using IHost host = builder.Build();
+
+        await host.StartAsync(TestContext.Current.CancellationToken);
+        await host.StopAsync(TestContext.Current.CancellationToken);
+    }
 }
