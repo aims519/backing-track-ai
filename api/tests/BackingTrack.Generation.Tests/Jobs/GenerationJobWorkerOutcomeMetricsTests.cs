@@ -205,16 +205,38 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
     }
 
     [Fact]
-    public async Task Job_that_was_cancelled_before_it_started_is_not_recorded_by_the_worker()
+    public async Task Job_cancelled_before_it_started_records_cancelled_with_the_jobs_mode()
     {
-        // TODO: revisit once it's decided where pending-cancelled jobs are counted. The worker skips them
-        // at TryStartJob; if they're counted at the cancel site instead, the worker must stay silent.
-        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        // JobStore marks a pending job Cancelled directly, and the worker then skips it at TryStartJob,
+        // so the worker's skip is the only place that can count it.
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob() with { Mode = GenerationMode.Vibe };
         _store.AddOrUpdate(job);
         await _store.CancelAsync(job.Id);
         await _queue.Writer.WriteAsync(job.Id, TestContext.Current.CancellationToken);
 
         // A second, normal job lets us know the worker has got past the cancelled one.
+        GenerationJob next = WorkflowTestFixtures.CreateGenerationJob();
+        _store.AddOrUpdate(next);
+        await _queue.Writer.WriteAsync(next.Id, TestContext.Current.CancellationToken);
+
+        using ServiceProvider provider = BuildProvider();
+        await RunWorkerAsync(CreateWorker(provider), async () =>
+        {
+            await WaitUntilAsync(() => _store.TryGet(next.Id)?.State == JobStates.Complete);
+            await SettleAsync();
+
+            Assert.Equal(2, _capture.Measurements.Count);
+            Assert.Single(_capture.Measurements, m => (string?)m.Tags["outcome"] == "cancelled" && (string?)m.Tags["mode"] == "vibe");
+            Assert.Single(_capture.Measurements, m => (string?)m.Tags["outcome"] == "complete" && (string?)m.Tags["mode"] == "precise");
+        });
+    }
+
+    [Fact]
+    public async Task Queued_job_missing_from_the_store_is_not_recorded()
+    {
+        // Eviction can remove a job before the worker dequeues it; there is nothing to count.
+        await _queue.Writer.WriteAsync(Guid.NewGuid(), TestContext.Current.CancellationToken);
+
         GenerationJob next = WorkflowTestFixtures.CreateGenerationJob();
         _store.AddOrUpdate(next);
         await _queue.Writer.WriteAsync(next.Id, TestContext.Current.CancellationToken);

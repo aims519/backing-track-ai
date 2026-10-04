@@ -84,6 +84,10 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
         // Atomic Pending -> InProgress, so a /cancel landing after this check can't be overwritten.
         if (!jobStore.TryStartJob(jobId, out GenerationJob? startedJob))
         {
+            // Record cancelled while pending, not visible elsewhere
+            if (jobStore.TryGet(jobId) is { State: JobStates.Cancelled })
+                TryRecordJobOutcome(jobId);
+
             logger.LogInformation("Job {Id} does not exist or was not pending (e.g. cancelled before it started), skipping", jobId);
             return;
         }
