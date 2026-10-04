@@ -32,7 +32,8 @@ public static class ServiceCollectionExtensions
             VoyageAiSettings settings = sp.GetRequiredService<IOptions<VoyageAiSettings>>().Value;
             client.BaseAddress = new(settings.RestApiBaseUrl);
             client.DefaultRequestHeaders.Authorization = new("Bearer", settings.ApiKey);
-        });
+        })
+        .AddStandardResilienceHandler(options => options.Retry.ShouldRetryAfterHeader = true);
 
         return services;
     }
