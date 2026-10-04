@@ -35,6 +35,8 @@ public class GenerationJobMetrics : IDisposable
         _attemptsUsed.Add(1, new TagList { { "attempts", attempts }, { "outcome", outcome } });
     }
 
+    // Counts every job exactly once. attempts_used is only recorded when an attempt count exists and uses
+    // its own success/failed outcome values, so its total won't match this one.
     public void RecordOutcome(JobStates state, GenerationMode mode)
     {
         // Explicit strings instead of state.ToString(): tag values are a dashboard contract
