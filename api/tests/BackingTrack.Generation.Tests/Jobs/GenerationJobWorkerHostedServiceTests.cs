@@ -11,6 +11,7 @@ using NSubstitute;
 
 namespace BackingTrack.Generation.Tests.Jobs;
 
+[Collection(JobMetricsCollection.Name)]
 public class GenerationJobWorkerHostedServiceTests
 {
     [Fact]
