@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 
 using BackingTrack.Generation.KnowledgeBase;
@@ -84,6 +85,21 @@ public class VoyageAiQueryEmbeddingServiceRetryTests
         Assert.True(handler.CallCount > 1, $"Expected the call to be retried, but Voyage was only called {handler.CallCount} time(s)");
     }
 
+    [Fact]
+    public async Task EmbedQueryAsync_TooManyRequestsWithRetryAfter_WaitsForRetryAfterBeforeRetrying()
+    {
+        // Well above the pipeline's default backoff of a few seconds, so only the header can explain the gap.
+        TimeSpan retryAfter = TimeSpan.FromSeconds(20);
+        FakeTimeProvider timeProvider = new();
+        StubHttpMessageHandler handler = new(RateLimited(retryAfter), Success()) { Clock = timeProvider };
+
+        await EmbedAsync(handler, timeProvider);
+
+        Assert.Equal(2, handler.CallTimes.Count);
+        TimeSpan gap = handler.CallTimes[1] - handler.CallTimes[0];
+        Assert.True(gap >= retryAfter, $"Expected the retry to wait at least {retryAfter} for Retry-After, but it waited {gap}");
+    }
+
     [Theory]
     [InlineData(HttpStatusCode.BadRequest)]
     [InlineData(HttpStatusCode.Unauthorized)]
@@ -98,10 +114,10 @@ public class VoyageAiQueryEmbeddingServiceRetryTests
         Assert.Equal(1, handler.CallCount);
     }
 
-    private static async Task<float[]> EmbedAsync(StubHttpMessageHandler handler)
+    private static async Task<float[]> EmbedAsync(StubHttpMessageHandler handler, FakeTimeProvider? timeProvider = null)
     {
         // A fake clock stops the backoff delays making the tests slow; Polly takes its clock from DI.
-        FakeTimeProvider timeProvider = new();
+        timeProvider ??= new();
 
         ServiceCollection services = new();
         services.AddSingleton<TimeProvider>(timeProvider);
@@ -142,6 +158,13 @@ public class VoyageAiQueryEmbeddingServiceRetryTests
 
     private static Func<HttpResponseMessage> Status(HttpStatusCode status) => () => Response(status, "{}");
 
+    private static Func<HttpResponseMessage> RateLimited(TimeSpan retryAfter) => () =>
+    {
+        HttpResponseMessage response = Response(HttpStatusCode.TooManyRequests, "{}");
+        response.Headers.RetryAfter = new RetryConditionHeaderValue(retryAfter);
+        return response;
+    };
+
     private static HttpResponseMessage Response(HttpStatusCode status, string body) => new(status)
     {
         Content = new StringContent(body, Encoding.UTF8, "application/json")
@@ -150,12 +173,31 @@ public class VoyageAiQueryEmbeddingServiceRetryTests
     /// <summary>Plays back the supplied responses in order, repeating the last one once they run out.</summary>
     private sealed class StubHttpMessageHandler(params Func<HttpResponseMessage>[] responses) : HttpMessageHandler
     {
+        private readonly List<DateTimeOffset> _callTimes = [];
         private int _callCount;
+
+        /// <summary>When set, each call's time on this clock is recorded in <see cref="CallTimes"/>.</summary>
+        public TimeProvider? Clock { get; init; }
 
         public int CallCount => _callCount;
 
+        public IReadOnlyList<DateTimeOffset> CallTimes
+        {
+            get
+            {
+                lock (_callTimes)
+                    return [.. _callTimes];
+            }
+        }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            if (Clock is not null)
+            {
+                lock (_callTimes)
+                    _callTimes.Add(Clock.GetUtcNow());
+            }
+
             int index = Math.Min(Interlocked.Increment(ref _callCount) - 1, responses.Length - 1);
             return Task.FromResult(responses[index]());
         }

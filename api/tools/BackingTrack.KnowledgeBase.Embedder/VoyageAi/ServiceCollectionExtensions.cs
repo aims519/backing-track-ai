@@ -16,6 +16,6 @@ public static class ServiceCollectionExtensions
             client.BaseAddress = new(configuration.GetValue<string>("VoyageAi:RestApiBaseUrl")!);
             client.DefaultRequestHeaders.Authorization = new("Bearer", configuration.GetValue<string>("VoyageAi:ApiKey"));
         })
-        .AddStandardResilienceHandler();
+        .AddStandardResilienceHandler(options => options.Retry.ShouldRetryAfterHeader = true);
     }
 }

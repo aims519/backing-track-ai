@@ -33,7 +33,7 @@ public static class ServiceCollectionExtensions
             client.BaseAddress = new(settings.RestApiBaseUrl);
             client.DefaultRequestHeaders.Authorization = new("Bearer", settings.ApiKey);
         })
-        .AddStandardResilienceHandler();
+        .AddStandardResilienceHandler(options => options.Retry.ShouldRetryAfterHeader = true);
 
         return services;
     }
