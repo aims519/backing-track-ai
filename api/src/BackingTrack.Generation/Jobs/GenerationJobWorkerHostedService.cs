@@ -44,17 +44,15 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 // Only fail a job that hasn't reached a terminal state: a throw from the push
                 // notification after the job completed or was cancelled mustn't rewrite that outcome.
                 bool markedFailed = false;
-                GenerationMode mode = default;
                 jobStore.UpdateJob(jobId, current =>
                 {
-                    mode = current.Mode;
                     markedFailed = current.State is JobStates.Pending or JobStates.InProgress;
                     return markedFailed ? current with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow } : current;
                 });
 
                 if (markedFailed)
                 {
-                    generationJobMetrics.RecordOutcome(JobStates.Failed, mode);
+                    TryRecordJobOutcome(jobId);
                     await TrySendFailurePushAsync(jobId);
                 }
             }
@@ -135,12 +133,8 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                         TrackId = succeeded.TrackId
                     });
 
-                    if (jobStore.TryGet(jobId) is { } completedJob)
-                    {
-                        generationJobMetrics.RecordOutcome(completedJob.State, completedJob.Mode);
+                    if (TryRecordJobOutcome(jobId) is { } completedJob)
                         await pushNotificationEmitter.SendApnsPushNotificationAsync(completedJob);
-                    }
-
 
                     logger.LogDebug("Job {Id} completed track saved: {Track}", startedJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
                     logger.LogInformation("Job {Id} completed", jobId);
@@ -151,13 +145,8 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 case GenerationFailed failed when !alreadyCancelled:
                     jobStore.UpdateJob(jobId, current => current with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow });
 
-                    // Recorded before the push: a throwing push escapes to the catch-all, which leaves an
-                    // already-terminal job alone, so recording afterwards would drop this outcome.
-                    if (jobStore.TryGet(jobId) is { } failedJob)
-                    {
-                        generationJobMetrics.RecordOutcome(failedJob.State, failedJob.Mode);
+                    if (TryRecordJobOutcome(jobId) is { } failedJob)
                         await pushNotificationEmitter.SendApnsPushNotificationAsync(failedJob);
-                    }
 
                     activity?.SetStatus(ActivityStatusCode.Error, failed.Reason);
                     logger.LogError("Job {Id} failed: {Reason}", jobId, failed.Reason);
@@ -174,8 +163,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     activity?.SetStatus(ActivityStatusCode.Error);
                     logger.LogInformation("Job {Id} was cancelled", jobId);
 
-                    if (jobStore.TryGet(jobId) is { } cancelledJob)
-                        generationJobMetrics.RecordOutcome(cancelledJob.State, cancelledJob.Mode);
+                    TryRecordJobOutcome(jobId);
                     break;
 
                 case null:
@@ -184,11 +172,8 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
 
                     jobStore.UpdateJob(jobId, current => current with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow });
 
-                    if (jobStore.TryGet(jobId) is { } unexpectedFailedJob)
-                    {
-                        generationJobMetrics.RecordOutcome(unexpectedFailedJob.State, unexpectedFailedJob.Mode);
+                    if (TryRecordJobOutcome(jobId) is { } unexpectedFailedJob)
                         await pushNotificationEmitter.SendApnsPushNotificationAsync(unexpectedFailedJob);
-                    }
                     break;
             }
         }
@@ -197,5 +182,16 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
             jobStore.UnregisterJobRun(jobId);
             if (run is not null) await run.DisposeAsync();
         }
+    }
+
+    // Records the outcome, then returns the job for the caller's push notification. Callers must record
+    // first: a throwing push escapes to the catch-all, which ignores jobs already in a terminal state.
+    private GenerationJob? TryRecordJobOutcome(Guid jobId)
+    {
+        if (jobStore.TryGet(jobId) is not { } job)
+            return null;
+
+        generationJobMetrics.RecordOutcome(job.State, job.Mode);
+        return job;
     }
 }
