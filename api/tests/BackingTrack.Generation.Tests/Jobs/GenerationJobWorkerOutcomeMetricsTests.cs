@@ -29,8 +29,6 @@ namespace BackingTrack.Generation.Tests.Jobs;
 [Collection(JobMetricsCollection.Name)]
 public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
 {
-    private const string OutcomeInstrument = "generation_job.completed";
-
     private static readonly CandidateTrack Track = new(16, [], [], []);
 
     private readonly string _trackFolder = Directory.CreateTempSubdirectory("worker-outcome-tests").FullName;
@@ -45,7 +43,7 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
     private readonly JobStore _store = new(NullLogger<JobStore>.Instance);
     private readonly GenerationJobQueue _queue = new(Channel.CreateUnbounded<Guid>());
     private readonly GenerationJobMetrics _metrics = new();
-    private readonly MeasurementCapture _capture = new(OutcomeInstrument);
+    private readonly MeasurementCapture _capture = new(MeasurementCapture.JobCompletedInstrument);
 
     private int _generationMaxAttempts = 3;
 
@@ -141,10 +139,7 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
         await _queue.Writer.WriteAsync(job.Id, TestContext.Current.CancellationToken);
 
         using ServiceProvider provider = BuildProvider();
-        GenerationJobWorkerHostedService worker = CreateWorker(provider);
-        await worker.StartAsync(TestContext.Current.CancellationToken);
-
-        try
+        await RunWorkerAsync(CreateWorker(provider), async () =>
         {
             await started.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
@@ -155,17 +150,13 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
                 await _store.CancelAsync(job.Id);
                 return _store.TryGet(job.Id)?.State == JobStates.Cancelled;
             });
-            await WaitUntilAsync(() => Task.FromResult(_capture.Measurements.Count > 0));
+            await WaitUntilAsync(() => _capture.Measurements.Count > 0);
             await SettleAsync();
 
             // The cancel path marks the job Cancelled directly and the executor also yields
             // GenerationCancelled; the job must still be counted once, and never as failed.
             AssertSingleOutcome("cancelled", "precise");
-        }
-        finally
-        {
-            await worker.StopAsync(TestContext.Current.CancellationToken);
-        }
+        });
     }
 
     [Fact]
@@ -181,19 +172,13 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
         await _queue.Writer.WriteAsync(job.Id, TestContext.Current.CancellationToken);
 
         GenerationJobWorkerHostedService worker = new(_store, _queue, NullLogger<GenerationJobWorkerHostedService>.Instance, _metrics, throwingScopeFactory);
-        await worker.StartAsync(TestContext.Current.CancellationToken);
-
-        try
+        await RunWorkerAsync(worker, async () =>
         {
-            await WaitUntilAsync(() => Task.FromResult(_capture.Measurements.Count > 0));
+            await WaitUntilAsync(() => _capture.Measurements.Count > 0);
             await SettleAsync();
 
             AssertSingleOutcome("failed", "vibe");
-        }
-        finally
-        {
-            await worker.StopAsync(TestContext.Current.CancellationToken);
-        }
+        });
     }
 
     [Fact]
@@ -235,20 +220,13 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
         await _queue.Writer.WriteAsync(next.Id, TestContext.Current.CancellationToken);
 
         using ServiceProvider provider = BuildProvider();
-        GenerationJobWorkerHostedService worker = CreateWorker(provider);
-        await worker.StartAsync(TestContext.Current.CancellationToken);
-
-        try
+        await RunWorkerAsync(CreateWorker(provider), async () =>
         {
-            await WaitUntilAsync(() => Task.FromResult(_store.TryGet(next.Id)?.State == JobStates.Complete));
+            await WaitUntilAsync(() => _store.TryGet(next.Id)?.State == JobStates.Complete);
             await SettleAsync();
 
             AssertSingleOutcome("complete", "precise");
-        }
-        finally
-        {
-            await worker.StopAsync(TestContext.Current.CancellationToken);
-        }
+        });
     }
 
     private async Task<GenerationJob> RunToTerminalStateAsync(IPushNotificationEmitter? push = null)
@@ -258,20 +236,26 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
         await _queue.Writer.WriteAsync(job.Id, TestContext.Current.CancellationToken);
 
         using ServiceProvider provider = BuildProvider(push);
-        GenerationJobWorkerHostedService worker = CreateWorker(provider);
-        await worker.StartAsync(TestContext.Current.CancellationToken);
+        await RunWorkerAsync(CreateWorker(provider), async () =>
+        {
+            await WaitUntilAsync(() => _capture.Measurements.Count > 0);
+            await SettleAsync();
+        });
 
+        return job;
+    }
+
+    private static async Task RunWorkerAsync(GenerationJobWorkerHostedService worker, Func<Task> whileRunning)
+    {
+        await worker.StartAsync(TestContext.Current.CancellationToken);
         try
         {
-            await WaitUntilAsync(() => Task.FromResult(_capture.Measurements.Count > 0));
-            await SettleAsync();
+            await whileRunning();
         }
         finally
         {
             await worker.StopAsync(TestContext.Current.CancellationToken);
         }
-
-        return job;
     }
 
     private GenerationJobWorkerHostedService CreateWorker(ServiceProvider provider) =>
@@ -325,6 +309,8 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
     // The measurement is recorded as the worker finishes the job, so a duplicate would land shortly
     // after the first; give it a moment so "exactly one" isn't just "one so far".
     private static Task SettleAsync() => Task.Delay(250, TestContext.Current.CancellationToken);
+
+    private static Task WaitUntilAsync(Func<bool> condition) => WaitUntilAsync(() => Task.FromResult(condition()));
 
     private static async Task WaitUntilAsync(Func<Task<bool>> condition)
     {

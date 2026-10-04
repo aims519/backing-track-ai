@@ -7,8 +7,6 @@ namespace BackingTrack.Generation.Tests.Jobs;
 [Collection(JobMetricsCollection.Name)]
 public class GenerationJobMetricsTests
 {
-    private const string OutcomeInstrument = "generation_job.completed";
-
     [Theory]
     [InlineData(JobStates.Complete, "complete")]
     [InlineData(JobStates.CompletedViaFallback, "completed_via_fallback")]
@@ -17,7 +15,7 @@ public class GenerationJobMetricsTests
     public void RecordOutcome_TerminalState_IncrementsCounterTaggedWithOutcome(JobStates state, string expectedOutcome)
     {
         using GenerationJobMetrics metrics = new();
-        using MeasurementCapture capture = new(OutcomeInstrument);
+        using MeasurementCapture capture = new(MeasurementCapture.JobCompletedInstrument);
 
         metrics.RecordOutcome(state, GenerationMode.Precise);
 
@@ -32,7 +30,7 @@ public class GenerationJobMetricsTests
     public void RecordOutcome_TagsWithGenerationMode(GenerationMode mode, string expectedMode)
     {
         using GenerationJobMetrics metrics = new();
-        using MeasurementCapture capture = new(OutcomeInstrument);
+        using MeasurementCapture capture = new(MeasurementCapture.JobCompletedInstrument);
 
         metrics.RecordOutcome(JobStates.Complete, mode);
 
@@ -43,7 +41,7 @@ public class GenerationJobMetricsTests
     public void RecordOutcome_CalledPerJob_EmitsOneMeasurementEach()
     {
         using GenerationJobMetrics metrics = new();
-        using MeasurementCapture capture = new(OutcomeInstrument);
+        using MeasurementCapture capture = new(MeasurementCapture.JobCompletedInstrument);
 
         metrics.RecordOutcome(JobStates.Complete, GenerationMode.Precise);
         metrics.RecordOutcome(JobStates.Complete, GenerationMode.Precise);
@@ -58,7 +56,7 @@ public class GenerationJobMetricsTests
     public void RecordOutcome_DoesNotTagWithHighCardinalityValues()
     {
         using GenerationJobMetrics metrics = new();
-        using MeasurementCapture capture = new(OutcomeInstrument);
+        using MeasurementCapture capture = new(MeasurementCapture.JobCompletedInstrument);
 
         metrics.RecordOutcome(JobStates.Failed, GenerationMode.Vibe);
 
@@ -72,14 +70,14 @@ public class GenerationJobMetricsTests
     public void RecordOutcome_NonTerminalState_Throws(JobStates state)
     {
         using GenerationJobMetrics metrics = new();
-        using MeasurementCapture capture = new(OutcomeInstrument);
+        using MeasurementCapture capture = new(MeasurementCapture.JobCompletedInstrument);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => metrics.RecordOutcome(state, GenerationMode.Precise));
         Assert.Empty(capture.Measurements);
     }
 
     [Fact]
-    public void RecordAttempts_StillRecordsAttemptsAlongsideOutcome()
+    public void RecordAttempts_TagsAttemptsUsedWithExactAttemptsAndOutcome()
     {
         using GenerationJobMetrics metrics = new();
         using MeasurementCapture capture = new("generation_job.attempts_used");

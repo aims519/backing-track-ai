@@ -12,6 +12,9 @@ internal sealed record CapturedMeasurement(long Value, IReadOnlyDictionary<strin
 /// </summary>
 internal sealed class MeasurementCapture : IDisposable
 {
+    /// <summary>The per-job terminal-outcome counter, shared by every test that asserts on it.</summary>
+    public const string JobCompletedInstrument = "generation_job.completed";
+
     private readonly MeterListener _listener = new();
     private readonly List<CapturedMeasurement> _measurements = [];
     private readonly Lock _lock = new();
