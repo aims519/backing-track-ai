@@ -10,6 +10,7 @@ public class GenerationJobMetrics : IDisposable
     private readonly Meter _meter;
     private readonly Histogram<long> _attempts;
     private readonly Counter<long> _attemptsUsed;
+    private readonly Counter<long> _completedJobs;
 
     public GenerationJobMetrics()
     {
@@ -23,6 +24,9 @@ public class GenerationJobMetrics : IDisposable
         // charting the actual distribution over time.
         _attemptsUsed = _meter.CreateCounter<long>("generation_job.attempts_used",
             description: "Count of jobs, tagged by the exact number of attempts used and outcome");
+
+        _completedJobs = _meter.CreateCounter<long>("generation_job.completed",
+            description: "Count of jobs reaching a terminal state, tagged by outcome and generation mode");
     }
 
     public void RecordAttempts(long attempts, string outcome)
@@ -30,6 +34,21 @@ public class GenerationJobMetrics : IDisposable
         _attempts.Record(attempts, new TagList { { "outcome", outcome } });
         _attemptsUsed.Add(1, new TagList { { "attempts", attempts }, { "outcome", outcome } });
     }
+
+    public void RecordOutcome(JobStates state, GenerationMode mode)
+    {
+        string outcome = state switch
+        {
+            JobStates.Complete => "complete",
+            JobStates.Cancelled => "cancelled",
+            JobStates.CompletedViaFallback => "completed_via_fallback",
+            JobStates.Failed => "failed",
+            _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Only jobs in a terminal state can be recorded")
+        };
+
+        _completedJobs.Add(1, new TagList { { "outcome", outcome }, { "mode", mode.ToString().ToLowerInvariant() } });
+    }
+
 
     public void Dispose() => _meter.Dispose();
 }
