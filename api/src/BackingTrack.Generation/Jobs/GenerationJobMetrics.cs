@@ -37,6 +37,7 @@ public class GenerationJobMetrics : IDisposable
 
     public void RecordOutcome(JobStates state, GenerationMode mode)
     {
+        // Explicit strings instead of state.ToString(): tag values are a dashboard contract
         string outcome = state switch
         {
             JobStates.Complete => "complete",
@@ -48,7 +49,6 @@ public class GenerationJobMetrics : IDisposable
 
         _completedJobs.Add(1, new TagList { { "outcome", outcome }, { "mode", mode.ToString().ToLowerInvariant() } });
     }
-
 
     public void Dispose() => _meter.Dispose();
 }
