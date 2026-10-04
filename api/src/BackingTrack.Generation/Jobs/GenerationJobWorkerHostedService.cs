@@ -151,17 +151,19 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                 case GenerationFailed failed when !alreadyCancelled:
                     jobStore.UpdateJob(jobId, current => current with { State = JobStates.Failed, EndTime = DateTimeOffset.UtcNow });
 
+                    // Recorded before the push: a throwing push escapes to the catch-all, which leaves an
+                    // already-terminal job alone, so recording afterwards would drop this outcome.
                     if (jobStore.TryGet(jobId) is { } failedJob)
+                    {
+                        generationJobMetrics.RecordOutcome(failedJob.State, failedJob.Mode);
                         await pushNotificationEmitter.SendApnsPushNotificationAsync(failedJob);
+                    }
 
                     activity?.SetStatus(ActivityStatusCode.Error, failed.Reason);
                     logger.LogError("Job {Id} failed: {Reason}", jobId, failed.Reason);
 
                     if (failed.Attempts.HasValue)
                         generationJobMetrics.RecordAttempts(failed.Attempts.Value, "failed");
-
-                    if (jobStore.TryGet(jobId) is { } failedTerminalJob)
-                        generationJobMetrics.RecordOutcome(failedTerminalJob.State, failedTerminalJob.Mode);
                     break;
 
                 // `null` is included: no terminal outcome may have been observed before the job was marked

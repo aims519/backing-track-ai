@@ -208,6 +208,18 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
     }
 
     [Fact]
+    public async Task Failed_job_is_still_recorded_when_the_push_notification_throws()
+    {
+        _retrieve.RetrieveTopMatchingStyles(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns<Task<MatchedStyle?>>(_ => throw new InvalidOperationException("retrieval down"));
+
+        GenerationJob job = await RunToTerminalStateAsync(push: new FakePushEmitter { Throws = true });
+
+        Assert.Equal(JobStates.Failed, _store.TryGet(job.Id)?.State);
+        AssertSingleOutcome("failed", "precise");
+    }
+
+    [Fact]
     public async Task Job_that_was_cancelled_before_it_started_is_not_recorded_by_the_worker()
     {
         // TODO: revisit once it's decided where pending-cancelled jobs are counted. The worker skips them
