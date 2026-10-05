@@ -44,6 +44,7 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
     private readonly GenerationJobQueue _queue = new(Channel.CreateUnbounded<Guid>());
     private readonly GenerationJobMetrics _metrics = new();
     private readonly MeasurementCapture _capture = new(MeasurementCapture.JobCompletedInstrument);
+    private readonly MeasurementCapture _duration = new("generation_job.duration");
 
     private int _generationMaxAttempts = 3;
 
@@ -70,6 +71,7 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
     public void Dispose()
     {
         _capture.Dispose();
+        _duration.Dispose();
         _metrics.Dispose();
         if (Directory.Exists(_trackFolder))
             Directory.Delete(_trackFolder, recursive: true);
@@ -251,9 +253,72 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
         });
     }
 
-    private async Task<GenerationJob> RunToTerminalStateAsync(IPushNotificationEmitter? push = null)
+    [Fact]
+    public async Task Job_completing_records_its_end_to_end_duration_from_submission()
     {
-        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        // The job was submitted 90s ago, so queue wait counts: the duration runs from submission, not from when the worker started it.
+        await RunToTerminalStateAsync(submittedAgo: TimeSpan.FromSeconds(90));
+
+        CapturedMeasurement duration = Assert.Single(_duration.Measurements);
+        Assert.InRange(duration.Value, 90, 120);
+        Assert.Equal("complete", duration.Tags["outcome"]);
+        Assert.Equal("precise", duration.Tags["mode"]);
+    }
+
+    [Fact]
+    public async Task Job_failing_records_its_duration()
+    {
+        _retrieve.RetrieveTopMatchingStyles(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((MatchedStyle?)null);
+
+        await RunToTerminalStateAsync(submittedAgo: TimeSpan.FromSeconds(30));
+
+        CapturedMeasurement duration = Assert.Single(_duration.Measurements);
+        Assert.InRange(duration.Value, 30, 60);
+        Assert.Equal("failed", duration.Tags["outcome"]);
+    }
+
+    [Fact]
+    public async Task Job_failing_in_the_catch_all_records_its_duration()
+    {
+        // A throwing push after completion goes to the catch-all; the job is already terminal, so it must still be timed exactly once.
+        await RunToTerminalStateAsync(push: new FakePushEmitter { Throws = true }, submittedAgo: TimeSpan.FromSeconds(45));
+
+        CapturedMeasurement duration = Assert.Single(_duration.Measurements);
+        Assert.InRange(duration.Value, 45, 75);
+    }
+
+    [Fact]
+    public async Task Job_cancelled_before_it_started_records_how_long_it_waited()
+    {
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob() with
+        {
+            Mode = GenerationMode.Vibe,
+            StartTime = DateTimeOffset.UtcNow - TimeSpan.FromSeconds(60)
+        };
+        _store.AddOrUpdate(job);
+        await _store.CancelAsync(job.Id);
+        await _queue.Writer.WriteAsync(job.Id, TestContext.Current.CancellationToken);
+
+        using ServiceProvider provider = BuildProvider();
+        await RunWorkerAsync(CreateWorker(provider), async () =>
+        {
+            await WaitUntilAsync(() => _capture.Measurements.Count > 0);
+            await SettleAsync();
+
+            CapturedMeasurement duration = Assert.Single(_duration.Measurements);
+            Assert.InRange(duration.Value, 60, 90);
+            Assert.Equal("cancelled", duration.Tags["outcome"]);
+            Assert.Equal("vibe", duration.Tags["mode"]);
+        });
+    }
+
+    private async Task<GenerationJob> RunToTerminalStateAsync(IPushNotificationEmitter? push = null, TimeSpan? submittedAgo = null)
+    {
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob() with
+        {
+            StartTime = DateTimeOffset.UtcNow - (submittedAgo ?? TimeSpan.Zero)
+        };
         _store.AddOrUpdate(job);
         await _queue.Writer.WriteAsync(job.Id, TestContext.Current.CancellationToken);
 

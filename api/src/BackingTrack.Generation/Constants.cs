@@ -16,4 +16,6 @@ public static class Constants
 
     public static readonly IReadOnlyList<double> LlmCallDurationBuckets = [1, 2.5, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 300, 600, 900];
     public static readonly IReadOnlyList<double> PushNotificationDurationBuckets = [0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 5, 10];
+    public static readonly IReadOnlyList<double> JobDurationBuckets =
+        [5, 10, 15, 30, 45, 60, 90, 120, 180, 300, 600, 900, 1800, 3600];
 }
