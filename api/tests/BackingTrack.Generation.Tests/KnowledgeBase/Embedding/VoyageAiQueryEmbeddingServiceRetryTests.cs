@@ -4,6 +4,7 @@ using System.Text;
 
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
+using BackingTrack.Generation.Tests.Jobs;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -112,6 +113,67 @@ public class VoyageAiQueryEmbeddingServiceRetryTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => EmbedAsync(handler));
 
         Assert.Equal(1, handler.CallCount);
+    }
+
+    // The standard resilience handler already emits Polly's own telemetry; the app just has to export the "Polly"
+    // meter (see OpenTelemetryExtensions). Polly reports each attempt on this instrument, tagged attempt.number
+    // (0 for the first try), so a retry is any attempt numbered above 0. These pin that shape, so a Polly upgrade
+    // that renames the instrument or tags, or a change of pipeline, shows up here rather than as a silently empty chart.
+    private const string PollyMeterName = "Polly";
+    private const string PollyAttemptInstrument = "resilience.polly.strategy.attempt.duration";
+
+    private static List<CapturedMeasurement> Retries(MeasurementCapture attempts) =>
+        attempts.Measurements.Where(m => (int)m.Tags["attempt.number"]! > 0).ToList();
+
+    [Fact]
+    public async Task EmbedQueryAsync_TransientFailureThenSuccess_ReportsOneRetryForTheVoyagePipeline()
+    {
+        using MeasurementCapture attempts = new(PollyAttemptInstrument, PollyMeterName);
+        StubHttpMessageHandler handler = new(Status(HttpStatusCode.ServiceUnavailable), Success());
+
+        await EmbedAsync(handler);
+
+        CapturedMeasurement retry = Assert.Single(Retries(attempts));
+        Assert.Equal("IQueryEmbeddingService-standard", retry.Tags["pipeline.name"]);
+        Assert.Equal(2, attempts.Measurements.Count);
+    }
+
+    [Fact]
+    public async Task EmbedQueryAsync_FailedAttempt_IsTaggedWithTheStatusThatCausedTheRetry()
+    {
+        using MeasurementCapture attempts = new(PollyAttemptInstrument, PollyMeterName);
+        StubHttpMessageHandler handler = new(Status(HttpStatusCode.TooManyRequests), Success());
+
+        await EmbedAsync(handler);
+
+        CapturedMeasurement failedAttempt = Assert.Single(attempts.Measurements, m => (int)m.Tags["attempt.number"]! == 0);
+        Assert.Equal("429", failedAttempt.Tags["error.type"]);
+        Assert.Equal(true, failedAttempt.Tags["attempt.handled"]);
+    }
+
+    [Fact]
+    public async Task EmbedQueryAsync_SuccessOnFirstAttempt_ReportsNoRetry()
+    {
+        using MeasurementCapture attempts = new(PollyAttemptInstrument, PollyMeterName);
+
+        await EmbedAsync(new StubHttpMessageHandler(Success()));
+
+        Assert.Empty(Retries(attempts));
+        Assert.Single(attempts.Measurements);
+    }
+
+    [Fact]
+    public async Task EmbedQueryAsync_MultipleTransientFailures_ReportsOneRetryPerExtraAttempt()
+    {
+        using MeasurementCapture attempts = new(PollyAttemptInstrument, PollyMeterName);
+        StubHttpMessageHandler handler = new(
+            Status(HttpStatusCode.ServiceUnavailable),
+            Status(HttpStatusCode.TooManyRequests),
+            Success());
+
+        await EmbedAsync(handler);
+
+        Assert.Equal(2, Retries(attempts).Count);
     }
 
     private static async Task<float[]> EmbedAsync(StubHttpMessageHandler handler, FakeTimeProvider? timeProvider = null)

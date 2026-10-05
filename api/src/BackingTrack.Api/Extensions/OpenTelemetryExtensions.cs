@@ -49,6 +49,7 @@ internal static class OpenTelemetryExtensions
                     .AddMeter(TrackRepairMetrics.MeterName)
                     .AddMeter(GenerationJobMetrics.MeterName)
                     .AddMeter(CriticMetrics.MeterName)
+                    .AddMeter("Polly")
                     .AddOtlpExporter(options =>
                     {
                         options.Endpoint = new Uri(otelSettings.CollectorEndpoint!);
