@@ -28,6 +28,9 @@ design discussions held in Claude Code sessions, then reviewed by the owner.
 
 ## PR and ADR conventions
 
+Name branches with a type prefix — `feature/`, `fix/` or `chore/` — followed by a short
+kebab-case description, e.g. `feature/critic-call-metrics`.
+
 Set the **Type:** line to exactly one of the listed PR types.
 
 For the Architectural Decision section, evaluate honestly: did this
