@@ -1,5 +1,6 @@
 using System.Diagnostics.Metrics;
 
+using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.Notifications;
 using BackingTrack.Generation.Steps.Critic;
 using BackingTrack.Generation.Steps.TrackGeneration;
@@ -96,5 +97,19 @@ public class DurationHistogramBucketsTests
         int belowTwoSeconds = boundaries.Count(b => b < 2);
 
         Assert.True(belowTwoSeconds >= 5, $"Expected at least 5 boundaries below 2s, found {belowTwoSeconds}");
+    }
+
+    [Fact]
+    public void JobDuration_DeclaresBucketsThatSpanAQuickJobToSeveralFlexQueuedAttempts()
+    {
+        // End to end: queue wait plus up to several LLM attempts, from tens of seconds to many minutes.
+        IReadOnlyList<double> boundaries = Boundaries(GenerationJobMetrics.MeterName, "generation_job.duration", () => new GenerationJobMetrics());
+
+        Assert.Equal(boundaries.Order(), boundaries);
+        Assert.Equal(boundaries.Distinct().Count(), boundaries.Count);
+        Assert.True(boundaries[0] <= 5, $"Smallest boundary {boundaries[0]}s should resolve a very quick job");
+        Assert.True(boundaries[^1] >= 1800, $"Largest boundary {boundaries[^1]}s should reach a job that ran for half an hour");
+        int inTypicalRange = boundaries.Count(b => b is >= 10 and <= 300);
+        Assert.True(inTypicalRange >= 6, $"Expected at least 6 boundaries between 10s and 5 minutes, found {inTypicalRange}");
     }
 }

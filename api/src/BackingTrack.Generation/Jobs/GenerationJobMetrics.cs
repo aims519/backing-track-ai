@@ -11,6 +11,7 @@ public class GenerationJobMetrics : IDisposable
     private readonly Histogram<long> _attempts;
     private readonly Counter<long> _attemptsUsed;
     private readonly Counter<long> _completedJobs;
+    private readonly Histogram<double> _jobDurations;
 
     public GenerationJobMetrics()
     {
@@ -27,6 +28,10 @@ public class GenerationJobMetrics : IDisposable
 
         _completedJobs = _meter.CreateCounter<long>("generation_job.completed",
             description: "Count of jobs reaching a terminal state, tagged by outcome and generation mode");
+
+        _jobDurations = _meter.CreateHistogram("generation_job.duration",
+            advice: new InstrumentAdvice<double> { HistogramBucketBoundaries = Constants.JobDurationBuckets },
+            unit: "s", description: "Duration of a generation job from submission to a terminal state, including time queued, tagged by outcome and mode");
     }
 
     public void RecordAttempts(long attempts, string outcome)
@@ -37,7 +42,7 @@ public class GenerationJobMetrics : IDisposable
 
     // Counts every job exactly once. attempts_used is only recorded when an attempt count exists and uses
     // its own success/failed outcome values, so its total won't match this one.
-    public void RecordOutcome(JobStates state, GenerationMode mode)
+    public void RecordOutcome(JobStates state, GenerationMode mode, TimeSpan? duration = null)
     {
         // Explicit strings instead of state.ToString(): tag values are a dashboard contract
         string outcome = state switch
@@ -49,7 +54,12 @@ public class GenerationJobMetrics : IDisposable
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Only jobs in a terminal state can be recorded")
         };
 
-        _completedJobs.Add(1, new TagList { { "outcome", outcome }, { "mode", mode.ToMetricTag() } });
+        TagList tagList = new() { { "outcome", outcome }, { "mode", mode.ToMetricTag() } };
+
+        _completedJobs.Add(1, tagList);
+
+        if (duration is { TotalSeconds: >= 0 })
+            _jobDurations.Record(duration.Value.TotalSeconds, tagList);
     }
 
     public void Dispose() => _meter.Dispose();

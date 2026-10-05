@@ -195,7 +195,7 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
         if (jobStore.TryGet(jobId) is not { } job)
             return null;
 
-        generationJobMetrics.RecordOutcome(job.State, job.Mode);
+        generationJobMetrics.RecordOutcome(job.State, job.Mode, job.EndTime - job.StartTime);
         return job;
     }
 }

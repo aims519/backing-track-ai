@@ -64,6 +64,80 @@ public class GenerationJobMetricsTests
         Assert.Equal(["mode", "outcome"], Assert.Single(capture.Measurements).Tags.Keys.Order());
     }
 
+    // End-to-end job duration: submission to terminal state, queue wait included (see GenerationJob.StartTime).
+    private const string JobDurationInstrument = "generation_job.duration";
+
+    [Theory]
+    [InlineData(JobStates.Complete, "complete")]
+    [InlineData(JobStates.CompletedViaFallback, "completed_via_fallback")]
+    [InlineData(JobStates.Failed, "failed")]
+    [InlineData(JobStates.Cancelled, "cancelled")]
+    public void RecordOutcome_WithDuration_RecordsSecondsTaggedWithOutcomeAndMode(JobStates state, string expectedOutcome)
+    {
+        using GenerationJobMetrics metrics = new();
+        using MeasurementCapture duration = new(JobDurationInstrument);
+
+        metrics.RecordOutcome(state, GenerationMode.Vibe, TimeSpan.FromSeconds(90.5));
+
+        CapturedMeasurement measurement = Assert.Single(duration.Measurements);
+        Assert.Equal(90.5, measurement.Value);
+        Assert.Equal(expectedOutcome, measurement.Tags["outcome"]);
+        Assert.Equal("vibe", measurement.Tags["mode"]);
+        Assert.Equal(["mode", "outcome"], measurement.Tags.Keys.Order());
+    }
+
+    [Fact]
+    public void RecordOutcome_WithDuration_StillCountsTheJobOnce()
+    {
+        using GenerationJobMetrics metrics = new();
+        using MeasurementCapture completed = new(MeasurementCapture.JobCompletedInstrument);
+        using MeasurementCapture duration = new(JobDurationInstrument);
+
+        metrics.RecordOutcome(JobStates.Complete, GenerationMode.Precise, TimeSpan.FromSeconds(10));
+
+        Assert.Single(completed.Measurements);
+        Assert.Single(duration.Measurements);
+    }
+
+    [Fact]
+    public void RecordOutcome_NoDuration_CountsTheJobButRecordsNoDuration()
+    {
+        using GenerationJobMetrics metrics = new();
+        using MeasurementCapture completed = new(MeasurementCapture.JobCompletedInstrument);
+        using MeasurementCapture duration = new(JobDurationInstrument);
+
+        metrics.RecordOutcome(JobStates.Complete, GenerationMode.Precise);
+
+        Assert.Single(completed.Measurements);
+        Assert.Empty(duration.Measurements);
+    }
+
+    [Fact]
+    public void RecordOutcome_ZeroDuration_IsRecorded()
+    {
+        // Only a negative duration is invalid; a job that finished within the clock's resolution took zero seconds.
+        using GenerationJobMetrics metrics = new();
+        using MeasurementCapture duration = new(JobDurationInstrument);
+
+        metrics.RecordOutcome(JobStates.Failed, GenerationMode.Precise, TimeSpan.Zero);
+
+        Assert.Equal(0, Assert.Single(duration.Measurements).Value);
+    }
+
+    [Fact]
+    public void RecordOutcome_NegativeDuration_RecordsNoDurationButStillCountsTheJob()
+    {
+        // A wall-clock step backwards between submission and finish mustn't put a negative value in a histogram.
+        using GenerationJobMetrics metrics = new();
+        using MeasurementCapture completed = new(MeasurementCapture.JobCompletedInstrument);
+        using MeasurementCapture duration = new(JobDurationInstrument);
+
+        metrics.RecordOutcome(JobStates.Complete, GenerationMode.Precise, TimeSpan.FromSeconds(-1));
+
+        Assert.Single(completed.Measurements);
+        Assert.Empty(duration.Measurements);
+    }
+
     [Theory]
     [InlineData(JobStates.Pending)]
     [InlineData(JobStates.InProgress)]
