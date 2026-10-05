@@ -1,3 +1,5 @@
+using System.Threading.Channels;
+
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.Tests.Workflows;
@@ -8,14 +10,26 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace BackingTrack.Generation.Tests.Jobs;
 
-public class GenerationJobEvictionHostedServiceTests
+// The service takes a JobStoreMetrics, which owns instruments on the shared job meter - see JobMetricsCollection.
+[Collection(JobMetricsCollection.Name)]
+public class GenerationJobEvictionHostedServiceTests : IDisposable
 {
+    // Undisposed, a JobStoreMetrics keeps reporting its gauges to any later listener on the shared meter.
+    private readonly List<JobStoreMetrics> _metrics = [];
+
+    public void Dispose() => _metrics.ForEach(m => m.Dispose());
+
     private static readonly DateTimeOffset Now = new(2026, 10, 1, 12, 0, 0, TimeSpan.Zero);
 
-    private static GenerationJobEvictionHostedService CreateService(JobStore store, FakeTimeProvider time, int ttlSeconds, int sweepIntervalSeconds = 3600) =>
-        new(store, time,
+    private GenerationJobEvictionHostedService CreateService(JobStore store, TimeProvider time, int ttlSeconds, int sweepIntervalSeconds = 3600)
+    {
+        JobStoreMetrics metrics = new(store, new GenerationJobQueue(Channel.CreateUnbounded<Guid>()));
+        _metrics.Add(metrics);
+        return new(store, time,
             Options.Create(new JobEvictionSettings { SweepIntervalSeconds = sweepIntervalSeconds, JobTtlSeconds = ttlSeconds }),
+            metrics,
             NullLogger<GenerationJobEvictionHostedService>.Instance);
+    }
 
     private static GenerationJob AddJob(JobStore store, JobStates state, DateTimeOffset? endTime)
     {
@@ -49,6 +63,24 @@ public class GenerationJobEvictionHostedServiceTests
         Assert.Null(store.TryGet(expired.Id));
         Assert.NotNull(store.TryGet(withinTtl.Id));
         Assert.NotNull(store.TryGet(running.Id));
+    }
+
+    [Fact]
+    public async Task Sweep_RecordsHowManyJobsItEvicted()
+    {
+        FakeTimeProvider time = new(Now);
+        JobStore store = new(NullLogger<JobStore>.Instance);
+        GenerationJob expired1 = AddJob(store, JobStates.Complete, Now.AddSeconds(-120));
+        GenerationJob expired2 = AddJob(store, JobStates.Failed, Now.AddSeconds(-120));
+        AddJob(store, JobStates.Complete, Now);
+        using MeasurementCapture evicted = new("generation_job.evicted");
+        GenerationJobEvictionHostedService service = CreateService(store, time, ttlSeconds: 60);
+
+        await service.StartAsync(TestContext.Current.CancellationToken);
+        await WaitUntilAsync(() => store.TryGet(expired1.Id) is null && store.TryGet(expired2.Id) is null);
+        await service.StopAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, Assert.Single(evicted.Measurements).Value);
     }
 
     [Fact]
