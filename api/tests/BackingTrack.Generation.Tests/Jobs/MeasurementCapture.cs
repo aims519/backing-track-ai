@@ -7,7 +7,7 @@ namespace BackingTrack.Generation.Tests.Jobs;
 internal sealed record CapturedMeasurement(double Value, IReadOnlyDictionary<string, object?> Tags);
 
 /// <summary>
-/// Captures every measurement of one instrument, whether it records longs or doubles. Subscribes by meter
+/// Captures every measurement of one instrument, whether it records ints, longs or doubles. Subscribes by meter
 /// name (the job meter unless told otherwise), so tests that create metrics instances of the same meter
 /// must share a collection - e.g. <see cref="JobMetricsCollection"/> - to stay isolated from each other.
 /// </summary>
@@ -27,6 +27,7 @@ internal sealed class MeasurementCapture : IDisposable
             if (instrument.Meter.Name == meterName && instrument.Name == instrumentName)
                 listener.EnableMeasurementEvents(instrument);
         };
+        _listener.SetMeasurementEventCallback<int>((_, value, tags, _) => Add(value, tags));
         _listener.SetMeasurementEventCallback<long>((_, value, tags, _) => Add(value, tags));
         _listener.SetMeasurementEventCallback<double>((_, value, tags, _) => Add(value, tags));
         _listener.Start();
@@ -40,6 +41,9 @@ internal sealed class MeasurementCapture : IDisposable
                 return _measurements.ToList();
         }
     }
+
+    /// <summary>Asks observable instruments (gauges) to report now; they only record when polled.</summary>
+    public void Poll() => _listener.RecordObservableInstruments();
 
     public void Dispose() => _listener.Dispose();
 

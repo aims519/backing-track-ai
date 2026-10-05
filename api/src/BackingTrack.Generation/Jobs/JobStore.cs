@@ -136,6 +136,19 @@ public class JobStore(ILogger<JobStore> logger)
         return evictedJobsCount;
     }
 
+    public IReadOnlyDictionary<JobStates, int> CountByState()
+    {
+        Dictionary<JobStates, int> countByState = new();
+        IList<GenerationJob> jobsInStore = _generationJobs.Values.ToList();
+
+        foreach (JobStates state in Enum.GetValues<JobStates>())
+        {
+            countByState[state] = jobsInStore.Count(j => j.State == state);
+        }
+
+        return countByState;
+    }
+
     private bool IsJobTerminated(GenerationJob job) =>
         job.State is JobStates.Cancelled
             or JobStates.Complete

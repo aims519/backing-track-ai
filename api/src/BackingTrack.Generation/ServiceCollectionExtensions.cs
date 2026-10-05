@@ -108,6 +108,7 @@ public static class ServiceCollectionExtensions
         Channel<Guid> jobChannel = Channel.CreateUnbounded<Guid>();
         services.AddSingleton(new GenerationJobQueue(jobChannel));
         services.AddSingleton<GenerationJobMetrics>();
+        services.AddSingleton<JobStoreMetrics>();
         services.AddHostedService<GenerationJobWorkerHostedService>();
         services.AddHostedService<GenerationJobEvictionHostedService>();
 

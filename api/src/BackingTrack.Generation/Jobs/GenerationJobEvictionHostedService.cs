@@ -9,6 +9,7 @@ namespace BackingTrack.Generation.Jobs;
 public class GenerationJobEvictionHostedService(JobStore jobStore,
     TimeProvider timeProvider,
     IOptions<JobEvictionSettings> settings,
+    JobStoreMetrics metrics,
     ILogger<GenerationJobEvictionHostedService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -22,7 +23,10 @@ public class GenerationJobEvictionHostedService(JobStore jobStore,
             {
                 int evictedCount = jobStore.EvictTerminatedJobs(timeProvider.GetUtcNow() - TimeSpan.FromSeconds(jobTtlSeconds));
                 if (evictedCount > 0)
+                {
                     logger.LogInformation("Evicted {Count} stale jobs", evictedCount);
+                    metrics.RecordEvicted(evictedCount);
+                }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
