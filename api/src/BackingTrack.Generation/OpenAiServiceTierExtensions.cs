@@ -40,7 +40,7 @@ public static class OpenAiServiceTierExtensions
             OpenAiServiceTier.Auto => "auto",
             OpenAiServiceTier.Default => "default",
             OpenAiServiceTier.Scale => "scale",
-            _ => "auto"
+            _ => "not_specified"
         };
     }
 }

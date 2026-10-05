@@ -43,10 +43,10 @@ public class OpenAiServiceTierExtensionsTests
     }
 
     // Tag values are a dashboard contract (see GenerationJobMetrics.RecordOutcome), so they're pinned here
-    // rather than derived from the enum names. Unset means OpenAI applies its own default, "auto".
+    // rather than derived from the enum names. Unset is reported separately from an explicit Auto: with no tier sent, OpenAI falls back to the project default.
     public static TheoryData<OpenAiServiceTier?, string> MetricTags => new()
     {
-        { null, "auto" },
+        { null, "not_specified" },
         { OpenAiServiceTier.Auto, "auto" },
         { OpenAiServiceTier.Default, "default" },
         { OpenAiServiceTier.Flex, "flex" },
