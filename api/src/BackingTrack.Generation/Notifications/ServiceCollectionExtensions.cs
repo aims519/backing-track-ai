@@ -27,7 +27,8 @@ public static class ServiceCollectionExtensions
             options.DefaultRequestHeaders.Add("apns-priority", 10.ToString()); // highest priority
             options.DefaultRequestHeaders.Add("apns-push-type", "alert");
             options.Timeout = TimeSpan.FromSeconds(10);
-        });
+        })
+        .RemoveAllLoggers();
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<ApnsTokenProvider>();
