@@ -38,7 +38,7 @@ public class CriticMetrics : IDisposable
     public void RecordFailure(string provider, string model, TimeSpan duration, long? inputTokens = null, long? outputTokens = null)
     {
         TagList tags = new() { { "provider", provider }, { "model", model } };
-        
+
         RecordTokens(tags, inputTokens, outputTokens);
         _callDuration.Record(duration.TotalSeconds, new TagList { { "provider", provider }, { "model", model } });
         _calls.Add(1, new TagList { { "provider", provider }, { "model", model }, { "outcome", "failure" } });
