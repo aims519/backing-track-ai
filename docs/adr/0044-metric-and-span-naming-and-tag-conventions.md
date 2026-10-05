@@ -125,6 +125,15 @@ cardinality grounds.
     tokens of a failed call that returned a response land in the same series as a successful
     one's. That is right for total spend; an `outcome` tag would split every token series in
     two and can be added if the split is ever wanted.
+- **Count counters with "last value minus the last value before the window", not `increase()` or
+  `rate()`.** A counter that first appears already at `1` and then stays flat has an `increase()`
+  of 0, because there is no earlier sample to subtract. A restart starts every series again (the
+  instance id is a label), so on a low-traffic service that restarts on each deploy the first
+  event of every series after each restart disappears from `increase()`, and a ratio built from
+  two such counters becomes 0/0. The dashboard queries use
+  `last_over_time(x[w]) - (last_over_time(x[w] offset w) or 0 * last_over_time(x[w]))`, which
+  counts it. The alternative, writing a zero to each counter at startup, only works where the tag
+  values are known up front (job outcomes, yes; an APNs `reason`, no), so it is not relied on.
 - A queue-depth or job-store gauge is created when its object is, and a DI singleton is lazy,
   so something must depend on it at startup (the eviction service does for `JobStoreMetrics`).
 - The queue depth gauge includes jobs cancelled while pending until the worker dequeues them,

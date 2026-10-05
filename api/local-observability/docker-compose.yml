@@ -15,3 +15,6 @@ services:
     image: grafana/otel-lgtm:0.30.0
     ports:
       - "3000:3000" # Grafana UI
+    volumes:
+      - ./dashboards:/backing-track-dashboards:ro
+      - ./grafana/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/backing-track.yaml:ro
