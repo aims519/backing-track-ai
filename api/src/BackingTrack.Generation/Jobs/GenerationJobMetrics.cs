@@ -49,7 +49,7 @@ public class GenerationJobMetrics : IDisposable
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Only jobs in a terminal state can be recorded")
         };
 
-        _completedJobs.Add(1, new TagList { { "outcome", outcome }, { "mode", mode.ToString().ToLowerInvariant() } });
+        _completedJobs.Add(1, new TagList { { "outcome", outcome }, { "mode", mode.ToMetricTag() } });
     }
 
     public void Dispose() => _meter.Dispose();

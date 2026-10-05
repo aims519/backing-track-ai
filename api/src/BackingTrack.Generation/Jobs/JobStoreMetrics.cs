@@ -9,7 +9,7 @@ public class JobStoreMetrics : IDisposable
     private readonly Meter _meter;
     private readonly ObservableGauge<int> _queueDepthGauge;
     private readonly ObservableGauge<int> _jobGauge;
-    private readonly Counter<int> _evictedJobsCount;
+    private readonly Counter<long> _evictedJobsCount;
 
     public JobStoreMetrics(JobStore jobStore, GenerationJobQueue queue)
     {
@@ -22,10 +22,10 @@ public class JobStoreMetrics : IDisposable
 
         _jobGauge = _meter.CreateObservableGauge("generation_job_store.jobs",
             () => jobStore1.CountByState()
-                .Select(c => new Measurement<int>(c.Value, new KeyValuePair<string, object?>("state", c.Key.ToMetricTag()))),
+                .Select(c => new Measurement<int>(c.Value, new KeyValuePair<string, object?>("job_state", c.Key.ToMetricTag()))),
             description: "Jobs currently held in the store, by state");
 
-        _evictedJobsCount = _meter.CreateCounter<int>("generation_job.evicted",
+        _evictedJobsCount = _meter.CreateCounter<long>("generation_job.evicted",
             description: "Number of jobs evicted from the store");
     }
 
