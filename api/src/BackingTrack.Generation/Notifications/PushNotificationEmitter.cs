@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 using BackingTrack.Generation.Jobs;
 
@@ -8,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BackingTrack.Generation.Notifications;
 
-internal class PushNotificationEmitter(HttpClient httpClient, ApnsTokenProvider tokenProvider, ILogger<PushNotificationEmitter> logger) : IPushNotificationEmitter
+internal class PushNotificationEmitter(HttpClient httpClient, ApnsTokenProvider tokenProvider, PushNotificationMetrics metrics, ILogger<PushNotificationEmitter> logger) : IPushNotificationEmitter
 {
     private static readonly JobStates[] ValidStatesForNotification = [JobStates.Complete, JobStates.CompletedViaFallback, JobStates.Failed];
 
@@ -26,6 +28,7 @@ internal class PushNotificationEmitter(HttpClient httpClient, ApnsTokenProvider 
             return;
         }
 
+        Stopwatch stopwatch = Stopwatch.StartNew();
         try
         {
             string title = BuildAlertTitle(job);
@@ -42,18 +45,44 @@ internal class PushNotificationEmitter(HttpClient httpClient, ApnsTokenProvider 
             if (!response.IsSuccessStatusCode)
             {
                 string responseBody = await response.Content.ReadAsStringAsync();
+
                 logger.LogWarning("Failed to send apns push notification. Status code: {Code}. Reason: {Body}",
                     response.StatusCode, responseBody);
+
+                string rejectionReason = ParseApnsRejectionReason(responseBody);
+                metrics.RecordRejected(job.State, (int)response.StatusCode, rejectionReason, stopwatch.Elapsed);
+                return;
             }
+
+            metrics.RecordSent(job.State, stopwatch.Elapsed);
         }
         catch (TaskCanceledException)
         {
+            metrics.RecordTimeout(job.State, stopwatch.Elapsed);
             logger.LogWarning("Push notification task cancelled");
         }
         catch (Exception ex)
         {
+            metrics.RecordError(job.State, stopwatch.Elapsed);
             logger.LogError(ex, "Failed to send apns push notification");
         }
+    }
+
+    private string ParseApnsRejectionReason(string responseBody)
+    {
+        string rejectionReason;
+        try
+        {
+            ApnsRejection? rejection =
+                JsonSerializer.Deserialize<ApnsRejection>(responseBody, ApnsJsonContext.Default.ApnsRejection);
+            rejectionReason = rejection?.Reason ?? "unknown";
+        }
+        catch (JsonException)
+        {
+            rejectionReason = "unknown";
+        }
+
+        return rejectionReason;
     }
 
     private static string BuildAlertTitle(GenerationJob job)

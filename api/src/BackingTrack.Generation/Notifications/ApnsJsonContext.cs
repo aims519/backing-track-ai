@@ -6,6 +6,7 @@ namespace BackingTrack.Generation.Notifications;
 [JsonSerializable(typeof(ApnsPayload))]
 [JsonSerializable(typeof(ApnsJwtHeader))]
 [JsonSerializable(typeof(ApnsJwtClaims))]
+[JsonSerializable(typeof(ApnsRejection))]
 internal partial class ApnsJsonContext : JsonSerializerContext
 {
 }

@@ -4,6 +4,7 @@ using System.Text.Json;
 
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.Notifications;
+using BackingTrack.Generation.Tests.Jobs;
 using BackingTrack.Generation.Tests.Workflows;
 
 using Microsoft.Extensions.Logging.Abstractions;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace BackingTrack.Generation.Tests.Notifications;
 
+[Collection(PushNotificationMetricsCollection.Name)]
 public sealed class PushNotificationEmitterTests : IDisposable
 {
     private const string DeviceToken = "b76252068fdfa84cf6b03d46495b43f7599b05a82e0c079b0d24ed52ca6d96ba";
@@ -18,17 +20,19 @@ public sealed class PushNotificationEmitterTests : IDisposable
     private readonly ECDsa _key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
     private readonly ApnsTokenProvider _tokenProvider;
     private readonly RecordingHandler _handler = new();
+    private readonly PushNotificationMetrics _metrics = new();
     private readonly PushNotificationEmitter _emitter;
 
     public PushNotificationEmitterTests()
     {
         _tokenProvider = ApnsTestFixtures.CreateTokenProvider(_key, new FakeTimeProvider(DateTimeOffset.UtcNow));
         HttpClient httpClient = new(_handler) { BaseAddress = new Uri("https://api.sandbox.push.apple.com") };
-        _emitter = new PushNotificationEmitter(httpClient, _tokenProvider, NullLogger<PushNotificationEmitter>.Instance);
+        _emitter = new PushNotificationEmitter(httpClient, _tokenProvider, _metrics, NullLogger<PushNotificationEmitter>.Instance);
     }
 
     public void Dispose()
     {
+        _metrics.Dispose();
         _tokenProvider.Dispose();
         _key.Dispose();
         _handler.Dispose();
@@ -139,6 +143,117 @@ public sealed class PushNotificationEmitterTests : IDisposable
         Exception? ex = await Record.ExceptionAsync(() => _emitter.SendApnsPushNotificationAsync(CreateJob(JobStates.Complete)));
 
         Assert.Null(ex);
+    }
+
+    private static MeasurementCapture CaptureAttempts() => new("push_notification.attempts", PushNotificationMetrics.MeterName);
+
+    [Theory]
+    [InlineData(JobStates.Complete, "complete")]
+    [InlineData(JobStates.CompletedViaFallback, "completed_via_fallback")]
+    [InlineData(JobStates.Failed, "failed")]
+    public async Task Send_ApnsAccepts_CountsASentAttemptForTheJobState(JobStates state, string expectedState)
+    {
+        using MeasurementCapture attempts = CaptureAttempts();
+
+        await _emitter.SendApnsPushNotificationAsync(CreateJob(state));
+
+        CapturedMeasurement attempt = Assert.Single(attempts.Measurements);
+        Assert.Equal("sent", attempt.Tags["outcome"]);
+        Assert.Equal(expectedState, attempt.Tags["job_state"]);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.BadRequest, """{"reason":"BadDeviceToken"}""", "400", "BadDeviceToken")]
+    [InlineData(HttpStatusCode.Gone, """{"reason":"Unregistered","timestamp":1700000000}""", "410", "Unregistered")]
+    [InlineData(HttpStatusCode.Forbidden, """{"reason":"ExpiredProviderToken"}""", "403", "ExpiredProviderToken")]
+    [InlineData(HttpStatusCode.TooManyRequests, """{"reason":"TooManyRequests"}""", "429", "TooManyRequests")]
+    public async Task Send_ApnsRejects_CountsARejectionWithStatusAndReason(HttpStatusCode status, string body, string expectedStatus, string expectedReason)
+    {
+        using MeasurementCapture attempts = CaptureAttempts();
+        _handler.Response = () => new HttpResponseMessage(status) { Content = new StringContent(body) };
+
+        await _emitter.SendApnsPushNotificationAsync(CreateJob(JobStates.Complete));
+
+        CapturedMeasurement attempt = Assert.Single(attempts.Measurements);
+        Assert.Equal("rejected", attempt.Tags["outcome"]);
+        Assert.Equal(expectedStatus, attempt.Tags["status_code"]);
+        Assert.Equal(expectedReason, attempt.Tags["reason"]);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("<html>Bad Gateway</html>")]
+    [InlineData("{}")]
+    [InlineData("""{"reason":null}""")]
+    public async Task Send_ApnsRejectsWithoutAUsableReason_TagsUnknown(string body)
+    {
+        using MeasurementCapture attempts = CaptureAttempts();
+        _handler.Response = () => new HttpResponseMessage(HttpStatusCode.BadGateway) { Content = new StringContent(body) };
+
+        await _emitter.SendApnsPushNotificationAsync(CreateJob(JobStates.Complete));
+
+        CapturedMeasurement attempt = Assert.Single(attempts.Measurements);
+        Assert.Equal("rejected", attempt.Tags["outcome"]);
+        Assert.Equal("unknown", attempt.Tags["reason"]);
+    }
+
+    [Fact]
+    public async Task Send_ApnsRejectsWithAnOverlongReason_TagsUnknownSoTheLabelStaysBounded()
+    {
+        // The reason comes from a third party, so it mustn't be able to create unbounded label values.
+        using MeasurementCapture attempts = CaptureAttempts();
+        string body = $$"""{"reason":"{{new string('x', 200)}}"}""";
+        _handler.Response = () => new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent(body) };
+
+        await _emitter.SendApnsPushNotificationAsync(CreateJob(JobStates.Complete));
+
+        Assert.Equal("unknown", Assert.Single(attempts.Measurements).Tags["reason"]);
+    }
+
+    [Fact]
+    public async Task Send_Timeout_CountsATimeout()
+    {
+        using MeasurementCapture attempts = CaptureAttempts();
+        _handler.Response = () => throw new TaskCanceledException();
+
+        await _emitter.SendApnsPushNotificationAsync(CreateJob(JobStates.Complete));
+
+        Assert.Equal("timeout", Assert.Single(attempts.Measurements).Tags["outcome"]);
+    }
+
+    [Fact]
+    public async Task Send_TransportFailure_CountsAnError()
+    {
+        using MeasurementCapture attempts = CaptureAttempts();
+        _handler.Response = () => throw new HttpRequestException("connection refused");
+
+        await _emitter.SendApnsPushNotificationAsync(CreateJob(JobStates.Complete));
+
+        Assert.Equal("error", Assert.Single(attempts.Measurements).Tags["outcome"]);
+    }
+
+    [Fact]
+    public async Task Send_JobWithoutDeviceToken_CountsNothing()
+    {
+        // No push was attempted, so it isn't an APNs result.
+        using MeasurementCapture attempts = CaptureAttempts();
+
+        await _emitter.SendApnsPushNotificationAsync(CreateJob(JobStates.Complete, deviceToken: null));
+
+        Assert.Empty(attempts.Measurements);
+    }
+
+    [Theory]
+    [InlineData(JobStates.Pending)]
+    [InlineData(JobStates.InProgress)]
+    [InlineData(JobStates.Cancelled)]
+    public async Task Send_NonNotifiableState_CountsNothing(JobStates state)
+    {
+        using MeasurementCapture attempts = CaptureAttempts();
+
+        await _emitter.SendApnsPushNotificationAsync(CreateJob(state));
+
+        Assert.Empty(attempts.Measurements);
     }
 
     /// <summary>Captures each request and its body up front - the emitter disposes the request
