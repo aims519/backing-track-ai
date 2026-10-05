@@ -40,7 +40,8 @@ public static class OpenAiServiceTierExtensions
             OpenAiServiceTier.Auto => "auto",
             OpenAiServiceTier.Default => "default",
             OpenAiServiceTier.Scale => "scale",
-            _ => "not_specified"
+            null => "not_specified",
+            _ => throw new ArgumentOutOfRangeException(nameof(serviceTier), serviceTier, null)
         };
     }
 }

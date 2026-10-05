@@ -59,5 +59,16 @@ public class OpenAiServiceTierExtensionsTests
     {
         Assert.Equal(expected, tier.ToMetricTag());
     }
+
+    [Fact]
+    public void ToMetricTag_UnknownTier_ThrowsNamingTheParameterAndValue()
+    {
+        OpenAiServiceTier? unknown = (OpenAiServiceTier)999;
+
+        ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => unknown.ToMetricTag());
+
+        Assert.Equal("serviceTier", ex.ParamName);
+        Assert.Equal((OpenAiServiceTier)999, ex.ActualValue);
+    }
 #pragma warning restore OPENAI001
 }
