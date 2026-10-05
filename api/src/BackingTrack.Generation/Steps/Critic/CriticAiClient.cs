@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -13,7 +14,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace BackingTrack.Generation.Steps.Critic;
 
 public class CriticAiClient([FromKeyedServices("critic")] IChatClient chatClient,
-    CriticProviderInfo providerInfo, ScaleMatcher scaleMatcher) : ICriticAiClient
+    CriticProviderInfo providerInfo, ScaleMatcher scaleMatcher,
+    CriticMetrics metrics) : ICriticAiClient
 {
     private const string SubmitVerdictFunctionName = "submit_verdict";
 
@@ -29,6 +31,10 @@ public class CriticAiClient([FromKeyedServices("critic")] IChatClient chatClient
         IReadOnlyList<MatchedScale> matchedScales,
         CancellationToken cancellationToken = default)
     {
+        using Activity? activity = CriticActivitySource.Instance.StartActivity($"{nameof(CriticStep)}.{nameof(CriticAiClient)}.GenerateCriticVerdictSubmissionAsync");
+        activity?.SetTag("critic.provider", providerInfo.Provider);
+        activity?.SetTag("critic.model", providerInfo.Model);
+
         string prompt = GenerateRequestPrompt(candidateTrack, generationJob, matchedStyle, matchedChords, matchedScales);
         ChatMessage[] messages =
         [
@@ -37,17 +43,41 @@ public class CriticAiClient([FromKeyedServices("critic")] IChatClient chatClient
         ];
 
         ChatOptions chatOptions = BuildChatOptions();
-        ChatResponse chatResponse = await chatClient.GetResponseAsync(messages, chatOptions, cancellationToken);
 
-        FunctionCallContent? content = chatResponse
-            .Messages.SelectMany(m => m.Contents)
-            .OfType<FunctionCallContent>()
-            .FirstOrDefault(c => c.Name == SubmitVerdictFunctionName);
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
-        if (content?.Arguments == null)
-            throw new InvalidOperationException("Unable to find verdict function call");
+        ChatResponse? chatResponse = null;
+        try
+        {
+            chatResponse = await chatClient.GetResponseAsync(messages, chatOptions, cancellationToken);
 
-        return ParseFunctionCallContentArguments(content.Arguments);
+            long? inputTokens = chatResponse.Usage?.InputTokenCount;
+            long? outputTokens = chatResponse.Usage?.OutputTokenCount;
+
+            FunctionCallContent? content = chatResponse
+                .Messages.SelectMany(m => m.Contents)
+                .OfType<FunctionCallContent>()
+                .FirstOrDefault(c => c.Name == SubmitVerdictFunctionName);
+
+            if (content?.Arguments == null)
+                throw new InvalidOperationException("Unable to find verdict function call");
+
+            CriticVerdictSubmission verdict = ParseFunctionCallContentArguments(content.Arguments);
+
+            activity?.SetTag("critic.input_tokens", inputTokens);
+            activity?.SetTag("critic.output_tokens", outputTokens);
+            metrics.RecordSuccess(providerInfo.Provider, providerInfo.Model, stopwatch.Elapsed, inputTokens,
+                outputTokens);
+            return verdict;
+        }
+        catch (Exception ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("critic.input_tokens", chatResponse?.Usage?.InputTokenCount);
+            activity?.SetTag("critic.output_tokens", chatResponse?.Usage?.OutputTokenCount);
+            metrics.RecordFailure(providerInfo.Provider, providerInfo.Model, stopwatch.Elapsed, chatResponse?.Usage?.InputTokenCount, chatResponse?.Usage?.OutputTokenCount);
+            throw;
+        }
     }
 
     private string GenerateRequestPrompt(CandidateTrack candidateTrack,

@@ -1,6 +1,7 @@
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
+using BackingTrack.Generation.Steps.Critic;
 using BackingTrack.Generation.Steps.TrackGeneration;
 using BackingTrack.Generation.Steps.TrackPersistence;
 using BackingTrack.Generation.Steps.TrackRepair;
@@ -33,6 +34,7 @@ internal static class OpenTelemetryExtensions
                     .AddSource(TrackRepairActivitySource.SourceName)
                     .AddSource(QueryEmbeddingActivitySource.SourceName)
                     .AddSource(TrackPersistenceActivitySource.SourceName)
+                    .AddSource(CriticActivitySource.SourceName)
                     .AddOtlpExporter(options =>
                     {
                         options.Endpoint = new Uri(otelSettings.CollectorEndpoint!);
@@ -46,6 +48,7 @@ internal static class OpenTelemetryExtensions
                     .AddMeter(TrackGenerationMetrics.MeterName)
                     .AddMeter(TrackRepairMetrics.MeterName)
                     .AddMeter(GenerationJobMetrics.MeterName)
+                    .AddMeter(CriticMetrics.MeterName)
                     .AddOtlpExporter(options =>
                     {
                         options.Endpoint = new Uri(otelSettings.CollectorEndpoint!);
