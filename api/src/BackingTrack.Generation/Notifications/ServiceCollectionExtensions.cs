@@ -31,6 +31,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<ApnsTokenProvider>();
+        services.AddSingleton<PushNotificationMetrics>();
 
         services.Configure<ApnsSettings>(configuration.GetSection("Apns"));
 

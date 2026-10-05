@@ -1,6 +1,7 @@
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase.Embedding;
+using BackingTrack.Generation.Notifications;
 using BackingTrack.Generation.Steps.Critic;
 using BackingTrack.Generation.Steps.TrackGeneration;
 using BackingTrack.Generation.Steps.TrackPersistence;
@@ -50,6 +51,7 @@ internal static class OpenTelemetryExtensions
                     .AddMeter(GenerationJobMetrics.MeterName)
                     .AddMeter(CriticMetrics.MeterName)
                     .AddMeter("Polly")
+                    .AddMeter(PushNotificationMetrics.MeterName)
                     .AddOtlpExporter(options =>
                     {
                         options.Endpoint = new Uri(otelSettings.CollectorEndpoint!);
