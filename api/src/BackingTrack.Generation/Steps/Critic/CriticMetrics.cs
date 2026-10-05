@@ -16,7 +16,8 @@ public class CriticMetrics : IDisposable
     public CriticMetrics()
     {
         _meter = new Meter(MeterName);
-        _callDuration = _meter.CreateHistogram<double>("critic.call.duration",
+        _callDuration = _meter.CreateHistogram("critic.call.duration",
+            advice: new InstrumentAdvice<double> { HistogramBucketBoundaries = Constants.LlmCallDurationBuckets },
             unit: "s", description: "Duration of a critic LLM call");
         _inputTokens = _meter.CreateHistogram<long>("critic.call.input_tokens",
             description: "Input tokens consumed by a critic LLM call");

@@ -29,7 +29,13 @@ because they are strings.
   dots: `track_generation.call.duration`, `critic.calls`, `generation_job.completed`,
   `push_notification.attempts`. Prometheus turns the dots into underscores, adds `_total` to
   counters and the unit to histograms.
-- Durations are a `double` histogram with unit `"s"` (so the series ends `_seconds`).
+- Durations are a `double` histogram with unit `"s"` (so the series ends `_seconds`), and it
+  **declares its own bucket boundaries** (`InstrumentAdvice<double>`). The SDK's default
+  boundaries (0, 5, 10, 25, 50, 75, 100, 250, ...) are tuned for milliseconds, so with a seconds
+  unit a 0.6s push lands in the first bucket and every percentile of it reads as about 5s. The
+  boundaries are chosen to cover what is measured: from a fraction of a second up to the
+  client's timeout, with resolution where calls actually land (`Constants.LlmCallDurationBuckets`,
+  `Constants.PushNotificationDurationBuckets`). Tests pin that shape, not the exact values.
 - Events are counters, durations and sizes are histograms, and **current state is an
   observable gauge** (queue depth, jobs per state), which reads the real queue and store when
   collected instead of being updated from every code path that changes them.
@@ -125,6 +131,11 @@ cardinality grounds.
     tokens of a failed call that returned a response land in the same series as a successful
     one's. That is right for total spend; an `outcome` tag would split every token series in
     two and can be added if the split is ever wanted.
+- Changing a histogram's boundaries starts new `le` series, so percentiles across the change are
+  unreliable until the old buckets age out. Pick them before dashboards depend on them, and treat
+  a later change like any other rename.
+- Token histograms still use the default boundaries, which end at 10,000 tokens; until they get
+  their own, read token usage as `_sum`/`_count` rather than a percentile.
 - A queue-depth or job-store gauge is created when its object is, and a DI singleton is lazy,
   so something must depend on it at startup (the eviction service does for `JobStoreMetrics`).
 - The queue depth gauge includes jobs cancelled while pending until the worker dequeues them,
