@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 
 using BackingTrack.Generation.Jobs;
@@ -5,6 +6,7 @@ using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Critic;
 using BackingTrack.Generation.Steps.Types;
+using BackingTrack.Generation.Tests.Jobs;
 
 using Microsoft.Extensions.AI;
 
@@ -12,6 +14,7 @@ using NSubstitute;
 
 namespace BackingTrack.Generation.Tests.Steps.Critic;
 
+[Collection(CriticMetricsCollection.Name)]
 public class CriticAiClientTests
 {
     private const string SubmitVerdictFunctionName = "submit_verdict";
@@ -53,9 +56,12 @@ public class CriticAiClientTests
         return chatClient;
     }
 
-    private static Task<CriticVerdictSubmission> GenerateAsync(IChatClient chatClient) =>
-        new CriticAiClient(chatClient, new CriticProviderInfo("OpenAi", "test-model", 4096), new ScaleMatcher())
+    private static async Task<CriticVerdictSubmission> GenerateAsync(IChatClient chatClient)
+    {
+        using CriticMetrics metrics = new();
+        return await new CriticAiClient(chatClient, new CriticProviderInfo("OpenAi", "test-model", 4096), new ScaleMatcher(), metrics)
             .GenerateCriticVerdictSubmissionAsync(DummyTrack, DummyJob, DummyStyle, [], [], TestContext.Current.CancellationToken);
+    }
 
     [Fact]
     public async Task GenerateCriticVertictSubmissionAsync_ResponseContainsSubmitVerdictCall_ParsesArgumentsIntoSubmission()
@@ -134,5 +140,115 @@ public class CriticAiClientTests
         ChatResponse response = new(new ChatMessage(ChatRole.Assistant, [call]));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => GenerateAsync(CreateChatClientReturning(response)));
+    }
+
+    [Fact]
+    public async Task GenerateCriticVertictSubmissionAsync_Success_RecordsCallDurationTokensAndSuccessOutcome()
+    {
+        ChatResponse response = ValidVerdictResponse();
+        response.Usage = new UsageDetails { InputTokenCount = 120, OutputTokenCount = 45 };
+        using MeasurementCapture calls = new("critic.calls", CriticMetrics.MeterName);
+        using MeasurementCapture duration = new("critic.call.duration", CriticMetrics.MeterName);
+        using MeasurementCapture input = new("critic.call.input_tokens", CriticMetrics.MeterName);
+        using MeasurementCapture output = new("critic.call.output_tokens", CriticMetrics.MeterName);
+
+        await GenerateAsync(CreateChatClientReturning(response));
+
+        CapturedMeasurement call = Assert.Single(calls.Measurements);
+        Assert.Equal("success", call.Tags["outcome"]);
+        Assert.Equal("OpenAi", call.Tags["provider"]);
+        Assert.Equal("test-model", call.Tags["model"]);
+        Assert.Single(duration.Measurements);
+        Assert.Equal(120, Assert.Single(input.Measurements).Value);
+        Assert.Equal(45, Assert.Single(output.Measurements).Value);
+    }
+
+    [Fact]
+    public async Task GenerateCriticVertictSubmissionAsync_ChatClientThrows_RecordsFailureAndRethrows()
+    {
+        IChatClient chatClient = Substitute.For<IChatClient>();
+        chatClient.GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
+            .Returns<ChatResponse>(_ => throw new HttpRequestException("openai down"));
+        using MeasurementCapture calls = new("critic.calls", CriticMetrics.MeterName);
+        using MeasurementCapture input = new("critic.call.input_tokens", CriticMetrics.MeterName);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => GenerateAsync(chatClient));
+
+        Assert.Equal("failure", Assert.Single(calls.Measurements).Tags["outcome"]);
+        Assert.Empty(input.Measurements);
+    }
+
+    [Fact]
+    public async Task GenerateCriticVertictSubmissionAsync_ResponseHasNoVerdict_RecordsFailureWithTheTokensItCost()
+    {
+        // The call itself succeeded, but it produced nothing usable, so the caller sees a failure
+        // (and the workflow fails the job); the metric must agree with that, and the tokens were still spent.
+        ChatResponse response = new(new ChatMessage(ChatRole.Assistant, "I have reviewed the track."))
+        {
+            Usage = new UsageDetails { InputTokenCount = 120, OutputTokenCount = 45 }
+        };
+        using MeasurementCapture calls = new("critic.calls", CriticMetrics.MeterName);
+        using MeasurementCapture input = new("critic.call.input_tokens", CriticMetrics.MeterName);
+        using MeasurementCapture output = new("critic.call.output_tokens", CriticMetrics.MeterName);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => GenerateAsync(CreateChatClientReturning(response)));
+
+        Assert.Equal("failure", Assert.Single(calls.Measurements).Tags["outcome"]);
+        Assert.Equal(120, Assert.Single(input.Measurements).Value);
+        Assert.Equal(45, Assert.Single(output.Measurements).Value);
+    }
+
+    [Fact]
+    public async Task GenerateCriticVertictSubmissionAsync_ResponseHasNoVerdict_TagsTheErrorActivityWithTokens()
+    {
+        ChatResponse response = new(new ChatMessage(ChatRole.Assistant, "I have reviewed the track."))
+        {
+            Usage = new UsageDetails { InputTokenCount = 120, OutputTokenCount = 45 }
+        };
+        using ActivityCapture activities = new(CriticActivitySource.SourceName);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => GenerateAsync(CreateChatClientReturning(response)));
+
+        Activity activity = Assert.Single(activities.Activities);
+        Assert.Equal(ActivityStatusCode.Error, activity.Status);
+        Assert.Equal(120L, activity.GetTagItem("critic.input_tokens"));
+        Assert.Equal(45L, activity.GetTagItem("critic.output_tokens"));
+    }
+
+    [Fact]
+    public async Task GenerateCriticVertictSubmissionAsync_Success_StartsAnActivityTaggedWithProviderModelAndTokens()
+    {
+        ChatResponse response = ValidVerdictResponse();
+        response.Usage = new UsageDetails { InputTokenCount = 120, OutputTokenCount = 45 };
+        using ActivityCapture activities = new(CriticActivitySource.SourceName);
+
+        await GenerateAsync(CreateChatClientReturning(response));
+
+        Activity activity = Assert.Single(activities.Activities);
+        Assert.Equal("OpenAi", activity.GetTagItem("critic.provider"));
+        Assert.Equal("test-model", activity.GetTagItem("critic.model"));
+        Assert.Equal(120L, activity.GetTagItem("critic.input_tokens"));
+        Assert.Equal(45L, activity.GetTagItem("critic.output_tokens"));
+        Assert.NotEqual(ActivityStatusCode.Error, activity.Status);
+    }
+
+    [Fact]
+    public async Task GenerateCriticVertictSubmissionAsync_ChatClientThrows_MarksTheActivityAsError()
+    {
+        IChatClient chatClient = Substitute.For<IChatClient>();
+        chatClient.GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
+            .Returns<ChatResponse>(_ => throw new HttpRequestException("openai down"));
+        using ActivityCapture activities = new(CriticActivitySource.SourceName);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => GenerateAsync(chatClient));
+
+        Assert.Equal(ActivityStatusCode.Error, Assert.Single(activities.Activities).Status);
+    }
+
+    private static ChatResponse ValidVerdictResponse()
+    {
+        CriticVerdictSubmission submission = new([new(CriticDimension.RhythmAndFeel, true, null, null)]);
+        FunctionCallContent call = new("call-1", SubmitVerdictFunctionName, BuildRealisticFunctionCallArguments(submission));
+        return new ChatResponse(new ChatMessage(ChatRole.Assistant, [call]));
     }
 }

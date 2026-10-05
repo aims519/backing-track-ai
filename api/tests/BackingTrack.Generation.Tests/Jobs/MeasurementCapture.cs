@@ -4,11 +4,12 @@ using BackingTrack.Generation.Jobs;
 
 namespace BackingTrack.Generation.Tests.Jobs;
 
-internal sealed record CapturedMeasurement(long Value, IReadOnlyDictionary<string, object?> Tags);
+internal sealed record CapturedMeasurement(double Value, IReadOnlyDictionary<string, object?> Tags);
 
 /// <summary>
-/// Captures every measurement of one <see cref="GenerationJobMetrics"/> instrument. Subscribes by meter
-/// name, so tests using it belong to <see cref="JobMetricsCollection"/> to stay isolated from each other.
+/// Captures every measurement of one instrument, whether it records longs or doubles. Subscribes by meter
+/// name (the job meter unless told otherwise), so tests that create metrics instances of the same meter
+/// must share a collection - e.g. <see cref="JobMetricsCollection"/> - to stay isolated from each other.
 /// </summary>
 internal sealed class MeasurementCapture : IDisposable
 {
@@ -19,19 +20,15 @@ internal sealed class MeasurementCapture : IDisposable
     private readonly List<CapturedMeasurement> _measurements = [];
     private readonly Lock _lock = new();
 
-    public MeasurementCapture(string instrumentName)
+    public MeasurementCapture(string instrumentName, string meterName = GenerationJobMetrics.MeterName)
     {
         _listener.InstrumentPublished = (instrument, listener) =>
         {
-            if (instrument.Meter.Name == GenerationJobMetrics.MeterName && instrument.Name == instrumentName)
+            if (instrument.Meter.Name == meterName && instrument.Name == instrumentName)
                 listener.EnableMeasurementEvents(instrument);
         };
-        _listener.SetMeasurementEventCallback<long>((_, value, tags, _) =>
-        {
-            Dictionary<string, object?> tagMap = tags.ToArray().ToDictionary(t => t.Key, t => t.Value);
-            lock (_lock)
-                _measurements.Add(new CapturedMeasurement(value, tagMap));
-        });
+        _listener.SetMeasurementEventCallback<long>((_, value, tags, _) => Add(value, tags));
+        _listener.SetMeasurementEventCallback<double>((_, value, tags, _) => Add(value, tags));
         _listener.Start();
     }
 
@@ -45,4 +42,11 @@ internal sealed class MeasurementCapture : IDisposable
     }
 
     public void Dispose() => _listener.Dispose();
+
+    private void Add(double value, ReadOnlySpan<KeyValuePair<string, object?>> tags)
+    {
+        Dictionary<string, object?> tagMap = tags.ToArray().ToDictionary(t => t.Key, t => t.Value);
+        lock (_lock)
+            _measurements.Add(new CapturedMeasurement(value, tagMap));
+    }
 }

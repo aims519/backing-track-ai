@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
 
         services.AddTransient<ICriticAiClient, CriticAiClient>();
         services.AddTransient<ICriticStep, CriticStep>();
+        services.AddSingleton<CriticMetrics>();
 
         return services;
     }
