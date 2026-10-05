@@ -34,6 +34,7 @@ public class CriticAiClient([FromKeyedServices("critic")] IChatClient chatClient
         using Activity? activity = CriticActivitySource.Instance.StartActivity($"{nameof(CriticStep)}.{nameof(CriticAiClient)}.GenerateCriticVerdictSubmissionAsync");
         activity?.SetTag("critic.provider", providerInfo.Provider);
         activity?.SetTag("critic.model", providerInfo.Model);
+        activity?.SetTag("critic.service_tier", providerInfo.ServiceTier.ToMetricTag());
 
         string prompt = GenerateRequestPrompt(candidateTrack, generationJob, matchedStyle, matchedChords, matchedScales);
         ChatMessage[] messages =
@@ -66,7 +67,11 @@ public class CriticAiClient([FromKeyedServices("critic")] IChatClient chatClient
 
             activity?.SetTag("critic.input_tokens", inputTokens);
             activity?.SetTag("critic.output_tokens", outputTokens);
-            metrics.RecordSuccess(providerInfo.Provider, providerInfo.Model, stopwatch.Elapsed, inputTokens,
+            metrics.RecordSuccess(providerInfo.Provider,
+                providerInfo.Model,
+                providerInfo.ServiceTier.ToMetricTag(),
+                stopwatch.Elapsed,
+                inputTokens,
                 outputTokens);
             return verdict;
         }
@@ -75,7 +80,12 @@ public class CriticAiClient([FromKeyedServices("critic")] IChatClient chatClient
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             activity?.SetTag("critic.input_tokens", chatResponse?.Usage?.InputTokenCount);
             activity?.SetTag("critic.output_tokens", chatResponse?.Usage?.OutputTokenCount);
-            metrics.RecordFailure(providerInfo.Provider, providerInfo.Model, stopwatch.Elapsed, chatResponse?.Usage?.InputTokenCount, chatResponse?.Usage?.OutputTokenCount);
+            metrics.RecordFailure(providerInfo.Provider,
+                providerInfo.Model,
+                providerInfo.ServiceTier.ToMetricTag(),
+                stopwatch.Elapsed,
+                chatResponse?.Usage?.InputTokenCount,
+                chatResponse?.Usage?.OutputTokenCount);
             throw;
         }
     }

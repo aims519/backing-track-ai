@@ -21,6 +21,7 @@ public class TrackGenerationClient(
         using Activity? activity = TrackGenerationActivitySource.Instance.StartActivity($"{nameof(GenerateStep)}.{nameof(TrackGenerationClient)}.GenerateTrackAsync");
         activity?.SetTag("track_generation.provider", providerInfo.Provider);
         activity?.SetTag("track_generation.model", providerInfo.Model);
+        activity?.SetTag("track_generation.service_tier", providerInfo.ServiceTier.ToMetricTag());
 
         ChatOptions chatOptions = new()
         {
@@ -42,7 +43,10 @@ public class TrackGenerationClient(
         {
             stopwatch.Stop();
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            metrics.RecordFailure(providerInfo.Provider, providerInfo.Model, stopwatch.Elapsed);
+            metrics.RecordFailure(providerInfo.Provider,
+                providerInfo.Model,
+                providerInfo.ServiceTier.ToMetricTag(),
+                stopwatch.Elapsed);
             throw;
         }
         stopwatch.Stop();
@@ -52,7 +56,12 @@ public class TrackGenerationClient(
 
         activity?.SetTag("track_generation.input_tokens", agentResponse.Usage?.InputTokenCount);
         activity?.SetTag("track_generation.output_tokens", agentResponse.Usage?.OutputTokenCount);
-        metrics.RecordSuccess(providerInfo.Provider, providerInfo.Model, stopwatch.Elapsed, agentResponse.Usage?.InputTokenCount, agentResponse.Usage?.OutputTokenCount);
+        metrics.RecordSuccess(providerInfo.Provider,
+            providerInfo.Model,
+            providerInfo.ServiceTier.ToMetricTag(),
+            stopwatch.Elapsed,
+            agentResponse.Usage?.InputTokenCount,
+            agentResponse.Usage?.OutputTokenCount);
 
         return agentResponse.Result;
     }

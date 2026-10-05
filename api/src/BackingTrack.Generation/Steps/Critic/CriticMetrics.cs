@@ -26,22 +26,28 @@ public class CriticMetrics : IDisposable
             description: "Number of critic LLM calls, tagged by outcome");
     }
 
-    public void RecordSuccess(string provider, string model, TimeSpan duration, long? inputTokens, long? outputTokens)
+    public void RecordSuccess(string provider, string model, string serviceTier, TimeSpan duration, long? inputTokens, long? outputTokens)
     {
-        TagList tags = new() { { "provider", provider }, { "model", model } };
+        TagList tags = new() { { "provider", provider }, { "model", model }, { "service_tier", serviceTier } };
 
         RecordTokens(tags, inputTokens, outputTokens);
         _callDuration.Record(duration.TotalSeconds, tags);
-        _calls.Add(1, new TagList { { "provider", provider }, { "model", model }, { "outcome", "success" } });
+
+        TagList callTags = tags;
+        callTags.Add("outcome", "success");
+        _calls.Add(1, callTags);
     }
 
-    public void RecordFailure(string provider, string model, TimeSpan duration, long? inputTokens = null, long? outputTokens = null)
+    public void RecordFailure(string provider, string model, string serviceTier, TimeSpan duration, long? inputTokens = null, long? outputTokens = null)
     {
-        TagList tags = new() { { "provider", provider }, { "model", model } };
+        TagList tags = new() { { "provider", provider }, { "model", model }, { "service_tier", serviceTier } };
 
         RecordTokens(tags, inputTokens, outputTokens);
-        _callDuration.Record(duration.TotalSeconds, new TagList { { "provider", provider }, { "model", model } });
-        _calls.Add(1, new TagList { { "provider", provider }, { "model", model }, { "outcome", "failure" } });
+        _callDuration.Record(duration.TotalSeconds, tags);
+
+        TagList callTags = tags;
+        callTags.Add("outcome", "failure");
+        _calls.Add(1, callTags);
     }
 
     private void RecordTokens(TagList tags, long? inputTokens, long? outputTokens)

@@ -31,4 +31,17 @@ public static class OpenAiServiceTierExtensions
         options.RawRepresentationFactory = _ => new CreateResponseOptions { ServiceTier = tier };
 #pragma warning restore OPENAI001
     }
+
+    public static string ToMetricTag(this OpenAiServiceTier? serviceTier)
+    {
+        return serviceTier switch
+        {
+            OpenAiServiceTier.Flex => "flex",
+            OpenAiServiceTier.Auto => "auto",
+            OpenAiServiceTier.Default => "default",
+            OpenAiServiceTier.Scale => "scale",
+            null => "not_specified",
+            _ => throw new ArgumentOutOfRangeException(nameof(serviceTier), serviceTier, null)
+        };
+    }
 }

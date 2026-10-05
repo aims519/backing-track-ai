@@ -38,6 +38,7 @@ public class RepairStep([FromKeyedServices("repair")] IChatClient chatClient, Tr
         using Activity? activity = TrackGenerationActivitySource.Instance.StartActivity($"{nameof(RepairStep)}.RepairCandidateTrackAsync");
         activity?.SetTag("track_repair.provider", providerInfo.Provider);
         activity?.SetTag("track_repair.model", providerInfo.Model);
+        activity?.SetTag("track_repair.service_tier", providerInfo.ServiceTier.ToMetricTag());
 
         string prompt = GenerateRequestPrompt(previousAttempt, failures);
         ChatMessage[] messages =
@@ -63,7 +64,10 @@ public class RepairStep([FromKeyedServices("repair")] IChatClient chatClient, Tr
         {
             stopwatch.Stop();
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            metrics.RecordFailure(providerInfo.Provider, providerInfo.Model, stopwatch.Elapsed);
+            metrics.RecordFailure(providerInfo.Provider,
+                providerInfo.Model,
+                providerInfo.ServiceTier.ToMetricTag(),
+                stopwatch.Elapsed);
             throw;
         }
         stopwatch.Stop();
@@ -76,7 +80,12 @@ public class RepairStep([FromKeyedServices("repair")] IChatClient chatClient, Tr
 
         activity?.SetTag("track_repair.input_tokens", chatResponse.Usage?.InputTokenCount);
         activity?.SetTag("track_repair.output_tokens", chatResponse.Usage?.OutputTokenCount);
-        metrics.RecordSuccess(providerInfo.Provider, providerInfo.Model, stopwatch.Elapsed, chatResponse.Usage?.InputTokenCount, chatResponse.Usage?.OutputTokenCount);
+        metrics.RecordSuccess(providerInfo.Provider,
+            providerInfo.Model,
+            providerInfo.ServiceTier.ToMetricTag(),
+            stopwatch.Elapsed,
+            chatResponse.Usage?.InputTokenCount,
+            chatResponse.Usage?.OutputTokenCount);
 
         if (IsEmpty(patch))
         {
