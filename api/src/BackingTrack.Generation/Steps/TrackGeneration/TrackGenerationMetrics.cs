@@ -16,7 +16,8 @@ public class TrackGenerationMetrics : IDisposable
     public TrackGenerationMetrics()
     {
         _meter = new Meter(MeterName);
-        _callDuration = _meter.CreateHistogram<double>("track_generation.call.duration",
+        _callDuration = _meter.CreateHistogram("track_generation.call.duration",
+            advice: new InstrumentAdvice<double> { HistogramBucketBoundaries = Constants.LlmCallDurationBuckets },
             unit: "s", description: "Duration of a track generation LLM call");
         _inputTokens = _meter.CreateHistogram<long>("track_generation.call.input_tokens",
             description: "Input tokens consumed by a track generation LLM call");

@@ -20,8 +20,9 @@ public class PushNotificationMetrics : IDisposable
         _attempts = _meter.CreateCounter<long>("push_notification.attempts",
             description: "Push notification attempt count, tagged by push outcome and job state");
 
-        _durations = _meter.CreateHistogram<double>("push_notification.duration",
+        _durations = _meter.CreateHistogram("push_notification.duration",
             unit: "s",
+            advice: new InstrumentAdvice<double> { HistogramBucketBoundaries = Constants.PushNotificationDurationBuckets },
             description: "Durations of push notifications in seconds, tagged by job outcome");
     }
 
