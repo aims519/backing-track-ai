@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 
+using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase;
 using BackingTrack.Generation.KnowledgeBase.Types;
@@ -56,10 +57,10 @@ public class CriticAiClientTests
         return chatClient;
     }
 
-    private static async Task<CriticVerdictSubmission> GenerateAsync(IChatClient chatClient)
+    private static async Task<CriticVerdictSubmission> GenerateAsync(IChatClient chatClient, OpenAiServiceTier? serviceTier = null)
     {
         using CriticMetrics metrics = new();
-        return await new CriticAiClient(chatClient, new CriticProviderInfo("OpenAi", "test-model", 4096), new ScaleMatcher(), metrics)
+        return await new CriticAiClient(chatClient, new CriticProviderInfo("OpenAi", "test-model", 4096, serviceTier), new ScaleMatcher(), metrics)
             .GenerateCriticVerdictSubmissionAsync(DummyTrack, DummyJob, DummyStyle, [], [], TestContext.Current.CancellationToken);
     }
 
@@ -250,5 +251,30 @@ public class CriticAiClientTests
         CriticVerdictSubmission submission = new([new(CriticDimension.RhythmAndFeel, true, null, null)]);
         FunctionCallContent call = new("call-1", SubmitVerdictFunctionName, BuildRealisticFunctionCallArguments(submission));
         return new ChatResponse(new ChatMessage(ChatRole.Assistant, [call]));
+    }
+
+    [Fact]
+    public async Task GenerateCriticVertictSubmissionAsync_ServiceTierConfigured_TagsMetricsAndActivity()
+    {
+        using MeasurementCapture calls = new("critic.calls", CriticMetrics.MeterName);
+        using ActivityCapture activities = new(CriticActivitySource.SourceName);
+
+        await GenerateAsync(CreateChatClientReturning(ValidVerdictResponse()), OpenAiServiceTier.Flex);
+
+        Assert.Equal("flex", Assert.Single(calls.Measurements).Tags["service_tier"]);
+        Assert.Equal("flex", Assert.Single(activities.Activities).GetTagItem("critic.service_tier"));
+    }
+
+    [Fact]
+    public async Task GenerateCriticVertictSubmissionAsync_ChatClientThrows_FailureIsTaggedWithServiceTier()
+    {
+        IChatClient chatClient = Substitute.For<IChatClient>();
+        chatClient.GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
+            .Returns<ChatResponse>(_ => throw new HttpRequestException("openai down"));
+        using MeasurementCapture calls = new("critic.calls", CriticMetrics.MeterName);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => GenerateAsync(chatClient, OpenAiServiceTier.Flex));
+
+        Assert.Equal("flex", Assert.Single(calls.Measurements).Tags["service_tier"]);
     }
 }

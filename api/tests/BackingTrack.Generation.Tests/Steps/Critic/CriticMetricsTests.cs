@@ -14,7 +14,7 @@ public class CriticMetricsTests
         using CriticMetrics metrics = new();
         using MeasurementCapture capture = Capture("critic.call.duration");
 
-        metrics.RecordSuccess("OpenAi", "gpt-test", TimeSpan.FromMilliseconds(2500), 10, 5);
+        metrics.RecordSuccess("OpenAi", "gpt-test", "auto", TimeSpan.FromMilliseconds(2500), 10, 5);
 
         CapturedMeasurement measurement = Assert.Single(capture.Measurements);
         Assert.Equal(2.5, measurement.Value);
@@ -29,7 +29,7 @@ public class CriticMetricsTests
         using MeasurementCapture input = Capture("critic.call.input_tokens");
         using MeasurementCapture output = Capture("critic.call.output_tokens");
 
-        metrics.RecordSuccess("OpenAi", "gpt-test", TimeSpan.FromSeconds(1), 120, 45);
+        metrics.RecordSuccess("OpenAi", "gpt-test", "auto", TimeSpan.FromSeconds(1), 120, 45);
 
         CapturedMeasurement inputMeasurement = Assert.Single(input.Measurements);
         CapturedMeasurement outputMeasurement = Assert.Single(output.Measurements);
@@ -48,7 +48,7 @@ public class CriticMetricsTests
         using MeasurementCapture duration = Capture("critic.call.duration");
         using MeasurementCapture calls = Capture("critic.calls");
 
-        metrics.RecordSuccess("OpenAi", "gpt-test", TimeSpan.FromSeconds(1), inputTokens: null, outputTokens: null);
+        metrics.RecordSuccess("OpenAi", "gpt-test", "auto", TimeSpan.FromSeconds(1), inputTokens: null, outputTokens: null);
 
         Assert.Empty(input.Measurements);
         Assert.Empty(output.Measurements);
@@ -62,7 +62,7 @@ public class CriticMetricsTests
         using CriticMetrics metrics = new();
         using MeasurementCapture calls = Capture("critic.calls");
 
-        metrics.RecordSuccess("OpenAi", "gpt-test", TimeSpan.FromSeconds(1), 10, 5);
+        metrics.RecordSuccess("OpenAi", "gpt-test", "auto", TimeSpan.FromSeconds(1), 10, 5);
 
         CapturedMeasurement measurement = Assert.Single(calls.Measurements);
         Assert.Equal(1, measurement.Value);
@@ -78,7 +78,7 @@ public class CriticMetricsTests
         using MeasurementCapture calls = Capture("critic.calls");
         using MeasurementCapture duration = Capture("critic.call.duration");
 
-        metrics.RecordFailure("OpenAi", "gpt-test", TimeSpan.FromSeconds(3));
+        metrics.RecordFailure("OpenAi", "gpt-test", "auto", TimeSpan.FromSeconds(3));
 
         CapturedMeasurement call = Assert.Single(calls.Measurements);
         Assert.Equal("failure", call.Tags["outcome"]);
@@ -93,7 +93,7 @@ public class CriticMetricsTests
         using MeasurementCapture input = Capture("critic.call.input_tokens");
         using MeasurementCapture output = Capture("critic.call.output_tokens");
 
-        metrics.RecordFailure("OpenAi", "gpt-test", TimeSpan.FromSeconds(1), 120, 45);
+        metrics.RecordFailure("OpenAi", "gpt-test", "auto", TimeSpan.FromSeconds(1), 120, 45);
 
         Assert.Equal(120, Assert.Single(input.Measurements).Value);
         Assert.Equal(45, Assert.Single(output.Measurements).Value);
@@ -106,9 +106,43 @@ public class CriticMetricsTests
         using MeasurementCapture input = Capture("critic.call.input_tokens");
         using MeasurementCapture output = Capture("critic.call.output_tokens");
 
-        metrics.RecordFailure("OpenAi", "gpt-test", TimeSpan.FromSeconds(1));
+        metrics.RecordFailure("OpenAi", "gpt-test", "auto", TimeSpan.FromSeconds(1));
 
         Assert.Empty(input.Measurements);
         Assert.Empty(output.Measurements);
+    }
+
+    [Fact]
+    public void RecordSuccess_TagsEveryInstrumentWithTheServiceTier()
+    {
+        using CriticMetrics metrics = new();
+        using MeasurementCapture duration = Capture("critic.call.duration");
+        using MeasurementCapture input = Capture("critic.call.input_tokens");
+        using MeasurementCapture output = Capture("critic.call.output_tokens");
+        using MeasurementCapture calls = Capture("critic.calls");
+
+        metrics.RecordSuccess("OpenAi", "gpt-test", "flex", TimeSpan.FromSeconds(1), 10, 5);
+
+        Assert.Equal("flex", Assert.Single(duration.Measurements).Tags["service_tier"]);
+        Assert.Equal("flex", Assert.Single(input.Measurements).Tags["service_tier"]);
+        Assert.Equal("flex", Assert.Single(output.Measurements).Tags["service_tier"]);
+        Assert.Equal("flex", Assert.Single(calls.Measurements).Tags["service_tier"]);
+    }
+
+    [Fact]
+    public void RecordFailure_TagsEveryInstrumentWithTheServiceTier()
+    {
+        using CriticMetrics metrics = new();
+        using MeasurementCapture duration = Capture("critic.call.duration");
+        using MeasurementCapture input = Capture("critic.call.input_tokens");
+        using MeasurementCapture output = Capture("critic.call.output_tokens");
+        using MeasurementCapture calls = Capture("critic.calls");
+
+        metrics.RecordFailure("OpenAi", "gpt-test", "default", TimeSpan.FromSeconds(1), 10, 5);
+
+        Assert.Equal("default", Assert.Single(duration.Measurements).Tags["service_tier"]);
+        Assert.Equal("default", Assert.Single(input.Measurements).Tags["service_tier"]);
+        Assert.Equal("default", Assert.Single(output.Measurements).Tags["service_tier"]);
+        Assert.Equal("default", Assert.Single(calls.Measurements).Tags["service_tier"]);
     }
 }

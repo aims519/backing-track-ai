@@ -41,5 +41,23 @@ public class OpenAiServiceTierExtensionsTests
         Assert.NotNull(raw);
         Assert.Equal(expected, raw.ServiceTier);
     }
+
+    // Tag values are a dashboard contract (see GenerationJobMetrics.RecordOutcome), so they're pinned here
+    // rather than derived from the enum names. Unset means OpenAI applies its own default, "auto".
+    public static TheoryData<OpenAiServiceTier?, string> MetricTags => new()
+    {
+        { null, "auto" },
+        { OpenAiServiceTier.Auto, "auto" },
+        { OpenAiServiceTier.Default, "default" },
+        { OpenAiServiceTier.Flex, "flex" },
+        { OpenAiServiceTier.Scale, "scale" },
+    };
+
+    [Theory]
+    [MemberData(nameof(MetricTags))]
+    public void ToMetricTag_ReturnsTheFixedTagValueForEachTier(OpenAiServiceTier? tier, string expected)
+    {
+        Assert.Equal(expected, tier.ToMetricTag());
+    }
 #pragma warning restore OPENAI001
 }

@@ -26,9 +26,9 @@ public class TrackRepairMetrics : IDisposable
             description: "Number of track repair LLM calls, tagged by outcome");
     }
 
-    public void RecordSuccess(string provider, string model, TimeSpan duration, long? inputTokens, long? outputTokens)
+    public void RecordSuccess(string provider, string model, string serviceTier, TimeSpan duration, long? inputTokens, long? outputTokens)
     {
-        TagList tags = new() { { "provider", provider }, { "model", model } };
+        TagList tags = new() { { "provider", provider }, { "model", model }, { "service_tier", serviceTier } };
         _callDuration.Record(duration.TotalSeconds, tags);
 
         if (inputTokens is { } input)
@@ -36,13 +36,20 @@ public class TrackRepairMetrics : IDisposable
         if (outputTokens is { } output)
             _outputTokens.Record(output, tags);
 
-        _calls.Add(1, new TagList { { "provider", provider }, { "model", model }, { "outcome", "success" } });
+        TagList callTags = tags;
+        callTags.Add("outcome", "success");
+        _calls.Add(1, callTags);
     }
 
-    public void RecordFailure(string provider, string model, TimeSpan duration)
+    public void RecordFailure(string provider, string model, string serviceTier, TimeSpan duration)
     {
-        _callDuration.Record(duration.TotalSeconds, new TagList { { "provider", provider }, { "model", model } });
-        _calls.Add(1, new TagList { { "provider", provider }, { "model", model }, { "outcome", "failure" } });
+        TagList tags = new() { { "provider", provider }, { "model", model }, { "service_tier", serviceTier } };
+
+        _callDuration.Record(duration.TotalSeconds, tags);
+
+        TagList callTags = tags;
+        callTags.Add("outcome", "failure");
+        _calls.Add(1, callTags);
     }
 
     public void Dispose() => _meter.Dispose();
