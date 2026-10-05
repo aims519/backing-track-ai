@@ -72,7 +72,7 @@ public class JobStoreMetricsTests
 
         capture.Poll();
 
-        Dictionary<string, double> byState = capture.Measurements.ToDictionary(m => (string)m.Tags["state"]!, m => m.Value);
+        Dictionary<string, double> byState = capture.Measurements.ToDictionary(m => (string)m.Tags["job_state"]!, m => m.Value);
         Assert.Equal(Enum.GetValues<JobStates>().Length, byState.Count);
         Assert.Equal(2, byState["pending"]);
         Assert.Equal(1, byState["failed"]);
