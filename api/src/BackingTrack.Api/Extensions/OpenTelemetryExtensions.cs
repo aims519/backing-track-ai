@@ -29,7 +29,7 @@ internal static class OpenTelemetryExtensions
             {
                 tracerProviderBuilder
                     .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
+                    .AddHttpClientInstrumentation(o => o.EnrichWithHttpRequestMessage = HttpTelemetryRedaction.Enrich)
                     .AddSource(TrackGenerationActivitySource.SourceName)
                     .AddSource(GenerationJobActivitySource.SourceName)
                     .AddSource(TrackRepairActivitySource.SourceName)
