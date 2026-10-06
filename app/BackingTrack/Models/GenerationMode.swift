@@ -3,8 +3,9 @@ import Foundation
 /// The two generation modes from the project scope (`docs/backing-track-generator-scope.md`).
 ///
 /// Only `.precise` is wired to the API today — `.vibe` (a third-party generative-audio service)
-/// isn't built yet, so `isAvailable` is `false` for it and the UI shows it disabled rather than
-/// hiding it, to signal it's coming.
+/// isn't built, so `isAvailable` is `false` for it and the generate form has no mode selector.
+/// The case stays because the API's `Mode` field, history rows and the player's guard all
+/// still need to represent it.
 enum GenerationMode: String, CaseIterable, Identifiable, Sendable {
     case precise
     case vibe
@@ -18,14 +19,6 @@ enum GenerationMode: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .precise: "Precise"
         case .vibe: "Vibe"
-        }
-    }
-
-    /// One-line description shown under the selector.
-    var summary: String {
-        switch self {
-        case .precise: "Chord-locked backing track from your exact chords, key and tempo."
-        case .vibe: "Realistic rendered audio from a text prompt. Coming soon."
         }
     }
 
