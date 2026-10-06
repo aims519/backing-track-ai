@@ -62,7 +62,7 @@ struct RecentTracksSection: View {
                 VStack(spacing: 6) {
                     Text("Nothing yet")
                         .font(.title3.weight(.semibold))
-                    Text("Tap 'New Track' to start generating some tracks")
+                    Text("Tap 'New Track' to start generating")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

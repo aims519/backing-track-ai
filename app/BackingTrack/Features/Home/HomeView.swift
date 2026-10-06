@@ -29,7 +29,7 @@ struct HomeView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(spacing: 22) {
-                    newTrackButton
+                    DashboardHeaderCard { path.append(GenerateRoute.new) }
                     InFlightBanner(vm: historyVM)
                     RecentTracksSection()
                 }
@@ -37,6 +37,9 @@ struct HomeView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Backing Tracks")
+            // Inline: the header card is the screen's visual title. The title text is still what
+            // pushed screens show on their back button.
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -81,18 +84,6 @@ struct HomeView: View {
         .onChange(of: notificationRouter?.pendingJobID, initial: true) {
             openPendingNotificationJob()
         }
-    }
-
-    private var newTrackButton: some View {
-        Button {
-            path.append(GenerateRoute.new)
-        } label: {
-            Label("New Track", systemImage: "plus")
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .padding(.horizontal, 16)
     }
 
     /// A tapped job-finished notification: History ▸ that job's detail, whose own `.task` refreshes
