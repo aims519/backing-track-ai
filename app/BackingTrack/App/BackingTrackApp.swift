@@ -7,7 +7,7 @@ struct BackingTrackApp: App {
     
     var body: some Scene {
         WindowGroup {
-            GenerateTrackView()
+            HomeView()
                 .environment(appDelegate.notificationRouter)
         }
         // `.modelContainer(_:)` (not `.modelContainer(for:)`, which would build a *second*

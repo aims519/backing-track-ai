@@ -5,7 +5,12 @@ import SwiftUI
 /// transform closure — a `static` on a `@MainActor` `View` is main-actor-isolated and can't be.
 private let chordFlowCoordinateSpace = "chordFlow"
 
-/// The app's main screen: choose the parameters of a backing track and request generation.
+/// Route for pushing the generate form onto `HomeView`'s navigation stack.
+enum GenerateRoute: Hashable {
+    case new
+}
+
+/// The generate screen: choose the parameters of a backing track and request generation.
 ///
 /// Laid out as a `ScrollView` of hand-built `SectionCard`s rather than a `Form`. The chord chip
 /// flow needs drag-and-drop for its reordering, and both the drop modifiers and a custom drag
@@ -16,22 +21,19 @@ private let chordFlowCoordinateSpace = "chordFlow"
 /// `generate()` submits the form to `POST /tracks/generate` via `GenerateTrackViewModel`; on
 /// acceptance `GenerationProgressView` is presented as a `fullScreenCover` to follow the job to
 /// completion, and a submission error is shown as an alert on the form.
+///
+/// Pushed from `HomeView`, which owns the model (so a half-built form survives popping back to the
+/// dashboard) and the navigation path.
 struct GenerateTrackView: View {
-    // Injectable (same idea as `SettingsView`'s store) so previews can seed a populated form.
-    @State private var model: GenerateTrackViewModel
-    // Optional so previews (which have no app delegate) don't need one injected.
-    @Environment(NotificationRouter.self) private var notificationRouter: NotificationRouter?
+    @Bindable var model: GenerateTrackViewModel
 
     init(model: GenerateTrackViewModel = GenerateTrackViewModel()) {
-        _model = State(initialValue: model)
+        self.model = model
         // Start in custom mode when the model arrives with a signature the quick-pick menu can't
         // represent — otherwise that menu would render with no selection.
         _isCustomTimeSignature = State(initialValue: !model.timeSignature.isCommon)
     }
 
-    // The app's only navigation path. Empty = the form; `HistoryRoute.list` pushes the history
-    // screen, which pushes its own detail views. Re-running a past job resets this to pop back here.
-    @State private var path = NavigationPath()
     @State private var isShowingSettings = false
     @State private var isShowingAddChord = false
     @State private var isShowingVibeComingSoon = false
@@ -46,67 +48,26 @@ struct GenerateTrackView: View {
     // their own properties below. Kept together they form one expression big enough that the
     // type-checker struggles with it.
     var body: some View {
-        NavigationStack(path: $path) {
-            cardStack
-                .background(Color(.systemGroupedBackground))
-                .navigationTitle("New Track")
-                .toolbar { toolbarItems }
-                .safeAreaInset(edge: .bottom) { generateBar }
-                .navigationDestination(for: HistoryRoute.self) { _ in
-                    HistoryView(onReRun: reRun)
+        cardStack
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("New Track")
+            .toolbar { toolbarItems }
+            .safeAreaInset(edge: .bottom) { generateBar }
+            // `apply(entry:)` may set a signature the quick-pick menu can't show; keep the
+            // view-local Custom toggle in step with it. Guarded so it doesn't fight the
+            // toggle's own snap-back onChange.
+            .onChange(of: model.timeSignature) { _, signature in
+                let shouldBeCustom = !signature.isCommon
+                if isCustomTimeSignature != shouldBeCustom {
+                    isCustomTimeSignature = shouldBeCustom
                 }
-                // One registration covers Play links from both the history list's detail view
-                // and (below, on its own stack) the progress cover.
-                .navigationDestination(for: PlayerRoute.self) { route in
-                    switch route {
-                    case .player(let input):
-                        PlayerView(model: PlayerViewModel(input: input))
-                    }
-                }
-                // `apply(entry:)` may set a signature the quick-pick menu can't show; keep the
-                // view-local Custom toggle in step with it. Guarded so it doesn't fight the
-                // toggle's own snap-back onChange.
-                .onChange(of: model.timeSignature) { _, signature in
-                    let shouldBeCustom = !signature.isCommon
-                    if isCustomTimeSignature != shouldBeCustom {
-                        isCustomTimeSignature = shouldBeCustom
-                    }
-                }
-                .modifier(GenerateTrackModals(
-                    model: model,
-                    isShowingSettings: $isShowingSettings,
-                    isShowingAddChord: $isShowingAddChord,
-                    isShowingVibeComingSoon: $isShowingVibeComingSoon
-                ))
-        }
-        // `onChange`, not `.task(id:)`: a task is cancelled while the progress cover hides this
-        // view, and that's exactly when a notification tap needs handling. `initial` covers a
-        // cold launch, where the tap lands before this view first renders.
-        .onChange(of: notificationRouter?.pendingJobID, initial: true) {
-            openPendingNotificationJob()
-        }
-    }
-
-    /// A tapped job-finished notification: History ▸ that job's detail, whose own `.task` refreshes
-    /// a stale in-flight row. Falls back to the history list if the job isn't in local history.
-    private func openPendingNotificationJob() {
-        guard let router = notificationRouter, let jobID = router.pendingJobID else { return }
-        router.pendingJobID = nil
-        isShowingSettings = false
-        isShowingAddChord = false
-
-        var newPath = NavigationPath()
-        newPath.append(HistoryRoute.list)
-        if let entry = model.openJobFromNotification(jobID) {
-            newPath.append(entry)
-        }
-        path = newPath
-    }
-
-    /// "Use these settings" on a history row: seed the form from that job, then pop back to it.
-    private func reRun(_ entry: JobHistoryEntry) {
-        model.apply(entry: entry)
-        path = NavigationPath()
+            }
+            .modifier(GenerateTrackModals(
+                model: model,
+                isShowingSettings: $isShowingSettings,
+                isShowingAddChord: $isShowingAddChord,
+                isShowingVibeComingSoon: $isShowingVibeComingSoon
+            ))
     }
 
     private var cardStack: some View {
@@ -123,13 +84,10 @@ struct GenerateTrackView: View {
         }
     }
     
+    // Settings stays reachable here, not just on the dashboard: a missing or rejected API key
+    // surfaces as an alert on this screen that sends the user to Settings.
     private var toolbarItems: some ToolbarContent {
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            Button {
-                path.append(HistoryRoute.list)
-            } label: {
-                Label("History", systemImage: "clock")
-            }
+        ToolbarItem(placement: .topBarTrailing) {
             Button {
                 isShowingSettings = true
             } label: {

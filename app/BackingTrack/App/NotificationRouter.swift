@@ -8,7 +8,7 @@ import UserNotifications
 @MainActor
 @Observable
 final class NotificationRouter {
-    /// Set when the user taps a job notification; `GenerateTrackView` navigates to that job's
+    /// Set when the user taps a job notification; `HomeView` navigates to that job's
     /// history detail and clears it. Held here rather than acted on in the delegate because a
     /// cold-launch tap arrives before any view exists to navigate.
     var pendingJobID: UUID?

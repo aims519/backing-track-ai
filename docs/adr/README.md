@@ -49,3 +49,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0042](0042-https-via-tailscale-serve-ats-enabled.md) | HTTPS to the API via `tailscale serve`; App Transport Security left on |
 | [0043](0043-ttl-eviction-of-finished-jobs-from-the-in-memory-store.md) | TTL eviction of finished jobs from the in-memory job store, over evicting immediately or keeping them forever |
 | [0044](0044-metric-and-span-naming-and-tag-conventions.md) | Metric and span naming, hard-coded tag values, and what may be a tag, over ad-hoc names and enum-derived values |
+| [0045](0045-home-dashboard-as-navigation-root.md) | A dashboard as the navigation root, owning the form and history view models, over a tab bar or a form-owned model |
