@@ -112,19 +112,23 @@ struct HistoryDetailView: View {
                     }
                 }
 
-                Button {
-                    Task {
-                        isCheckingStatus = true
-                        await vm.checkAgain(entry)
-                        isCheckingStatus = false
+                // Nothing to resolve on a finished row — and after an API restart the server no
+                // longer knows the job, so re-checking could only confuse (#126).
+                if entry.disposition != .ready {
+                    Button {
+                        Task {
+                            isCheckingStatus = true
+                            await vm.checkAgain(entry)
+                            isCheckingStatus = false
+                        }
+                    } label: {
+                        Group {
+                            if isCheckingStatus { ProgressView() } else { Text("Check again") }
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                } label: {
-                    Group {
-                        if isCheckingStatus { ProgressView() } else { Text("Check again") }
-                    }
-                    .frame(maxWidth: .infinity)
+                    .disabled(isCheckingStatus)
                 }
-                .disabled(isCheckingStatus)
 
                 Button {
                     isConfirmingReRun = true

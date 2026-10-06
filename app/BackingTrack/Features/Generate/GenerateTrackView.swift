@@ -37,12 +37,14 @@ struct GenerateTrackView: View {
     @State private var isShowingSettings = false
     @State private var isShowingAddChord = false
     @State private var isShowingVibeComingSoon = false
+    @State private var isConfirmingClear = false
     // Toggling this reveals the custom beat-count / beat-unit pickers instead of the quick-pick
     // list. Kept in the view (not the model) — it's a display choice, not part of the request.
     @State private var isCustomTimeSignature: Bool
     // Each chord chip's frame in the flow's coordinate space, so a drop can be turned into an
     // insertion position. Rebuilt as the flow lays out; pruned when chords change.
     @State private var chipFrames: [UUID: CGRect] = [:]
+    @FocusState private var isNotesFocused: Bool
 
     // `body` is deliberately thin — the card stack, toolbar, bottom bar and modals are split into
     // their own properties below. Kept together they form one expression big enough that the
@@ -66,7 +68,8 @@ struct GenerateTrackView: View {
                 model: model,
                 isShowingSettings: $isShowingSettings,
                 isShowingAddChord: $isShowingAddChord,
-                isShowingVibeComingSoon: $isShowingVibeComingSoon
+                isShowingVibeComingSoon: $isShowingVibeComingSoon,
+                isConfirmingClear: $isConfirmingClear
             ))
     }
 
@@ -82,11 +85,23 @@ struct GenerateTrackView: View {
             }
             .padding(.vertical, 16)
         }
+        // Drag-down dismissal matches system apps; the notes field's Done button covers
+        // discoverability, since nothing on this form hints that a drag does anything.
+        .scrollDismissesKeyboard(.interactively)
     }
-    
+
     // Settings stays reachable here, not just on the dashboard: a missing or rejected API key
     // surfaces as an alert on this screen that sends the user to Settings.
+    @ToolbarContentBuilder
     private var toolbarItems: some ToolbarContent {
+        // Clear is opt-in rather than automatic after a successful generation (#48): leaving the
+        // form populated is what makes a run of similar tracks cheap.
+        ToolbarItem(placement: .topBarTrailing) {
+            Button("Clear") {
+                isConfirmingClear = true
+            }
+            .disabled(!model.hasEdits)
+        }
         ToolbarItem(placement: .topBarTrailing) {
             Button {
                 isShowingSettings = true
@@ -356,6 +371,15 @@ struct GenerateTrackView: View {
                 // `axis: .vertical` lets the field grow to multiple lines as the user types.
                 TextField("Notes (optional)", text: $model.styleNotes, axis: .vertical)
                     .lineLimit(2...4)
+                    .focused($isNotesFocused)
+                    // `axis: .vertical` turns Return into a newline, so the keyboard has no other
+                    // way to close — hence an explicit Done button.
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Done") { isNotesFocused = false }
+                        }
+                    }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 11)
             }
@@ -393,6 +417,7 @@ private struct GenerateTrackModals: ViewModifier {
     @Binding var isShowingSettings: Bool
     @Binding var isShowingAddChord: Bool
     @Binding var isShowingVibeComingSoon: Bool
+    @Binding var isConfirmingClear: Bool
 
     func body(content: Content) -> some View {
         content
@@ -405,6 +430,13 @@ private struct GenerateTrackModals: ViewModifier {
                 }
                 // Half-height sheet — the picker doesn't need the whole screen.
                 .presentationDetents([.medium])
+            }
+            .confirmationDialog("Clear the form?", isPresented: $isConfirmingClear, titleVisibility: .visible) {
+                Button("Clear Form", role: .destructive) {
+                    withAnimation { model.clearForm() }
+                }
+            } message: {
+                Text("This resets the chords, key, tempo, time signature and style.")
             }
             .alert("Vibe Mode Coming Soon", isPresented: $isShowingVibeComingSoon) {
                 Button("OK", role: .cancel) {}

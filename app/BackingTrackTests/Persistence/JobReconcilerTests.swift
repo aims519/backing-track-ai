@@ -121,6 +121,38 @@ struct JobReconcilerTests {
         #expect(row.lastClientError != nil)
     }
 
+    /// An API restart empties the in-memory job store, but the track file is still on disk — a
+    /// finished row must not be demoted to `.lost` by the resulting 404 (#126).
+    @Test func sustainedNotFoundLeavesAReadyRowReady() async throws {
+        let entry = try seedRow(disposition: .ready)
+        let client = ScriptedStatusClient([
+            .failure(.server(status: 404)),
+            .failure(.server(status: 404)),
+        ])
+
+        let outcome = await reconciler(client).reconcile(entry: entry)
+
+        #expect(outcome == .unchanged)
+        let row = try #require(try store.entry(jobID: jobID))
+        #expect(row.disposition == .ready)
+        #expect(row.lastClientError == nil)
+    }
+
+    /// Same guard keyed on the captured `trackId`, for a row that hasn't reached `.ready` yet.
+    @Test func sustainedNotFoundKeepsARowThatAlreadyHasATrack() async throws {
+        let entry = try seedRow()
+        entry.trackIDString = UUID().uuidString
+        let client = ScriptedStatusClient([
+            .failure(.server(status: 404)),
+            .failure(.server(status: 404)),
+        ])
+
+        let outcome = await reconciler(client).reconcile(entry: entry)
+
+        #expect(outcome == .unchanged)
+        #expect(try store.entry(jobID: jobID)?.disposition == .inFlight)
+    }
+
     @Test(arguments: [
         APIClientError.transport(URLError(.notConnectedToInternet)),
         .server(status: 503),

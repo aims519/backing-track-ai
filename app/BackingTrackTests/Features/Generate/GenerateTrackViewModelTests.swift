@@ -468,6 +468,62 @@ struct GenerateTrackViewModelTests {
         #expect(model.seedWarning == nil)
     }
 
+    /// Every field moved off its default, then cleared — must be indistinguishable from a new
+    /// model. Also guards `hasEdits` and `clearForm()` against drifting from the initial values.
+    @Test func clearFormMatchesAFreshModel() {
+        let model = readyModel()
+        model.mode = .vibe
+        model.keyRoot = .fSharp
+        model.keyMode = .dorian
+        model.tempo = 90
+        model.timeSignature = TimeSignature(beatCount: 5, beatUnit: 8)
+        model.styleNotes = "brushes not sticks"
+        model.seedWarning = "something didn't round-trip"
+        #expect(model.hasEdits)
+
+        model.clearForm()
+
+        let fresh = GenerateTrackViewModel()
+        #expect(model.hasEdits == false)
+        #expect(model.mode == fresh.mode)
+        #expect(model.buildRequest() == fresh.buildRequest())
+        #expect(model.selectedStyle == nil)
+        #expect(model.styleNotes.isEmpty)
+        #expect(model.seedWarning == nil)
+        #expect(model.canGenerate == false)
+    }
+
+    @Test func anUntouchedFormHasNoEdits() {
+        #expect(GenerateTrackViewModel().hasEdits == false)
+    }
+
+    @Test func editingAnyFieldCountsAsAnEdit() {
+        let edits: [(GenerateTrackViewModel) -> Void] = [
+            { $0.keyRoot = .d },
+            { $0.keyMode = .aeolian },
+            { $0.tempo = 121 },
+            { $0.timeSignature = TimeSignature(beatCount: 3, beatUnit: 4) },
+            { $0.selectedStyle = .jazz },
+            { $0.styleNotes = "x" },
+            { $0.addChord(root: .c, quality: .major) },
+        ]
+        for edit in edits {
+            let model = GenerateTrackViewModel()
+            edit(model)
+            #expect(model.hasEdits)
+        }
+    }
+
+    /// The point of #48: a submission result — success included — must not wipe the form.
+    @Test func acknowledgingASubmissionKeepsTheFormPopulated() async {
+        let model = readyModel()
+        await model.generate()
+        model.acknowledgeSubmissionResult()
+
+        #expect(model.chords.count == 1)
+        #expect(model.selectedStyle == .pop)
+    }
+
     @Test func vibeModeIsNotSubmittableYet() {
         #expect(GenerationMode.vibe.isAvailable == false)
         #expect(GenerationMode.precise.isAvailable)
