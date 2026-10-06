@@ -1,0 +1,12 @@
+title = "backing-track-ai gitleaks config"
+
+[extend]
+useDefault = true
+
+# The APNs device token used as a fixture in the API tests. A device token only
+# identifies a device (pushing also needs the APNs auth key), and this one is
+# test data, so allowlist the exact value rather than whole paths or rules.
+[[allowlists]]
+description = "APNs device token test fixture"
+regexTarget = "match"
+regexes = ['''b76252068fdfa84cf6b03d46495b43f7599b05a82e0c079b0d24ed52ca6d96ba''']
