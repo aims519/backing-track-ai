@@ -1,0 +1,11 @@
+apiVersion: 1
+
+# Loaded next to the dashboards grafana/otel-lgtm ships with: Grafana reads every file in its provisioning
+# dashboards directory, so this adds a provider without replacing the built-in ones.
+providers:
+  - name: "Backing Track"
+    type: file
+    allowUiUpdates: false
+    options:
+      path: /backing-track-dashboards
+      foldersFromFilesStructure: false
