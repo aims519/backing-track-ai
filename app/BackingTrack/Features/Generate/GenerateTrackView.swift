@@ -236,9 +236,11 @@ struct GenerateTrackView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        // A tick when chords are reordered, so a drop is felt as well as seen. Same count +
-        // changed order only — adding or removing a chord shouldn't buzz.
-        .sensoryFeedback(.selection, trigger: model.chords.map(\.id)) { old, new in
+        // A thump when chords are reordered, so a drop is felt as well as seen. `.impact` rather
+        // than `.selection`: selection is the faint tick for scrolling a picker wheel, too subtle
+        // for something you've just physically dragged into place (found on a device). Same
+        // count + changed order only — adding or removing a chord shouldn't buzz.
+        .sensoryFeedback(.impact(weight: .medium), trigger: model.chords.map(\.id)) { old, new in
             old.count == new.count
         }
     }
