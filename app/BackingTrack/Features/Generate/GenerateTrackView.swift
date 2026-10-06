@@ -43,6 +43,7 @@ struct GenerateTrackView: View {
     // Each chord chip's frame in the flow's coordinate space, so a drop can be turned into an
     // insertion position. Rebuilt as the flow lays out; pruned when chords change.
     @State private var chipFrames: [UUID: CGRect] = [:]
+    @FocusState private var isNotesFocused: Bool
 
     // `body` is deliberately thin — the card stack, toolbar, bottom bar and modals are split into
     // their own properties below. Kept together they form one expression big enough that the
@@ -82,8 +83,11 @@ struct GenerateTrackView: View {
             }
             .padding(.vertical, 16)
         }
+        // Drag-down dismissal matches system apps; the notes field's Done button covers
+        // discoverability, since nothing on this form hints that a drag does anything.
+        .scrollDismissesKeyboard(.interactively)
     }
-    
+
     // Settings stays reachable here, not just on the dashboard: a missing or rejected API key
     // surfaces as an alert on this screen that sends the user to Settings.
     private var toolbarItems: some ToolbarContent {
@@ -356,6 +360,15 @@ struct GenerateTrackView: View {
                 // `axis: .vertical` lets the field grow to multiple lines as the user types.
                 TextField("Notes (optional)", text: $model.styleNotes, axis: .vertical)
                     .lineLimit(2...4)
+                    .focused($isNotesFocused)
+                    // `axis: .vertical` turns Return into a newline, so the keyboard has no other
+                    // way to close — hence an explicit Done button.
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Done") { isNotesFocused = false }
+                        }
+                    }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 11)
             }
