@@ -27,8 +27,9 @@ struct JobReconciler {
     /// What a reconcile did. Only `.advanced` and `.lost` persist a disposition; `.unchanged` may
     /// still have refreshed the row's status.
     enum Outcome: Equatable {
-        /// The server says the job is still pending or running. Status and `startedAt` refreshed;
-        /// the disposition is untouched (`.inFlight` or `.timedOut`).
+        /// The server says the job is still pending or running — status and `startedAt` refreshed,
+        /// disposition untouched (`.inFlight` or `.timedOut`) — or the job is gone but the row
+        /// already holds a finished track, so nothing is written.
         case unchanged
         /// The job reached a terminal state — `.ready` or `.serverFailed` written, with the
         /// server's `trackId` / `endTime` folded in.
@@ -66,6 +67,10 @@ struct JobReconciler {
             case .success(let job):
                 return apply(job, jobID: jobID)
             case .failure(.server(status: 404)):
+                // The job store is in-memory (ADR 0013) but track files aren't (ADR 0014), so a 404
+                // says nothing about a track we already recorded — "Check again" on a finished row
+                // would otherwise relabel it `.lost` after every API restart.
+                if entry.disposition == .ready || entry.trackID != nil { return .unchanged }
                 record {
                     try historyStore.recordDisposition(
                         jobID: jobID, .lost, job: nil,
