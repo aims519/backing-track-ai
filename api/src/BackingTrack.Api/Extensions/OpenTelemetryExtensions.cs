@@ -23,7 +23,7 @@ internal static class OpenTelemetryExtensions
             .ConfigureResource(resourceBuilder =>
             {
                 resourceBuilder.AddService(serviceName: environment.ApplicationName,
-                    serviceVersion: typeof(Program).Assembly.GetName().Version?.ToString());
+                    serviceVersion: BuildInfo.Version);
             })
             .WithTracing(tracerProviderBuilder =>
             {

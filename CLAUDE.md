@@ -62,6 +62,10 @@ in `app/project.yml` should be bumped. The merge to `main` ships it to TestFligh
 this is the last easy moment to decide. Don't bump it without asking. Leave the build number
 alone: CI sets it.
 
+The API's version is not bumped in code. MinVer derives it from `api-v*` git tags plus the commit
+(ADR 0046), so don't add or edit a `<Version>` in the API projects. Don't create or push tags
+either: cutting a release (`git tag api-vX.Y.Z`) is the owner's call, made after merge.
+
 ## Swift conventions
 
 Assume the reader knows SwiftUI. Comment the *why*, never the *what*:

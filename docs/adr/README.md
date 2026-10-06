@@ -50,3 +50,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0043](0043-ttl-eviction-of-finished-jobs-from-the-in-memory-store.md) | TTL eviction of finished jobs from the in-memory job store, over evicting immediately or keeping them forever |
 | [0044](0044-metric-and-span-naming-and-tag-conventions.md) | Metric and span naming, hard-coded tag values, and what may be a tag, over ad-hoc names and enum-derived values |
 | [0045](0045-home-dashboard-as-navigation-root.md) | A dashboard as the navigation root, owning the form and history view models, over a tab bar or a form-owned model |
+| [0046](0046-minver-from-git-tags-for-api-version.md) | Version the API with MinVer from git tags with the commit SHA as build metadata, over SourceRevisionId alone, the CI run number, or a hand-edited version |

@@ -31,6 +31,9 @@ jobs:
       CI_CONTAINER: publish-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          # MinVer derives the version from tags and commit height; a shallow clone has neither.
+          fetch-depth: 0
 
       - name: Start Linux build container
         run: |
@@ -38,15 +41,24 @@ jobs:
             -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
             mcr.microsoft.com/dotnet/sdk:10.0 sleep infinity
 
+      - name: Trust workspace for MinVer
+        # The bind-mounted checkout is owned by a different uid than the container user, which
+        # makes git refuse to read it ("dubious ownership") and MinVer with it.
+        run: docker exec "$CI_CONTAINER" git config --global --add safe.directory /workspace
+
       - name: Install AOT prerequisites
         run: docker exec "$CI_CONTAINER" bash -c "apt-get update && apt-get install -y clang"
 
       - name: Publish Native AOT (linux-arm64)
+        # MinVer sets the version from the nearest api-v* tag; SourceRevisionId pins the +<sha>
+        # suffix to the exact commit rather than relying on the SDK finding .git in the container.
+        # BuildInfo reports the result as OpenTelemetry service.version.
         run: |
           docker exec "$CI_CONTAINER" dotnet publish api/src/BackingTrack.Api \
             -c Release \
             -r linux-arm64 \
             -p:PublishAot=true \
+            -p:SourceRevisionId=${{ github.sha }} \
             --self-contained \
             -o "/workspace/$PUBLISH_DIR"
 
