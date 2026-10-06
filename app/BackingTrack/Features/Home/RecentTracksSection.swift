@@ -22,46 +22,69 @@ struct RecentTracksSection: View {
         if entries.isEmpty {
             emptyState
         } else {
-            SectionCard("Recent") {
-                VStack(spacing: 0) {
-                    ForEach(entries) { entry in
-                        NavigationLink(value: entry) {
-                            HistoryRow(entry: entry)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 10)
-                                .contentShape(.rect)
-                        }
-                        // Plain, or the row's text takes the accent colour a bare link applies.
-                        .buttonStyle(.plain)
+            // A custom header rather than `SectionCard`'s uppercase caption, which has no room for
+            // a trailing link. Kept local instead of adding a `SectionCard` variant that its ten
+            // other callers would all share.
+            VStack(alignment: .leading, spacing: 8) {
+                header
 
-                        Divider().padding(.leading, 16)
-                    }
+                SectionCard {
+                    VStack(spacing: 0) {
+                        ForEach(entries) { entry in
+                            NavigationLink(value: entry) {
+                                HistoryRow(entry: entry)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+                                    .contentShape(.rect)
+                            }
+                            // Plain, or the row's text takes the accent colour a bare link applies.
+                            .buttonStyle(.plain)
 
-                    NavigationLink(value: HistoryRoute.list) {
-                        CardRow("See all history") {
-                            Image(systemName: "chevron.right")
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(.tertiary)
+                            // No divider under the last row: nothing follows it inside the card now.
+                            if entry != entries.last {
+                                Divider().padding(.leading, 16)
+                            }
                         }
-                        .contentShape(.rect)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
     }
 
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("Recent")
+                .font(.title3.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+            Spacer()
+            NavigationLink("See all", value: HistoryRoute.list)
+                .font(.subheadline)
+                // The visible text is terse; VoiceOver should still say what it opens.
+                .accessibilityLabel("See all history")
+        }
+        // Matches `SectionCard`'s own header inset, so the title lines up with the card's text.
+        .padding(.horizontal, 20)
+    }
+
     private var emptyState: some View {
         SectionCard {
-            VStack(spacing: 6) {
-                Text("No tracks yet")
-                    .font(.headline)
-                Text("Choose a key, chords and a style, and tap New Track to build your first backing track.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+            VStack(spacing: 16) {
+                Image(systemName: "music.note.list")
+                    .font(.system(size: 44))
+                    .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
+
+                VStack(spacing: 6) {
+                    Text("Nothing yet")
+                        .font(.title3.weight(.semibold))
+                    Text("Tap 'New Track' to start generating")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
             }
-            .padding(20)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 32)
             .frame(maxWidth: .infinity)
         }
     }

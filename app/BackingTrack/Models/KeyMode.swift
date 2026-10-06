@@ -25,6 +25,19 @@ enum KeyMode: String, CaseIterable, Identifiable, Sendable {
         case .locrian: "Locrian"
         }
     }
+    
+    // Compact form to fit on one line (e.g. history row)
+    var shortName: String {
+        switch self {
+        case .ionian: "Major"
+        case .dorian: "Dorian"
+        case .phrygian: "Phrygian"
+        case .lydian: "Lydian"
+        case .mixolydian: "Mixolydian"
+        case .aeolian: "Minor"
+        case .locrian: "Locrian"
+        }
+    }
 
     /// Value sent in the API request body's `KeyMode` field, and parsed with the case-sensitive
     /// `Enum.TryParse<KeyMode>` overload (`GenerationRequestDto.Validate`) — the exact casing here

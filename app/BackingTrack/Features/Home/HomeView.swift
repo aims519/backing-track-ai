@@ -29,7 +29,7 @@ struct HomeView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(spacing: 22) {
-                    newTrackButton
+                    DashboardHeaderCard { path.append(GenerateRoute.new) }
                     InFlightBanner(vm: historyVM)
                     RecentTracksSection()
                 }
@@ -37,6 +37,9 @@ struct HomeView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Backing Tracks")
+            // Inline: the header card is the screen's visual title. The title text is still what
+            // pushed screens show on their back button.
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -83,18 +86,6 @@ struct HomeView: View {
         }
     }
 
-    private var newTrackButton: some View {
-        Button {
-            path.append(GenerateRoute.new)
-        } label: {
-            Label("New Track", systemImage: "plus")
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .padding(.horizontal, 16)
-    }
-
     /// A tapped job-finished notification: History ▸ that job's detail, whose own `.task` refreshes
     /// a stale in-flight row. Falls back to the history list if the job isn't in local history.
     private func openPendingNotificationJob() {
@@ -124,11 +115,19 @@ struct HomeView: View {
 }
 
 #if DEBUG
-#Preview {
+#Preview("Populated") {
     HomeView(
         model: GenerateTrackViewModel(historyStore: PreviewJobHistoryStore()),
         historyVM: HistoryViewModel(historyStore: PreviewJobHistoryStore())
     )
     .modelContainer(previewHomeContainer())
+}
+
+#Preview("Empty") {
+    HomeView(
+        model: GenerateTrackViewModel(historyStore: PreviewJobHistoryStore()),
+        historyVM: HistoryViewModel(historyStore: PreviewJobHistoryStore())
+    )
+    .modelContainer(previewHomeContainer(populated: false))
 }
 #endif
