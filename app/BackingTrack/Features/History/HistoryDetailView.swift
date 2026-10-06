@@ -45,12 +45,26 @@ struct HistoryDetailView: View {
         }
     }
     
+    /// One line for what the server reported (`status`) and what the app concluded (`disposition`).
+    /// They agree except when the app stopped following a job that's still unresolved server-side,
+    /// where "Timed out" alone would leave out what the server last said. `.ready` also covers
+    /// `completedViaFallback`, so that's carried through rather than lost with the Status row.
+    private var outcomeText: String {
+        let label = entry.disposition.historyLabel
+        switch entry.disposition {
+        case .ready where entry.status == .completedViaFallback:
+            return "\(label) (fallback)"
+        case .timedOut, .lost, .pollError:
+            return "\(label) — last seen \(entry.status.displayName.lowercased())"
+        default:
+            return label
+        }
+    }
+
     private var statusCard: some View {
         SectionCard("Status") {
             VStack(spacing: 0) {
-                summaryRow("Status", entry.status.displayName)
-                rowDivider
-                summaryRow("Disposition", entry.disposition.historyLabel)
+                summaryRow("Outcome", outcomeText)
                 rowDivider
                 CardRow("Created") {
                     Text(entry.createdAt, format: .dateTime.month().day().hour().minute())
