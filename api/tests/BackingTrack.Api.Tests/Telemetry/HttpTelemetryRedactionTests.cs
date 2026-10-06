@@ -6,7 +6,7 @@ namespace BackingTrack.Api.Tests.Telemetry;
 
 public sealed class HttpTelemetryRedactionTests : IDisposable
 {
-    private const string DeviceToken = "b76252068fdfa84cf6b03d46495b43f7599b05a82e0c079b0d24ed52ca6d96ba";
+    private const string DeviceToken = "abababababababababababababababababababababababababababababababab";
 
     private readonly ActivitySource _source = new("BackingTrack.Tests.HttpRedaction");
     private readonly ActivityListener _listener;

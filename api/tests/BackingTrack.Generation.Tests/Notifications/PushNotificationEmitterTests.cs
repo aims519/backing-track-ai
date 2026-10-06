@@ -15,7 +15,7 @@ namespace BackingTrack.Generation.Tests.Notifications;
 [Collection(PushNotificationMetricsCollection.Name)]
 public sealed class PushNotificationEmitterTests : IDisposable
 {
-    private const string DeviceToken = "b76252068fdfa84cf6b03d46495b43f7599b05a82e0c079b0d24ed52ca6d96ba";
+    private const string DeviceToken = "abababababababababababababababababababababababababababababababab";
 
     private readonly ECDsa _key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
     private readonly ApnsTokenProvider _tokenProvider;

@@ -9,7 +9,7 @@ namespace BackingTrack.Api.Tests.Dtos;
 
 public class GenerationRequestDtoTests
 {
-    private const string ValidDeviceToken = "b76252068fdfa84cf6b03d46495b43f7599b05a82e0c079b0d24ed52ca6d96ba";
+    private const string ValidDeviceToken = "abababababababababababababababababababababababababababababababab";
 
     private static ChordSymbolParser CreateParser()
     {
@@ -37,7 +37,7 @@ public class GenerationRequestDtoTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData(ValidDeviceToken)]
-    [InlineData("B76252068FDFA84CF6B03D46495B43F7599B05A82E0C079B0D24ED52CA6D96BA")]
+    [InlineData("ABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABAB")]
     public void Validate_AbsentOrWellFormedDeviceToken_IsValid(string? token)
     {
         ValidationProblemDetails? problems = CreateValidRequest(token).Validate(CreateParser());
@@ -46,10 +46,10 @@ public class GenerationRequestDtoTests
     }
 
     [Theory]
-    [InlineData("b76252068fdfa84cf6b03d46495b43f7599b05a82e0c079b0d24ed52ca6d96b")] // odd length
-    [InlineData("b76252068fdfa84cf6b03d46495b43f7599b05a82e0c079b0d24ed52ca6d96")] // too short
-    [InlineData("g76252068fdfa84cf6b03d46495b43f7599b05a82e0c079b0d24ed52ca6d96ba")] // non-hex character
-    [InlineData("../../../../3/device/b76252068fdfa84cf6b03d46495b43f7599b05a82e0c0")] // path traversal
+    [InlineData("abababababababababababababababababababababababababababababababa")] // odd length
+    [InlineData("ababababababababababababababababababababababababababababababab")] // too short
+    [InlineData("gbababababababababababababababababababababababababababababababab")] // non-hex character
+    [InlineData("../../../../3/device/ababababababababababababababababababababababa")] // path traversal
     public void Validate_MalformedDeviceToken_ReportsAnApnsDeviceTokenError(string token)
     {
         ValidationProblemDetails? problems = CreateValidRequest(token).Validate(CreateParser());
