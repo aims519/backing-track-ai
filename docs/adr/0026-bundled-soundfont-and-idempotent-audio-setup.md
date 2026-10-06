@@ -103,12 +103,20 @@ that doesn't require the *setup* path to be non-idempotent.
 - The repo and every app build carry a 31 MB binary. It isn't `git-lfs`-tracked (the repo
   has no LFS today); revisit if more large assets land. A trimmed bank is the obvious size
   win.
-- **Provenance:** the GeneralUser GS readme grants free private/commercial use with no
-  obligations, so there's nothing to comply with — but committing that readme (or a note
-  pointing to its source and version) next to the `.sf2` keeps the asset's origin
-  auditable in the repo, the way generated and third-party assets are elsewhere
-  ([ADR 0021](0021-code-drawn-visual-assets.md)). `Resources/` currently has only its own
-  `README.md`.
+- **Provenance:** the GeneralUser GS licence (v2.0, the text embedded in the 2.0.3 `.sf2`)
+  grants free private/commercial use, including in software projects, with no attribution
+  required. The licence text is committed beside the file as
+  `app/BackingTrack/Resources/LICENSE.txt` (so it also ships in the app bundle), and
+  `THIRD-PARTY-NOTICES.md` at the repo root credits the author and says the repo's MIT
+  licence doesn't cover the file — auditable in the repo, as generated and third-party
+  assets are elsewhere ([ADR 0021](0021-code-drawn-visual-assets.md)).
+- **Accepted risk — sample origin:** the licence applies to the bank as a whole, but it
+  inherits the rights of the samples inside, and the author says he can't be certain where
+  every one of them came from (some were taken from other freely available banks; none from
+  commercial packages or sample CDs). He reports no ownership complaint since 2000, from
+  himself or from companies shipping it in commercial products. We ship it on that basis,
+  knowingly. If a restricted sample is ever reported, the remedy is to update or swap the
+  bank (or trim it, see above); the `loadSoundBankInstrument` swap point keeps that cheap.
 - `AudioEngine` holds process-wide audio resources for its owner's lifetime. Nothing tears
   the engine down or deactivates the session yet; a dismissal `teardown()` is still owed
   (and would flip `isSetUp` back).
