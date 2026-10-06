@@ -17,7 +17,7 @@ enum GenerateRoute: Hashable {
 /// gesture are unreliable inside a `List`/`Form` on iOS — the list's own scroll gesture
 /// recogniser competes for the touch. A plain `ScrollView` doesn't have that problem.
 ///
-/// Precise mode only for now — Vibe mode's backend doesn't exist yet (see `GenerationMode`).
+/// Precise mode only — Vibe has no backend, so there's no mode selector (see `GenerationMode`).
 /// `generate()` submits the form to `POST /tracks/generate` via `GenerateTrackViewModel`; on
 /// acceptance `GenerationProgressView` is presented as a `fullScreenCover` to follow the job to
 /// completion, and a submission error is shown as an alert on the form.
@@ -36,7 +36,6 @@ struct GenerateTrackView: View {
 
     @State private var isShowingSettings = false
     @State private var isShowingAddChord = false
-    @State private var isShowingVibeComingSoon = false
     @State private var isConfirmingClear = false
     // Toggling this reveals the custom beat-count / beat-unit pickers instead of the quick-pick
     // list. Kept in the view (not the model) — it's a display choice, not part of the request.
@@ -68,7 +67,6 @@ struct GenerateTrackView: View {
                 model: model,
                 isShowingSettings: $isShowingSettings,
                 isShowingAddChord: $isShowingAddChord,
-                isShowingVibeComingSoon: $isShowingVibeComingSoon,
                 isConfirmingClear: $isConfirmingClear
             ))
     }
@@ -76,7 +74,6 @@ struct GenerateTrackView: View {
     private var cardStack: some View {
         ScrollView {
             VStack(spacing: 22) {
-                modeCard
                 keyCard
                 chordsCard
                 tempoCard
@@ -148,30 +145,6 @@ struct GenerateTrackView: View {
     }
 
     // MARK: - Cards
-
-    private var modeCard: some View {
-        SectionCard(footer: Text(model.mode.summary)) {
-            // A custom binding rather than `$model.mode`: tapping an unavailable mode never
-            // updates the source of truth, so the segmented control stays on Precise instead of
-            // visibly jumping to Vibe and back.
-            Picker("Mode", selection: Binding(
-                get: { model.mode },
-                set: { newMode in
-                    if newMode.isAvailable {
-                        model.mode = newMode
-                    } else {
-                        isShowingVibeComingSoon = true
-                    }
-                }
-            )) {
-                ForEach(GenerationMode.allCases) { mode in
-                    Text(mode.displayName).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(12)
-        }
-    }
 
     private var keyCard: some View {
         SectionCard(
@@ -416,7 +389,6 @@ private struct GenerateTrackModals: ViewModifier {
     let model: GenerateTrackViewModel
     @Binding var isShowingSettings: Bool
     @Binding var isShowingAddChord: Bool
-    @Binding var isShowingVibeComingSoon: Bool
     @Binding var isConfirmingClear: Bool
 
     func body(content: Content) -> some View {
@@ -437,11 +409,6 @@ private struct GenerateTrackModals: ViewModifier {
                 }
             } message: {
                 Text("This resets the chords, key, tempo, time signature and style.")
-            }
-            .alert("Vibe Mode Coming Soon", isPresented: $isShowingVibeComingSoon) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("Vibe mode renders realistic audio from a text prompt using a third-party service. It isn't available yet.")
             }
             .alert(
                 submissionAlert?.title ?? "",
