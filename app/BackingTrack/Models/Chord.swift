@@ -129,6 +129,10 @@ struct Chord: Identifiable, Hashable, Sendable {
     /// Musician-facing symbol, e.g. `Am7`, `Csus4`, `F\u{266F}`.
     var displaySymbol: String { root.displayName + quality.displaySuffix }
 
+    /// What VoiceOver should say. The symbol alone is read as letters ("A m 7"), and a chip's
+    /// short quality label ("min 7") isn't much better, so spell the quality out in full.
+    var spokenName: String { "\(root.displayName) \(quality.pickerName)" }
+
     /// Symbol sent in the API request's `Chords` array, e.g. `Amin7`, `Csus4`, `F#`.
     var apiSymbol: String { root.rawValue + quality.apiSuffix }
 }

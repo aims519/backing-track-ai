@@ -218,15 +218,33 @@ struct GenerateTrackView: View {
 
     private var chordChipFlow: some View {
         ChipFlowLayout(spacing: 10) {
-            ForEach(model.chords) { chord in
+            ForEach(Array(model.chords.enumerated()), id: \.element.id) { index, chord in
                 ChordChip(chord: chord) {
                     withAnimation { model.removeChord(chord) }
                 }
                 .onTapGesture(count: 2) {
                     withAnimation(.snappy) { model.duplicateChord(chord) }
                 }
-                // VoiceOver claims double-tap for activation, so offer duplicate as an action too.
+                // VoiceOver claims double-tap for activation, and can't drag, so everything a
+                // chip does by gesture is also an action. Reordering in particular would
+                // otherwise be impossible without sight.
                 .accessibilityAction(named: "Duplicate") { model.duplicateChord(chord) }
+                .accessibilityAction(named: "Remove") {
+                    withAnimation { model.removeChord(chord) }
+                }
+                // Only offered where they'd do something, so the rotor isn't padded with no-ops.
+                .accessibilityActions {
+                    if index > 0 {
+                        Button("Move earlier") {
+                            withAnimation(.snappy) { model.nudgeChord(withID: chord.id, by: -1) }
+                        }
+                    }
+                    if index < model.chords.count - 1 {
+                        Button("Move later") {
+                            withAnimation(.snappy) { model.nudgeChord(withID: chord.id, by: 1) }
+                        }
+                    }
+                }
                 .draggable(chord.id.uuidString)
                 .onGeometryChange(for: CGRect.self) { proxy in
                     proxy.frame(in: .named(chordFlowCoordinateSpace))

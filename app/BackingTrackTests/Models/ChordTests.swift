@@ -34,6 +34,11 @@ struct ChordTests {
         #expect(chord.displaySymbol == "F\u{266F}")
     }
 
+    @Test func spokenNameSpellsTheQualityOutInFull() {
+        #expect(Chord(root: .a, quality: .minor7).spokenName == "A Minor 7th")
+        #expect(Chord(root: .c, quality: .major).spokenName == "C Major")
+    }
+
     @Test func everyQualityMapsToASuffixTheApiAccepts() {
         // The exact set of chord-type ids in api/.../KnowledgeBase/Content/chords.jsonl, plus the
         // empty string (a bare root, which the parser treats as major).

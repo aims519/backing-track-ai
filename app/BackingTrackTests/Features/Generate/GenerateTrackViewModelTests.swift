@@ -173,6 +173,30 @@ struct GenerateTrackViewModelTests {
         #expect(model.chords.map(\.apiSymbol) == ["F", "G", "C"])
     }
 
+    @Test func nudgeChordMovesOnePlaceEarlierOrLater() {
+        let model = GenerateTrackViewModel()
+        model.addChord(root: .c, quality: .major)
+        model.addChord(root: .f, quality: .major)
+        model.addChord(root: .g, quality: .major)
+
+        model.nudgeChord(withID: model.chords[1].id, by: 1) // F later
+        #expect(model.chords.map(\.apiSymbol) == ["C", "G", "F"])
+
+        model.nudgeChord(withID: model.chords[2].id, by: -1) // F earlier again
+        #expect(model.chords.map(\.apiSymbol) == ["C", "F", "G"])
+    }
+
+    @Test func nudgeChordPastEitherEndLeavesItAtTheEnd() {
+        let model = GenerateTrackViewModel()
+        model.addChord(root: .c, quality: .major)
+        model.addChord(root: .f, quality: .major)
+
+        model.nudgeChord(withID: model.chords[0].id, by: -1)
+        model.nudgeChord(withID: model.chords[1].id, by: 1)
+
+        #expect(model.chords.map(\.apiSymbol) == ["C", "F"])
+    }
+
     @Test func duplicateChordInsertsACopyStraightAfterTheOriginal() {
         let model = GenerateTrackViewModel()
         model.addChord(root: .c, quality: .major)

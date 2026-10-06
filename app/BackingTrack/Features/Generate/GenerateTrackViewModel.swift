@@ -127,6 +127,15 @@ final class GenerateTrackViewModel {
         chords = chords.movingChord(withID: id, toIndex: targetIndex)
     }
 
+    /// Shifts a chord `offset` places along the progression (negative = earlier). Reordering is
+    /// otherwise drag-only, which a VoiceOver user can't do, so the chips offer this as an
+    /// accessibility action. Positions past either end clamp rather than wrap.
+    func nudgeChord(withID id: UUID, by offset: Int) {
+        guard let index = chords.firstIndex(where: { $0.id == id }) else { return }
+        // `moveChord`'s index counts the chord itself, so a move later has to jump one extra.
+        moveChord(withID: id, toIndex: offset > 0 ? index + offset + 1 : index + offset)
+    }
+
     // MARK: - Submission
 
     /// Maps the current form state onto the API request body. Kept separate from `submit()` so it

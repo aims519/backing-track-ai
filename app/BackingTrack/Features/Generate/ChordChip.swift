@@ -38,10 +38,22 @@ struct ChordChip: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary, Color(.systemBackground))
                     .padding(5)
+                    // Apple's 44pt minimum tap target. The glyph stays small and tucked in the
+                    // corner; the frame is what makes a slightly-off tap still land here instead
+                    // of starting a drag of the whole chip.
+                    .frame(width: 44, height: 44, alignment: .topTrailing)
+                    .contentShape(.rect)
             }
             // `.plain` stops the button from claiming the whole tile's tap/drag area.
             .buttonStyle(.plain)
+            .accessibilityLabel("Remove \(chord.spokenName)")
         }
+        // One VoiceOver element per chip, read as "A Minor 7th" instead of two stops (root, then
+        // quality). Children are ignored, so the ✕ button isn't reachable on its own — Remove is
+        // offered as an accessibility action instead (see `GenerateTrackView.chordChipFlow`),
+        // alongside Duplicate and the reorder actions.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(chord.spokenName)
     }
 }
 
