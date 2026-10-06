@@ -4,13 +4,13 @@
     <PublishAot>true</PublishAot>
     <RuntimeIdentifiers>linux-arm64;osx-arm64</RuntimeIdentifiers>
     <UserSecretsId>9bfbe952-7205-4483-a332-90e2290ae828</UserSecretsId>
-    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerTagPrefix>api-v</MinVerTagPrefix>
     <!-- Explicit (also implied by PublishAot): source-generated configuration binding, no reflection. -->
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Derives the version from the nearest `v*` git tag (ADR 0046); see BuildInfo. -->
+    <!-- Derives the version from the nearest `api-v*` git tag (ADR 0046); see BuildInfo. -->
     <PackageReference Include="MinVer" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />

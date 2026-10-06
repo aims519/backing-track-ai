@@ -50,7 +50,7 @@ jobs:
         run: docker exec "$CI_CONTAINER" bash -c "apt-get update && apt-get install -y clang"
 
       - name: Publish Native AOT (linux-arm64)
-        # MinVer sets the version from the nearest v* tag; SourceRevisionId pins the +<sha>
+        # MinVer sets the version from the nearest api-v* tag; SourceRevisionId pins the +<sha>
         # suffix to the exact commit rather than relying on the SDK finding .git in the container.
         # BuildInfo reports the result as OpenTelemetry service.version.
         run: |

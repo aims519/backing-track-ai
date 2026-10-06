@@ -17,7 +17,7 @@ than the one before.
 ## Decision
 
 Reference [MinVer](https://github.com/adamralph/minver) from `BackingTrack.Api` (build-time only,
-`PrivateAssets="all"`, tag prefix `v`). The version comes from the nearest `v*` tag on the
+`PrivateAssets="all"`, tag prefix `api-v`). The version comes from the nearest `api-v*` tag on the
 commit's history:
 
 - on a tagged commit: `1.2.0`
@@ -29,7 +29,10 @@ The .NET SDK appends the commit as build metadata (`+<sha>`) to the informationa
 being deployed rather than whatever the SDK finds in the container's `.git`.
 
 `BuildInfo.Version` reads `AssemblyInformationalVersionAttribute` and is what the OpenTelemetry
-resource reports as `service.version`. A release is cut by pushing a `vMAJOR.MINOR.PATCH` tag.
+resource reports as `service.version`. A release is cut by pushing an `api-vMAJOR.MINOR.PATCH` tag.
+The prefix is `api-v` and not a bare `v` so that tags for other components (the iOS app would use
+`ios-v`) can live in the same repo: MinVer only considers tags that match its prefix, so a `v2.0.0`
+meant for iOS would otherwise become the API version.
 
 ## Alternatives considered
 
@@ -53,7 +56,7 @@ resource reports as `service.version`. A release is cut by pushing a `vMAJOR.MIN
   and mark the bind-mounted `/workspace` as a git `safe.directory` inside the build container,
   because MinVer shells out to `git` and the checkout is owned by a different uid.
 - The `mcr.microsoft.com/dotnet/sdk:10.0` image has to keep shipping `git`.
-- No tag exists yet, so every build reads `0.0.0-alpha.0.<height>` until the first `v*` tag is
+- No tag exists yet, so every build reads `0.0.0-alpha.0.<height>` until the first `api-v*` tag is
   pushed. Tag the first release before relying on the number.
 - The version is fixed when the deploy builds. Pushing a tag onto a commit that has already
   been deployed does not relabel the running binary; it appears at the next build, for example

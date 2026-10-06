@@ -5,9 +5,9 @@ namespace BackingTrack.Api;
 internal static class BuildInfo
 {
     /// <summary>
-    /// "&lt;version&gt;+&lt;git sha&gt;", e.g. "1.2.0+abc…" on a commit tagged v1.2.0 or
+    /// "&lt;version&gt;+&lt;git sha&gt;", e.g. "1.2.0+abc…" on a commit tagged api-v1.2.0 or
     /// "1.2.1-alpha.0.5+abc…" five commits after it. MinVer derives the version from the nearest
-    /// <c>v*</c> tag; the SDK appends <c>SourceRevisionId</c>, which deploy.yml sets to
+    /// <c>api-v*</c> tag; the SDK appends <c>SourceRevisionId</c>, which deploy.yml sets to
     /// <c>github.sha</c> (ADR 0046).
     /// </summary>
     /// <remarks>
