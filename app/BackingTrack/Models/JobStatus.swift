@@ -51,6 +51,25 @@ enum JobStatus: Sendable, Hashable {
 }
 
 extension JobStatus {
+    /// User-facing progress line, derived on the client from the five `JobStates` — ADR 0013's
+    /// status model carries no stage message. Backend-supplied stage text ("applying repairs" and
+    /// so on) is a separate future task; see ADR 0023. Shared by the progress screen and the
+    /// dashboard's in-flight banner so the two never word the same job differently.
+    var progressCaption: String {
+        switch self {
+        case .pending:
+            "Queued…"
+        case .inProgress:
+            "Composing your track…"
+        case .complete, .completedViaFallback, .failed, .cancelled:
+            // Reached only in the brief window between seeing a terminal status and the screen
+            // switching away from "polling".
+            "Finishing up…"
+        case .unknown:
+            "Working…"
+        }
+    }
+
     /// The backend's `JobStates` enum name, as it appears on the wire. The exact inverse of
     /// `init(wireValue:)`: `.unknown` round-trips the string it captured, so a state the app
     /// doesn't recognise still persists and re-decodes losslessly.

@@ -90,23 +90,8 @@ final class GenerationProgressViewModel {
 
     // MARK: - Derived copy
 
-    /// User-facing progress line, derived on the client from the five `JobStates` — ADR 0013's
-    /// status model carries no stage message. Backend-supplied stage text ("applying repairs" and
-    /// so on) is a separate future task; see ADR 0023.
-    var progressCaption: String {
-        switch latestStatus {
-        case .pending:
-            "Queued…"
-        case .inProgress:
-            "Composing your track…"
-        case .complete, .completedViaFallback, .failed, .cancelled:
-            // Reached only in the brief window between seeing a terminal status and `phase`
-            // switching away from `.polling`.
-            "Finishing up…"
-        case .unknown:
-            "Working…"
-        }
-    }
+    /// User-facing progress line for the latest status — see `JobStatus.progressCaption`.
+    var progressCaption: String { latestStatus.progressCaption }
 
     /// The instant elapsed time is measured from: the server's job start if it gave one, else
     /// when this screen opened.

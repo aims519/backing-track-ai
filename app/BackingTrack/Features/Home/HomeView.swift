@@ -30,6 +30,7 @@ struct HomeView: View {
             ScrollView {
                 VStack(spacing: 22) {
                     newTrackButton
+                    InFlightBanner(vm: historyVM)
                     RecentTracksSection()
                 }
                 .padding(.vertical, 16)
