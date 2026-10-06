@@ -236,6 +236,11 @@ struct GenerateTrackView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        // A tick when chords are reordered, so a drop is felt as well as seen. Same count +
+        // changed order only — adding or removing a chord shouldn't buzz.
+        .sensoryFeedback(.selection, trigger: model.chords.map(\.id)) { old, new in
+            old.count == new.count
+        }
     }
 
     private var chordsFooter: Text? {
@@ -257,9 +262,9 @@ struct GenerateTrackView: View {
                 ) {
                     Text("Tempo")
                 } minimumValueLabel: {
-                    Text("40").font(.caption2)
+                    Text("\(Int(GenerateTrackViewModel.tempoRange.lowerBound))").font(.caption2)
                 } maximumValueLabel: {
-                    Text("240").font(.caption2)
+                    Text("\(Int(GenerateTrackViewModel.tempoRange.upperBound))").font(.caption2)
                 }
             }
             .padding(16)
@@ -397,11 +402,14 @@ private struct GenerateTrackModals: ViewModifier {
                 SettingsView()
             }
             .sheet(isPresented: $isShowingAddChord) {
-                AddChordView { root, quality in
+                // Start on the key's root: a progression is mostly diatonic to it, so that's the
+                // likeliest first pick, and it saves scrolling the wheel from C every time.
+                AddChordView(initialRoot: model.keyRoot) { root, quality in
                     model.addChord(root: root, quality: quality)
                 }
-                // Half-height sheet — the picker doesn't need the whole screen.
-                .presentationDetents([.medium])
+                // Half-height by default, but two wheels plus the buttons overflow it at large
+                // Dynamic Type sizes, so allow the full height too.
+                .presentationDetents([.medium, .large])
             }
             .confirmationDialog("Clear the form?", isPresented: $isConfirmingClear, titleVisibility: .visible) {
                 Button("Clear Form", role: .destructive) {
