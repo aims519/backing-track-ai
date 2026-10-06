@@ -53,15 +53,23 @@ struct RecentTracksSection: View {
 
     private var emptyState: some View {
         SectionCard {
-            VStack(spacing: 6) {
-                Text("No tracks yet")
-                    .font(.headline)
-                Text("Choose a key, chords and a style, and tap New Track to build your first backing track.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+            VStack(spacing: 16) {
+                Image(systemName: "music.note.list")
+                    .font(.system(size: 44))
+                    .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
+
+                VStack(spacing: 6) {
+                    Text("Nothing yet")
+                        .font(.title3.weight(.semibold))
+                    Text("Tap 'New Track' to start generating some tracks")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
             }
-            .padding(20)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 32)
             .frame(maxWidth: .infinity)
         }
     }

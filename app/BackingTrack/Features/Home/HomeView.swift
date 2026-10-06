@@ -124,11 +124,19 @@ struct HomeView: View {
 }
 
 #if DEBUG
-#Preview {
+#Preview("Populated") {
     HomeView(
         model: GenerateTrackViewModel(historyStore: PreviewJobHistoryStore()),
         historyVM: HistoryViewModel(historyStore: PreviewJobHistoryStore())
     )
     .modelContainer(previewHomeContainer())
+}
+
+#Preview("Empty") {
+    HomeView(
+        model: GenerateTrackViewModel(historyStore: PreviewJobHistoryStore()),
+        historyVM: HistoryViewModel(historyStore: PreviewJobHistoryStore())
+    )
+    .modelContainer(previewHomeContainer(populated: false))
 }
 #endif
