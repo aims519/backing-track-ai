@@ -37,6 +37,7 @@ struct GenerateTrackView: View {
     @State private var isShowingSettings = false
     @State private var isShowingAddChord = false
     @State private var isShowingVibeComingSoon = false
+    @State private var isConfirmingClear = false
     // Toggling this reveals the custom beat-count / beat-unit pickers instead of the quick-pick
     // list. Kept in the view (not the model) — it's a display choice, not part of the request.
     @State private var isCustomTimeSignature: Bool
@@ -67,7 +68,8 @@ struct GenerateTrackView: View {
                 model: model,
                 isShowingSettings: $isShowingSettings,
                 isShowingAddChord: $isShowingAddChord,
-                isShowingVibeComingSoon: $isShowingVibeComingSoon
+                isShowingVibeComingSoon: $isShowingVibeComingSoon,
+                isConfirmingClear: $isConfirmingClear
             ))
     }
 
@@ -90,7 +92,16 @@ struct GenerateTrackView: View {
 
     // Settings stays reachable here, not just on the dashboard: a missing or rejected API key
     // surfaces as an alert on this screen that sends the user to Settings.
+    @ToolbarContentBuilder
     private var toolbarItems: some ToolbarContent {
+        // Clear is opt-in rather than automatic after a successful generation (#48): leaving the
+        // form populated is what makes a run of similar tracks cheap.
+        ToolbarItem(placement: .topBarTrailing) {
+            Button("Clear") {
+                isConfirmingClear = true
+            }
+            .disabled(!model.hasEdits)
+        }
         ToolbarItem(placement: .topBarTrailing) {
             Button {
                 isShowingSettings = true
@@ -406,6 +417,7 @@ private struct GenerateTrackModals: ViewModifier {
     @Binding var isShowingSettings: Bool
     @Binding var isShowingAddChord: Bool
     @Binding var isShowingVibeComingSoon: Bool
+    @Binding var isConfirmingClear: Bool
 
     func body(content: Content) -> some View {
         content
@@ -418,6 +430,13 @@ private struct GenerateTrackModals: ViewModifier {
                 }
                 // Half-height sheet — the picker doesn't need the whole screen.
                 .presentationDetents([.medium])
+            }
+            .confirmationDialog("Clear the form?", isPresented: $isConfirmingClear, titleVisibility: .visible) {
+                Button("Clear Form", role: .destructive) {
+                    withAnimation { model.clearForm() }
+                }
+            } message: {
+                Text("This resets the chords, key, tempo, time signature and style.")
             }
             .alert("Vibe Mode Coming Soon", isPresented: $isShowingVibeComingSoon) {
                 Button("OK", role: .cancel) {}

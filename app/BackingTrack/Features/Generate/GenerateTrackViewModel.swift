@@ -69,6 +69,38 @@ final class GenerateTrackViewModel {
         mode.isAvailable && !chords.isEmpty && selectedStyle != nil
     }
 
+    // MARK: - Clearing the form
+
+    /// Whether any field differs from a fresh form — gates the Clear button so it isn't offered
+    /// on an untouched form. Mirrors the initial values above; `clearFormMatchesAFreshModel`
+    /// fails if the two drift apart.
+    var hasEdits: Bool {
+        mode != .precise
+            || keyRoot != .c
+            || keyMode != .ionian
+            || !chords.isEmpty
+            || tempo != 120
+            || timeSignature != .fourFour
+            || selectedStyle != nil
+            || !styleNotes.isEmpty
+            || seedWarning != nil
+    }
+
+    /// Puts every field back to its initial value. Deliberately an explicit action rather than
+    /// something that happens after a successful generation (#48): the form staying populated is
+    /// what makes a run of similar tracks cheap, so the user opts in to starting from blank.
+    func clearForm() {
+        mode = .precise
+        keyRoot = .c
+        keyMode = .ionian
+        chords = []
+        tempo = 120
+        timeSignature = .fourFour
+        selectedStyle = nil
+        styleNotes = ""
+        seedWarning = nil
+    }
+
     // MARK: - Chord list editing
 
     func addChord(root: NoteName, quality: ChordQuality) {
