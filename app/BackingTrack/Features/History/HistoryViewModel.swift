@@ -60,6 +60,27 @@ final class HistoryViewModel {
         }
     }
 
+    /// Keeps re-checking the `.inFlight` rows in `entries` every `interval` until none are left or
+    /// the task is cancelled — the dashboard banner's refresh loop, run from a `.task` so
+    /// leaving the screen cancels it.
+    ///
+    /// Reuses `reconcileVisible` rather than a second poll loop, and only ever hands it `.inFlight`
+    /// rows: `.timedOut` rows are skipped here, or this would poll each of them forever. The
+    /// disposition is re-read from the live `@Model` on every pass, so a row that finished during
+    /// the previous one drops out even if the caller hasn't re-run the loop yet.
+    func keepReconcilingInFlight(_ entries: [JobHistoryEntry], every interval: Duration) async {
+        while !Task.isCancelled {
+            let inFlight = entries.filter { $0.disposition == .inFlight }
+            guard !inFlight.isEmpty else { return }
+            await reconcileVisible(inFlight)
+            do {
+                try await Task.sleep(for: interval)
+            } catch {
+                return // CancellationError — the screen is going away
+            }
+        }
+    }
+
     /// Re-check one row on demand — any disposition, so it doubles as the escape hatch for a
     /// `.lost` row (an API restart came back) or a `.pollError` one (a since-fixed key).
     func checkAgain(_ entry: JobHistoryEntry) async {

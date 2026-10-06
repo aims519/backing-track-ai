@@ -115,6 +115,62 @@ struct HistoryViewModelTests {
         #expect(await client.jobStatusCalls < 4)
     }
 
+    // MARK: - keepReconcilingInFlight
+
+    @Test func theRefreshLoopPollsUntilTheJobFinishesThenStops() async throws {
+        let id = try seed(.inFlight)
+        let entry = try #require(try store.entry(jobID: id))
+        let client = ScriptedStatusClient.statuses([.inProgress, .inProgress, .complete], id: id)
+
+        await model(client).keepReconcilingInFlight([entry], every: .milliseconds(1))
+
+        #expect(await client.jobStatusCalls == 3) // returned by itself once the row left .inFlight
+        #expect(entry.disposition == .ready)
+    }
+
+    @Test func theRefreshLoopDoesNothingWhenNothingIsInFlight() async throws {
+        let ready = try #require(try store.entry(jobID: try seed(.ready)))
+        let timedOut = try #require(try store.entry(jobID: try seed(.timedOut)))
+        let client = ScriptedStatusClient([.success(.preview(status: .inProgress))])
+
+        // `.timedOut` is reconcile-on-open's business; looping over it would poll it forever.
+        await model(client).keepReconcilingInFlight([ready, timedOut], every: .milliseconds(1))
+
+        #expect(await client.jobStatusCalls == 0)
+    }
+
+    @Test func theRefreshLoopStopsWhenCancelled() async throws {
+        let id = try seed(.inFlight)
+        let entry = try #require(try store.entry(jobID: id))
+        let client = ScriptedStatusClient.statuses([.inProgress], id: id)
+        let vm = model(client)
+
+        // An hour between passes: only cancellation can end this in time.
+        let task = Task { await vm.keepReconcilingInFlight([entry], every: .seconds(3600)) }
+        try await Task.sleep(for: .milliseconds(50))
+        task.cancel()
+        await task.value
+
+        #expect(await client.jobStatusCalls == 1)
+        #expect(entry.disposition == .inFlight)
+    }
+
+    @Test func theRefreshLoopLeavesTheWatchedRowToItsOwnPollLoop() async throws {
+        let id = try seed(.inFlight, status: .inProgress)
+        let entry = try #require(try store.entry(jobID: id))
+        let client = ScriptedStatusClient.statuses([.inProgress], id: id)
+        let vm = model(client)
+        vm.startWatching(entry)
+
+        // Cancelled almost at once: with the only row watched, each pass is a no-op.
+        let task = Task { await vm.keepReconcilingInFlight([entry], every: .milliseconds(5)) }
+        try await Task.sleep(for: .milliseconds(30))
+        task.cancel()
+        await task.value
+
+        #expect(await client.jobStatusCalls == 0)
+    }
+
     @Test func deleteRemovesTheRowThroughTheStore() async throws {
         let recording = RecordingJobHistoryStore()
         let vm = HistoryViewModel(apiClient: ScriptedStatusClient([.success(.preview())]), historyStore: recording)
