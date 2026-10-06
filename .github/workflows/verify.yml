@@ -22,12 +22,20 @@ jobs:
       CI_CONTAINER: verify-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          # MinVer derives the version from tags and commit height; a shallow clone has neither.
+          fetch-depth: 0
 
       - name: Start Linux build container
         run: |
           docker run -d --name "$CI_CONTAINER" \
             -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
             mcr.microsoft.com/dotnet/sdk:10.0 sleep infinity
+
+      - name: Trust workspace for MinVer
+        # The bind-mounted checkout is owned by a different uid than the container user, which
+        # makes git refuse to read it ("dubious ownership") and MinVer with it.
+        run: docker exec "$CI_CONTAINER" git config --global --add safe.directory /workspace
 
       - name: Install AOT prerequisites
         # check-aot.sh publishes for the host RID, so it needs only the native linker
