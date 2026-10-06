@@ -11,9 +11,19 @@ struct HistoryRow: View {
         NoteName(rawValue: entry.keyRoot)?.displayName ?? entry.keyRoot
     }
     
+    private var musicStyle: MusicStyle? { decomposeStyle(entry.style).0 }
+    
+    private var styleSymbol: String {
+        return musicStyle?.styleIcon ?? "music.note"
+    }
+    
+    private var styleTint: Color {
+        return musicStyle?.styleTint ?? .gray
+    }
+    
     /// Cap on chords shown per row. A fixed count rather than width-based so a row looks the same at
     /// every Dynamic Type size; `lineLimit(1)` below is only a safety net for the extremes.
-    private static let maxVisibleChords = 5
+    private static let maxVisibleChords = 4
 
     private var chordsDisplay: String {
         let symbols = entry.chordSymbols.map { Chord(apiSymbol: $0)?.displaySymbol ?? $0 }
@@ -23,7 +33,11 @@ struct HistoryRow: View {
     }
     
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(styleTint.opacity(0.15))
+                .frame(width: 50, height: 60)
+                .overlay(Image(systemName: styleSymbol).foregroundStyle(styleTint))
             VStack(alignment: .leading, spacing: 4) {
                 Text(entry.style.isEmpty ? "Untitled" : entry.style).font(.headline)
                 Text(chordsDisplay)
