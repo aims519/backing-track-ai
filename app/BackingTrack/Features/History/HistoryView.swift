@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// Route for pushing the history screen onto `GenerateTrackView`'s navigation stack.
+/// Route for pushing the history screen onto `HomeView`'s navigation stack.
 enum HistoryRoute: Hashable {
     case list
 }
@@ -10,22 +10,17 @@ enum HistoryRoute: Hashable {
 /// live from SwiftData via `@Query`. On open and on pull-to-refresh it reconciles the rows the
 /// client never saw finish (`.inFlight` / `.timedOut`) against the server — ADR 0024's
 /// "reconcile on open" requirement.
+///
+/// A plain list: tapping a row pushes a `JobHistoryEntry`, whose detail destination — and the
+/// "Watch progress" cover — are registered by `HomeView`, which owns the navigation stack and
+/// shares this screen's `HistoryViewModel` with the dashboard.
 struct HistoryView: View {
-    /// Loads a past job's parameters back into the generate form. Supplied by `GenerateTrackView`,
-    /// which owns the form model and the navigation path this pops.
-    let onReRun: (JobHistoryEntry) -> Void
-
     // `@Query` reads the container `BackingTrackApp` puts in the environment; its writes and the
     // reconcile/delete writes go through the same `mainContext`, so the list stays in sync.
     @Query(sort: \JobHistoryEntry.createdAt, order: .reverse)
     private var entries: [JobHistoryEntry]
 
-    @State private var vm: HistoryViewModel
-
-    init(onReRun: @escaping (JobHistoryEntry) -> Void, vm: HistoryViewModel = HistoryViewModel()) {
-        self.onReRun = onReRun
-        _vm = State(initialValue: vm)
-    }
+    let vm: HistoryViewModel
 
     private var sections: [HistorySection] {
         HistoryGrouping.sections(from: entries)
@@ -62,14 +57,6 @@ struct HistoryView: View {
             if let message = vm.refreshError {
                 RefreshErrorBanner(message: message) { vm.refreshError = nil }
             }
-        }
-        .navigationDestination(for: JobHistoryEntry.self) { entry in
-            HistoryDetailView(entry: entry, vm: vm, onReRun: onReRun)
-        }
-        // "Watch progress" from a still-running row: the same progress screen the generate flow
-        // uses, over the whole window. `stopWatching` clears the memoised model on dismiss.
-        .fullScreenCover(item: $vm.watchSeed, onDismiss: vm.stopWatching) { seed in
-            GenerationProgressView(model: vm.progressViewModel(for: seed))
         }
     }
 }
@@ -147,7 +134,6 @@ private func previewHistoryContainer() -> ModelContainer {
 #Preview("Populated") {
     NavigationStack {
         HistoryView(
-            onReRun: { _ in },
             vm: HistoryViewModel(apiClient: PreviewAPIClient(), historyStore: PreviewJobHistoryStore())
         )
     }
@@ -157,7 +143,6 @@ private func previewHistoryContainer() -> ModelContainer {
 #Preview("Empty") {
     NavigationStack {
         HistoryView(
-            onReRun: { _ in },
             vm: HistoryViewModel(apiClient: PreviewAPIClient(), historyStore: PreviewJobHistoryStore())
         )
     }
