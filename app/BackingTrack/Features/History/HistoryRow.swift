@@ -23,12 +23,14 @@ struct HistoryRow: View {
     
     /// Cap on chords shown per row. A fixed count rather than width-based so a row looks the same at
     /// every Dynamic Type size; `lineLimit(1)` below is only a safety net for the extremes.
-    private static let maxVisibleChords = 4
+    static let maxVisibleChords = 4
 
-    private var chordsDisplay: String {
-        let symbols = entry.chordSymbols.map { Chord(apiSymbol: $0)?.displaySymbol ?? $0 }
-        let shown = symbols.prefix(Self.maxVisibleChords).joined(separator: "  ")
-        let hidden = symbols.count - Self.maxVisibleChords
+    /// Stored API symbols in musician form, capped with a trailing `+N`. Static so it's testable
+    /// without a view.
+    static func chordsDisplay(for apiSymbols: [String]) -> String {
+        let symbols = apiSymbols.map { Chord(apiSymbol: $0)?.displaySymbol ?? $0 }
+        let shown = symbols.prefix(maxVisibleChords).joined(separator: "  ")
+        let hidden = symbols.count - maxVisibleChords
         return hidden > 0 ? "\(shown)  +\(hidden)" : shown
     }
     
@@ -40,7 +42,7 @@ struct HistoryRow: View {
                 .overlay(Image(systemName: styleSymbol).foregroundStyle(styleTint))
             VStack(alignment: .leading, spacing: 4) {
                 Text(entry.style.isEmpty ? "Untitled" : entry.style).font(.headline)
-                Text(chordsDisplay)
+                Text(Self.chordsDisplay(for: entry.chordSymbols))
                     .font(.subheadline.monospaced())
                     .lineLimit(1)
                 Text("\(keyRootDisplay) \(keyModeShortName) · \(entry.tempo) BPM")
