@@ -80,7 +80,7 @@ targets:
         # Bump MARKETING_VERSION by commit when a change deserves a new version number; every
         # push to main uploads it to TestFlight. CURRENT_PROJECT_VERSION is for local builds only:
         # ios-release.yml overrides it with the workflow run number (ADR 0040).
-        MARKETING_VERSION: "0.6.1"
+        MARKETING_VERSION: "0.6.2"
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1" # iPhone only for MVP — see docs/backing-track-generator-scope.md
         CODE_SIGN_STYLE: Automatic
