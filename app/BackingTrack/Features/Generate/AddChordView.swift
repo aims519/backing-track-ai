@@ -12,8 +12,19 @@ struct AddChordView: View {
     /// list, so this view just reports the selection and closes.
     let onAdd: (NoteName, ChordQuality) -> Void
 
-    @State private var root: NoteName = .c
+    @State private var root: NoteName
     @State private var quality: ChordQuality = .major
+    // How many chords "Add Another" has appended this time round. The sheet covers the chip
+    // list, so without this there's no sign the tap did anything.
+    @State private var addedCount = 0
+
+    // Scales the preview symbol with Dynamic Type; a fixed point size wouldn't.
+    @ScaledMetric(relativeTo: .largeTitle) private var previewSize: CGFloat = 52
+
+    init(initialRoot: NoteName = .c, onAdd: @escaping (NoteName, ChordQuality) -> Void) {
+        _root = State(initialValue: initialRoot)
+        self.onAdd = onAdd
+    }
 
     private var preview: Chord { Chord(root: root, quality: quality) }
 
@@ -21,7 +32,7 @@ struct AddChordView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 Text(preview.displaySymbol)
-                    .font(.system(size: 52, weight: .semibold, design: .rounded))
+                    .font(.system(size: previewSize, weight: .semibold, design: .rounded))
                     .frame(maxWidth: .infinity)
                     .padding(.top, 12)
 
@@ -57,13 +68,17 @@ struct AddChordView: View {
                 }
                 .labelsHidden()
 
+                addAnotherButton
+
                 Spacer(minLength: 0)
             }
             .navigationTitle("Add Chord")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    // Chords already added with "Add Another" stay added, so "Cancel" would be a
+                    // lie once there are some.
+                    Button(addedCount > 0 ? "Done" : "Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") {
@@ -73,6 +88,28 @@ struct AddChordView: View {
                 }
             }
         }
+    }
+
+    /// Appends the dialled-in chord and keeps the sheet open, for building a whole progression in
+    /// one visit instead of reopening the sheet per chord.
+    private var addAnotherButton: some View {
+        VStack(spacing: 6) {
+            Button {
+                onAdd(root, quality)
+                addedCount += 1
+            } label: {
+                Label("Add Another", systemImage: "plus.circle")
+            }
+            .buttonStyle(.bordered)
+
+            if addedCount > 0 {
+                Text("\(addedCount) added")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.top, 8)
+        .sensoryFeedback(.success, trigger: addedCount)
     }
 }
 
