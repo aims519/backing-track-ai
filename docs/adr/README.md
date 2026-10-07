@@ -52,3 +52,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0045](0045-home-dashboard-as-navigation-root.md) | A dashboard as the navigation root, owning the form and history view models, over a tab bar or a form-owned model |
 | [0046](0046-minver-from-git-tags-for-api-version.md) | Version the API with MinVer from git tags with the commit SHA as build metadata, over SourceRevisionId alone, the CI run number, or a hand-edited version |
 | [0047](0047-automatic-rollback-and-release-pruning-on-the-pi.md) | Roll back to the previous release when any post-deploy step fails and prune to the newest five after a good deploy, over manual recovery, blue/green, or age-based or cron pruning |
+| [0048](0048-additive-only-api-changes-instead-of-url-versioning.md) | Additive-only API changes with a tolerant client, over URL versioning or a version header |
