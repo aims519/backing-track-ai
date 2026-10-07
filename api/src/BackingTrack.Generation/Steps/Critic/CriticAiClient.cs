@@ -100,7 +100,7 @@ public class CriticAiClient([FromKeyedServices("critic")] IChatClient chatClient
 
         return $"""
                 - CandidateTrack: {JsonSerializer.Serialize(new CriticCandidateTrack(candidateTrack, generationJob.TimeSignatureBeatCount), CriticStepJsonContext.Default.CriticCandidateTrack)}
-                - GenerationJob: {JsonSerializer.Serialize(generationJob, GenerationJobJsonContext.Default.GenerationJob)}
+                - GenerationJob: {JsonSerializer.Serialize(new CriticGenerationJob(generationJob), CriticStepJsonContext.Default.CriticGenerationJob)}
                 - MatchedStyle: {JsonSerializer.Serialize(matchedStyle, KnowledgeBaseJsonContext.Default.MatchedStyle)}
                 - MatchedChords: {JsonSerializer.Serialize(matchedChords, KnowledgeBaseJsonContext.Default.IReadOnlyListMatchedChord)}
                 - MatchedScales: {JsonSerializer.Serialize(criticMatchedScales, CriticStepJsonContext.Default.IReadOnlyListCriticMatchedScale)}

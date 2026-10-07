@@ -114,6 +114,96 @@ public class CriticAiClientTests
             Arg.Any<CancellationToken>());
     }
 
+    // Data minimisation: the critic prompt goes to a third-party LLM, so it must carry only what the
+    // critic needs to judge the music. The sentinel values below are unique so a substring match
+    // can't false-positive on legitimate prompt content.
+    private const string FakeDeviceToken = "abababababababababababababababababababababababababababababababab";
+    private const string FeedbackSentinel = "feedback-sentinel-message";
+
+    private static async Task<string> CapturePromptAsync(GenerationJob job)
+    {
+        IChatClient chatClient = CreateChatClientReturning(ValidVerdictResponse());
+        using CriticMetrics metrics = new();
+
+        await new CriticAiClient(chatClient, new CriticProviderInfo("OpenAi", "test-model", 4096, null), new ScaleMatcher(), metrics)
+            .GenerateCriticVerdictSubmissionAsync(DummyTrack, job, DummyStyle, [], [], TestContext.Current.CancellationToken);
+
+        IEnumerable<ChatMessage> messages = (IEnumerable<ChatMessage>)chatClient.ReceivedCalls().Single().GetArguments()[0]!;
+        return string.Join("\n", messages.Select(m => m.Text));
+    }
+
+    [Fact]
+    public async Task GenerateCriticVertictSubmissionAsync_JobHasApnsDeviceToken_PromptDoesNotContainIt()
+    {
+        string prompt = await CapturePromptAsync(DummyJob with { ApnsDeviceToken = FakeDeviceToken });
+
+        Assert.DoesNotContain(FakeDeviceToken, prompt);
+        Assert.DoesNotContain(nameof(GenerationJob.ApnsDeviceToken), prompt, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task GenerateCriticVertictSubmissionAsync_JobHasFeedbackItems_PromptDoesNotContainThem()
+    {
+        GenerationJob job = DummyJob with
+        {
+            FeedbackItems = [new JobFeedback(new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc), "Validate", FeedbackSentinel, 2)]
+        };
+
+        string prompt = await CapturePromptAsync(job);
+
+        Assert.DoesNotContain(FeedbackSentinel, prompt);
+        Assert.DoesNotContain(nameof(GenerationJob.FeedbackItems), prompt);
+    }
+
+    [Fact]
+    public async Task GenerateCriticVertictSubmissionAsync_PromptDoesNotContainJobIdentityOrTimestamps()
+    {
+        // Per-call values (id, state, timestamps) add no musical signal and change on every
+        // request, which defeats provider-side prompt caching.
+        GenerationJob job = DummyJob with
+        {
+            Id = Guid.Parse("11111111-2222-3333-4444-555555555555"),
+            StartTime = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
+            EndTime = new DateTimeOffset(2026, 1, 2, 3, 9, 9, TimeSpan.Zero),
+            TrackId = Guid.Parse("66666666-7777-8888-9999-000000000000"),
+            AudioLocation = "audio-location-sentinel"
+        };
+
+        string prompt = await CapturePromptAsync(job);
+
+        Assert.DoesNotContain(job.Id.ToString(), prompt);
+        Assert.DoesNotContain(job.TrackId.ToString()!, prompt);
+        Assert.DoesNotContain("audio-location-sentinel", prompt);
+        Assert.DoesNotContain("2026-01-02", prompt);
+        Assert.DoesNotContain(nameof(GenerationJob.State), prompt);
+    }
+
+    [Fact]
+    public async Task GenerateCriticVertictSubmissionAsync_PromptStillContainsTheMusicalParameters()
+    {
+        // Guards the other direction: minimising must not strip what the critic judges against.
+        GenerationJob job = DummyJob with
+        {
+            Tempo = 137,
+            Chords = ["Am7", "D7"],
+            KeyRoot = "A",
+            KeyMode = KeyMode.Dorian,
+            Style = "funk-sentinel",
+            TimeSignatureBeatCount = 7,
+            TimeSignatureBeatUnit = 8
+        };
+
+        string prompt = await CapturePromptAsync(job);
+
+        Assert.Contains("137", prompt);
+        Assert.Contains("Am7", prompt);
+        Assert.Contains("D7", prompt);
+        Assert.Contains("\"A\"", prompt);
+        Assert.Contains("funk-sentinel", prompt);
+        // The mode must be its name, not the enum's underlying number, which the LLM can't interpret.
+        Assert.Contains("\"KeyMode\":\"Dorian\"", prompt);
+    }
+
     private static bool ForcesSubmitVerdictTool(ChatOptions options) =>
         options.ToolMode is RequiredChatToolMode { RequiredFunctionName: SubmitVerdictFunctionName } &&
         options.Tools != null && options.Tools.Any(t => t.Name == SubmitVerdictFunctionName);
