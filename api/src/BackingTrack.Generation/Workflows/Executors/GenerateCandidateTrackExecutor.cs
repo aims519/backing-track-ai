@@ -36,8 +36,6 @@ internal sealed class GenerateCandidateTrackExecutor(
                     generationJob.TimeSignatureBeatCount,
                     generationJob.TimeSignatureBeatUnit,
                     input.MatchedStyle, input.MatchedChords, input.MatchedScales,
-                    previousAttempt: null,
-                    previousAttemptFailures: null,
                     cancellationToken);
             }
             else

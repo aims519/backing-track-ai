@@ -257,7 +257,7 @@ final class GenerateTrackViewModel {
             try write()
         } catch {
             #if DEBUG
-            print("⚠️ job-history write failed (ignored): \(error)")
+            log.warning("job-history write failed (ignored): \(error)")
             #endif
         }
     }

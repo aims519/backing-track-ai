@@ -68,8 +68,11 @@ internal sealed class ValidateCandidateTrackExecutor(
                 return;
             }
 
-            logger.LogDebug("Job {Id} attempt {Attempt} candidate track: {Track}", input.GenerationJob.Id, input.ValidationAttempts,
-                JsonSerializer.Serialize(input.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Job {Id} attempt {Attempt} candidate track: {Track}", input.GenerationJob.Id, input.ValidationAttempts,
+                    JsonSerializer.Serialize(input.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
+            }
             logger.LogWarning("Job {Id} attempt {Attempt} failed validation: {Errors}", input.GenerationJob.Id, input.ValidationAttempts, string.Join('\n', trackValidationResult.Failures.Select(f => f.Reason)));
 
             // Failed with max attempts reached, fallback to rule-based generation

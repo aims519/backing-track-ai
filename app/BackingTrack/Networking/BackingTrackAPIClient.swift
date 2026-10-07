@@ -8,8 +8,7 @@ import Foundation
 protocol BackingTrackAPIClient: Sendable {
     /// Submits a request and returns the freshly-created job (`POST /tracks/generate`).
     func submitGeneration(_ request: GenerationRequest) async throws -> GenerationJob
-    /// Fetches the current state of a job (`GET /tracks/status/{jobId}`). Not used by the submit
-    /// flow itself — it's here for the status-polling task that builds on this.
+    /// Fetches the current state of a job (`GET /tracks/status/{jobId}`); polled by the progress screen.
     func jobStatus(id: UUID) async throws -> GenerationJob
 
     /// Requests cancellation of a job (`POST /tracks/cancel/{jobId}`). The server marks it
@@ -51,9 +50,8 @@ struct LiveBackingTrackAPIClient: BackingTrackAPIClient {
             // keeps every throw path out of this client an `APIClientError`.
             throw APIClientError.decoding(String(describing: error))
         }
-        // The server is moving `POST /tracks/generate` from 200 to 202 Accepted (the job is queued,
-        // not done). Accept both so this build works before and after that server change.
-        return try await send(urlRequest, acceptedStatuses: [200, 202])
+
+        return try await send(urlRequest, acceptedStatuses: [202])
     }
 
     func jobStatus(id: UUID) async throws -> GenerationJob {

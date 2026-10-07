@@ -59,7 +59,7 @@ struct BackingTrackAPIClientTests {
 
     @Test func submitReturnsTheCreatedJob() async throws {
         let id = "3abfc555-3c24-4773-9799-2884b46eb80e"
-        StubURLProtocol.handler = { _ in (200, [:], self.jobJSON(id: id, status: "Pending")) }
+        StubURLProtocol.handler = { _ in (202, [:], self.jobJSON(id: id, status: "Pending")) }
 
         let job = try await makeClient().submitGeneration(sampleRequest)
 
@@ -93,7 +93,7 @@ struct BackingTrackAPIClientTests {
           "timeSignatureBeatCount": 4, "timeSignatureBeatUnit": 4, "feedbackItems": []
         }
         """.utf8)
-        StubURLProtocol.handler = { _ in (200, [:], body) }
+        StubURLProtocol.handler = { _ in (202, [:], body) }
 
         let job = try await makeClient().submitGeneration(sampleRequest)
 
@@ -106,7 +106,7 @@ struct BackingTrackAPIClientTests {
         var seenRequest: URLRequest?
         StubURLProtocol.handler = { request in
             seenRequest = request
-            return (200, [:], self.jobJSON(id: UUID().uuidString, status: "Pending"))
+            return (202, [:], self.jobJSON(id: UUID().uuidString, status: "Pending"))
         }
 
         _ = try await makeClient(key: "secret-123").submitGeneration(sampleRequest)
@@ -122,13 +122,12 @@ struct BackingTrackAPIClientTests {
         #expect(json["KeyRoot"] as? String == "C")
     }
 
-    @Test func submitAcceptsA202AsWellAs200() async throws {
-        let id = UUID()
-        StubURLProtocol.handler = { _ in (202, [:], self.jobJSON(id: id.uuidString, status: "Pending")) }
+    @Test func submitRequiresExactly202() async {
+        StubURLProtocol.handler = { _ in (200, [:], self.jobJSON(id: UUID().uuidString, status: "Pending")) }
 
-        let job = try await makeClient().submitGeneration(sampleRequest)
-
-        #expect(job.id == id)
+        await #expect(throws: APIClientError.self) {
+            try await makeClient().submitGeneration(sampleRequest)
+        }
     }
 
     @Test func jobStatusStillRequiresExactly200() async {

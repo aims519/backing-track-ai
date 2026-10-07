@@ -60,7 +60,7 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
             .Returns([WorkflowTestFixtures.CreateMatchedScale(chord)]);
 
         _generate.GenerateCandidateTrackAsync(default!, default, default, default, default, default!, default!, default!,
-                Arg.Any<CandidateTrack?>(), Arg.Any<IReadOnlyList<ValidationFailure>?>(), Arg.Any<CancellationToken>())
+                Arg.Any<CancellationToken>())
             .ReturnsForAnyArgs(Track);
         _validate.ValidateCandidateTrack(default!, default!, default!, default!).ReturnsForAnyArgs(Valid());
         _critic.ReviewCandidateTrackAsync(default!, default!, default!, default!, default!, default)
@@ -109,7 +109,7 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
     public async Task Job_whose_generate_call_throws_completes_via_fallback_tagged_generate_error()
     {
         _generate.GenerateCandidateTrackAsync(default!, default, default, default, default, default!, default!, default!,
-                Arg.Any<CandidateTrack?>(), Arg.Any<IReadOnlyList<ValidationFailure>?>(), Arg.Any<CancellationToken>())
+                Arg.Any<CancellationToken>())
             .ThrowsAsyncForAnyArgs(new HttpRequestException("llm down"));
 
         GenerationJob job = await RunToTerminalStateAsync();

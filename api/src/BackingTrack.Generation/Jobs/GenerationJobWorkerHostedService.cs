@@ -99,8 +99,6 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
 
         logger.LogInformation("Job {Id} started", jobId);
 
-        // Process the generation job here
-        // Update the job state as needed
         using IServiceScope scope = serviceScopeFactory.CreateScope();
 
         Workflow generationWorkflow = GenerationWorkflowBuilder.Build(scope.ServiceProvider);
@@ -141,7 +139,11 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     if (TryRecordJobOutcome(jobId, succeeded.FallbackReason) is { } completedJob)
                         await pushNotificationEmitter.SendApnsPushNotificationAsync(completedJob);
 
-                    logger.LogDebug("Job {Id} completed track saved: {Track}", startedJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
+                    if (logger.IsEnabled(LogLevel.Debug))
+                    {
+                        logger.LogDebug("Job {Id} completed track saved: {Track}", startedJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
+                    }
+
                     logger.LogInformation("Job {Id} completed", jobId);
 
                     generationJobMetrics.RecordAttempts(succeeded.Attempts, "success");

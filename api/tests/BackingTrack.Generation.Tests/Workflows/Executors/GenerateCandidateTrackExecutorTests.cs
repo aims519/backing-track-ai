@@ -3,7 +3,6 @@ using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Critic;
 using BackingTrack.Generation.Steps.FallbackGeneration;
 using BackingTrack.Generation.Steps.TrackGeneration;
-using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
 using BackingTrack.Generation.Workflows.Executors;
 using BackingTrack.Generation.Workflows.Inputs;
@@ -32,7 +31,7 @@ public class GenerateCandidateTrackExecutorTests
         IGenerateStep generateStepMock = Substitute.For<IGenerateStep>();
         generateStepMock.GenerateCandidateTrackAsync(job.KeyRoot, job.KeyMode, job.Tempo, job.TimeSignatureBeatCount,
                 job.TimeSignatureBeatUnit, matchedStyle, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>(),
-                null, null, Arg.Any<CancellationToken>()).Returns(candidateTrack);
+                Arg.Any<CancellationToken>()).Returns(candidateTrack);
         IJobStatusEmitter statusEmitterMock = Substitute.For<IJobStatusEmitter>();
         FakeWorkflowContext context = new();
 
@@ -73,7 +72,7 @@ public class GenerateCandidateTrackExecutorTests
             previousAttempt, criticReview, Arg.Any<CancellationToken>());
         await generateStepMock.DidNotReceive().GenerateCandidateTrackAsync(Arg.Any<string>(), Arg.Any<KeyMode>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<int>(),
             Arg.Any<MatchedStyle>(), Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>(),
-            Arg.Any<CandidateTrack?>(), Arg.Any<IReadOnlyList<ValidationFailure>?>(), Arg.Any<CancellationToken>());
+            Arg.Any<CancellationToken>());
 
         ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(regeneratedTrack, sent.CandidateTrack);
@@ -92,7 +91,7 @@ public class GenerateCandidateTrackExecutorTests
         IGenerateStep generateStepMock = Substitute.For<IGenerateStep>();
         generateStepMock.GenerateCandidateTrackAsync(job.KeyRoot, job.KeyMode, job.Tempo, job.TimeSignatureBeatCount,
                 job.TimeSignatureBeatUnit, matchedStyle, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>(),
-                null, null, Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("generation failed"));
+                Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("generation failed"));
         FakeWorkflowContext context = new();
 
         await CreateExecutor(generateStepMock).HandleAsync(
@@ -144,7 +143,7 @@ public class GenerateCandidateTrackExecutorTests
         IGenerateStep generateStepMock = Substitute.For<IGenerateStep>();
         generateStepMock.GenerateCandidateTrackAsync(job.KeyRoot, job.KeyMode, job.Tempo, job.TimeSignatureBeatCount,
                 job.TimeSignatureBeatUnit, matchedStyle, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>(),
-                null, null, Arg.Any<CancellationToken>()).ThrowsAsync(new TaskCanceledException("request timed out"));
+                Arg.Any<CancellationToken>()).ThrowsAsync(new TaskCanceledException("request timed out"));
         FakeWorkflowContext context = new();
 
         await CreateExecutor(generateStepMock).HandleAsync(
@@ -165,7 +164,7 @@ public class GenerateCandidateTrackExecutorTests
         IGenerateStep generateStepMock = Substitute.For<IGenerateStep>();
         generateStepMock.GenerateCandidateTrackAsync(job.KeyRoot, job.KeyMode, job.Tempo, job.TimeSignatureBeatCount,
                 job.TimeSignatureBeatUnit, matchedStyle, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>(),
-                null, null, Arg.Any<CancellationToken>()).ThrowsAsync(new OperationCanceledException());
+                Arg.Any<CancellationToken>()).ThrowsAsync(new OperationCanceledException());
         FakeWorkflowContext context = new();
         using CancellationTokenSource cts = new();
         cts.Cancel();
