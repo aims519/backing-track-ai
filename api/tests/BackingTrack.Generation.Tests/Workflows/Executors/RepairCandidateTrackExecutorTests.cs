@@ -1,5 +1,6 @@
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase.Types;
+using BackingTrack.Generation.Steps.FallbackGeneration;
 using BackingTrack.Generation.Steps.TrackRepair;
 using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
@@ -62,6 +63,7 @@ public class RepairCandidateTrackExecutorTests
         await CreateExecutor(repairStepMock).HandleAsync(input, context, CancellationToken.None);
 
         FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.Equal(FallbackReason.RepairError, sent.FallbackReason);
         Assert.Same(job, sent.GenerationJob);
         Assert.Same(matchedStyle, sent.MatchedStyle);
         Assert.Same(chord, Assert.Single(sent.MatchedChords));

@@ -1,4 +1,5 @@
 using BackingTrack.Generation.Jobs;
+using BackingTrack.Generation.Steps.FallbackGeneration;
 
 namespace BackingTrack.Generation.Tests.Jobs;
 
@@ -62,6 +63,36 @@ public class GenerationJobMetricsTests
 
         // Unbounded tag values (job id, track id) would create a time series per job.
         Assert.Equal(["mode", "outcome"], Assert.Single(capture.Measurements).Tags.Keys.Order());
+    }
+
+    [Theory]
+    [InlineData(FallbackReason.GenerateError, "generate_error")]
+    [InlineData(FallbackReason.ValidationExhausted, "validation_exhausted")]
+    [InlineData(FallbackReason.CriticExhausted, "critic_exhausted")]
+    [InlineData(FallbackReason.RepairError, "repair_error")]
+    [InlineData(FallbackReason.CriticError, "critic_error")]
+    public void RecordOutcome_WithFallbackReason_TagsTheCounterWithIt(FallbackReason reason, string expectedTag)
+    {
+        using GenerationJobMetrics metrics = new();
+        using MeasurementCapture capture = new(MeasurementCapture.JobCompletedInstrument);
+
+        metrics.RecordOutcome(JobStates.CompletedViaFallback, GenerationMode.Precise, fallbackReason: reason);
+
+        CapturedMeasurement measurement = Assert.Single(capture.Measurements);
+        Assert.Equal("completed_via_fallback", measurement.Tags["outcome"]);
+        Assert.Equal(expectedTag, measurement.Tags["fallback_reason"]);
+    }
+
+    [Fact]
+    public void RecordOutcome_WithoutFallbackReason_AddsNoFallbackReasonTag()
+    {
+        // Only fallback jobs carry the tag, so every other series keeps its existing shape.
+        using GenerationJobMetrics metrics = new();
+        using MeasurementCapture capture = new(MeasurementCapture.JobCompletedInstrument);
+
+        metrics.RecordOutcome(JobStates.Complete, GenerationMode.Precise);
+
+        Assert.False(Assert.Single(capture.Measurements).Tags.ContainsKey("fallback_reason"));
     }
 
     // End-to-end job duration: submission to terminal state, queue wait included (see GenerationJob.StartTime).

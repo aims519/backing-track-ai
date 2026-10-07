@@ -49,7 +49,7 @@ public sealed class WorkflowGenerationRunner(IServiceScopeFactory scopeFactory) 
         {
             GenerationSucceeded succeeded => new GenerationRunResult
             {
-                Outcome = succeeded.WasFallback ? ActualOutcome.SucceededViaFallback : ActualOutcome.Succeeded,
+                Outcome = succeeded.FallbackReason.HasValue ? ActualOutcome.SucceededViaFallback : ActualOutcome.Succeeded,
                 Attempts = succeeded.Attempts,
                 CriticAttempts = succeeded.CriticAttempts,
                 TrackId = succeeded.TrackId,

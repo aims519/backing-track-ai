@@ -1,4 +1,5 @@
 using BackingTrack.Generation.Jobs;
+using BackingTrack.Generation.Steps.FallbackGeneration;
 using BackingTrack.Generation.Steps.TrackRepair;
 using BackingTrack.Generation.Steps.Types;
 using BackingTrack.Generation.Workflows.Inputs;
@@ -36,7 +37,7 @@ internal sealed class RepairCandidateTrackExecutor(
         catch (Exception ex) // Unexpected errors should not fail the job so we fall back to rule-based generation (ADR 0034's "never fail" guarantee)
         {
             logger.LogError(ex, "Job {Id} failed during candidate track repair during attempt {Attempt}. Falling back to rule-based generation", input.GenerationJob.Id, input.ValidationAttempts);
-            await context.SendMessageAsync(new FallbackGenerateCandidateTrackInput(input.GenerationJob, input.MatchedStyle, input.MatchedChords, input.MatchedScales), cancellationToken);
+            await context.SendMessageAsync(new FallbackGenerateCandidateTrackInput(input.GenerationJob, input.MatchedStyle, input.MatchedChords, input.MatchedScales, FallbackReason.RepairError), cancellationToken);
             return;
         }
 

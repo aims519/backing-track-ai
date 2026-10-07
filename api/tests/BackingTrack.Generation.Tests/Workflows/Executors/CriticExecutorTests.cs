@@ -2,6 +2,7 @@ using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Critic;
+using BackingTrack.Generation.Steps.FallbackGeneration;
 using BackingTrack.Generation.Steps.Types;
 using BackingTrack.Generation.Workflows.Executors;
 using BackingTrack.Generation.Workflows.Inputs;
@@ -86,6 +87,7 @@ public class CriticExecutorTests
         await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(CreateInput(track, job, validationAttempts: 2, criticAttempts: 3), context, CancellationToken.None);
 
         FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.Equal(FallbackReason.CriticExhausted, sent.FallbackReason);
         Assert.Same(job, sent.GenerationJob);
         Assert.Empty(context.YieldedOutputs);
     }
@@ -108,6 +110,7 @@ public class CriticExecutorTests
         await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(input, context, CancellationToken.None);
 
         FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.Equal(FallbackReason.CriticError, sent.FallbackReason);
         Assert.Same(job, sent.GenerationJob);
         Assert.Same(matchedStyle, sent.MatchedStyle);
         Assert.Same(chord, Assert.Single(sent.MatchedChords));

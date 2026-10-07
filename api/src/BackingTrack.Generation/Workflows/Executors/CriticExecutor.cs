@@ -1,6 +1,7 @@
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.Steps.Critic;
+using BackingTrack.Generation.Steps.FallbackGeneration;
 using BackingTrack.Generation.Workflows.Inputs;
 using BackingTrack.Generation.Workflows.Outputs;
 
@@ -51,7 +52,8 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
                     await context.SendMessageAsync(new FallbackGenerateCandidateTrackInput(input.GenerationJob,
                         input.MatchedStyle,
                         input.MatchedChords,
-                        input.MatchedScales), cancellationToken);
+                        input.MatchedScales,
+                        FallbackReason.CriticExhausted), cancellationToken);
                     return;
                 }
 
@@ -82,7 +84,7 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
         catch (Exception ex) // Unexpected errors should not fail the job so we fall back to rule-based generation (ADR 0034's "never fail" guarantee)
         {
             logger.LogError(ex, "Job {Id} failed during critic review during attempt {Attempt}. Falling back to rule-based generation", input.GenerationJob.Id, input.CriticAttempts);
-            await context.SendMessageAsync(new FallbackGenerateCandidateTrackInput(input.GenerationJob, input.MatchedStyle, input.MatchedChords, input.MatchedScales), cancellationToken);
+            await context.SendMessageAsync(new FallbackGenerateCandidateTrackInput(input.GenerationJob, input.MatchedStyle, input.MatchedChords, input.MatchedScales, FallbackReason.CriticError), cancellationToken);
         }
     }
 

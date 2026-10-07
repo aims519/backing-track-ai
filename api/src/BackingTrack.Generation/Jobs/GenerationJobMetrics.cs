@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
+using BackingTrack.Generation.Steps.FallbackGeneration;
+
 namespace BackingTrack.Generation.Jobs;
 
 public class GenerationJobMetrics : IDisposable
@@ -42,7 +44,7 @@ public class GenerationJobMetrics : IDisposable
 
     // Counts every job exactly once. attempts_used is only recorded when an attempt count exists and uses
     // its own success/failed outcome values, so its total won't match this one.
-    public void RecordOutcome(JobStates state, GenerationMode mode, TimeSpan? duration = null)
+    public void RecordOutcome(JobStates state, GenerationMode mode, TimeSpan? duration = null, FallbackReason? fallbackReason = null)
     {
         // Explicit strings instead of state.ToString(): tag values are a dashboard contract
         string outcome = state switch
@@ -55,6 +57,9 @@ public class GenerationJobMetrics : IDisposable
         };
 
         TagList tagList = new() { { "outcome", outcome }, { "mode", mode.ToMetricTag() } };
+
+        if (fallbackReason is { } reason)
+            tagList.Add("fallback_reason", reason.ToMetricTag());
 
         _completedJobs.Add(1, tagList);
 

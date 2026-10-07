@@ -1,6 +1,7 @@
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Critic;
+using BackingTrack.Generation.Steps.FallbackGeneration;
 using BackingTrack.Generation.Steps.TrackGeneration;
 using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
@@ -98,6 +99,7 @@ public class GenerateCandidateTrackExecutorTests
             new GenerateCandidateTrackInput(job, matchedStyle, [chord], [scale], CriticAttempts: 1), context, CancellationToken.None);
 
         FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.Equal(FallbackReason.GenerateError, sent.FallbackReason);
         Assert.Same(job, sent.GenerationJob);
         Assert.Same(matchedStyle, sent.MatchedStyle);
         Assert.Same(chord, Assert.Single(sent.MatchedChords));
@@ -125,6 +127,7 @@ public class GenerateCandidateTrackExecutorTests
                 CriticReview: criticReview, PreviousAttempt: previousAttempt), context, CancellationToken.None);
 
         FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.Equal(FallbackReason.GenerateError, sent.FallbackReason);
         Assert.Same(job, sent.GenerationJob);
         Assert.Empty(context.YieldedOutputs);
     }
@@ -147,7 +150,8 @@ public class GenerateCandidateTrackExecutorTests
         await CreateExecutor(generateStepMock).HandleAsync(
             new GenerateCandidateTrackInput(job, matchedStyle, [chord], [scale], CriticAttempts: 1), context, CancellationToken.None);
 
-        Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.Equal(FallbackReason.GenerateError, sent.FallbackReason);
         Assert.Empty(context.YieldedOutputs);
     }
 

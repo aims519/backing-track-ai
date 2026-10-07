@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace BackingTrack.Generation.Tests.Jobs;
 
@@ -84,6 +85,7 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
 
         Assert.Equal(JobStates.Complete, _store.TryGet(job.Id)?.State);
         AssertSingleOutcome("complete", "precise");
+        Assert.False(Assert.Single(_capture.Measurements).Tags.ContainsKey("fallback_reason"));
     }
 
     [Fact]
@@ -98,6 +100,65 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
 
         Assert.Equal(JobStates.CompletedViaFallback, _store.TryGet(job.Id)?.State);
         AssertSingleOutcome("completed_via_fallback", "precise");
+        AssertFallbackReason("validation_exhausted");
+    }
+
+    // The next four drive the real workflow graph, so they also prove each trigger's edge into the
+    // fallback executor exists - the executor unit tests only check the message an executor sends.
+    [Fact]
+    public async Task Job_whose_generate_call_throws_completes_via_fallback_tagged_generate_error()
+    {
+        _generate.GenerateCandidateTrackAsync(default!, default, default, default, default, default!, default!, default!,
+                Arg.Any<CandidateTrack?>(), Arg.Any<IReadOnlyList<ValidationFailure>?>(), Arg.Any<CancellationToken>())
+            .ThrowsAsyncForAnyArgs(new HttpRequestException("llm down"));
+
+        GenerationJob job = await RunToTerminalStateAsync();
+
+        Assert.Equal(JobStates.CompletedViaFallback, _store.TryGet(job.Id)?.State);
+        AssertSingleOutcome("completed_via_fallback", "precise");
+        AssertFallbackReason("generate_error");
+    }
+
+    [Fact]
+    public async Task Job_whose_repair_call_throws_completes_via_fallback_tagged_repair_error()
+    {
+        // The first candidate fails validation, so repair runs and throws; the fallback track then validates.
+        _validate.ValidateCandidateTrack(default!, default!, default!, default!)
+            .ReturnsForAnyArgs(Invalid(), Valid());
+        _repair.RepairCandidateTrackAsync(default!, default!, Arg.Any<CancellationToken>())
+            .ThrowsAsyncForAnyArgs(new HttpRequestException("llm down"));
+
+        GenerationJob job = await RunToTerminalStateAsync();
+
+        Assert.Equal(JobStates.CompletedViaFallback, _store.TryGet(job.Id)?.State);
+        AssertSingleOutcome("completed_via_fallback", "precise");
+        AssertFallbackReason("repair_error");
+    }
+
+    [Fact]
+    public async Task Job_whose_critic_call_throws_completes_via_fallback_tagged_critic_error()
+    {
+        _critic.ReviewCandidateTrackAsync(default!, default!, default!, default!, default!, Arg.Any<CancellationToken>())
+            .ThrowsAsyncForAnyArgs(new HttpRequestException("llm down"));
+
+        GenerationJob job = await RunToTerminalStateAsync();
+
+        Assert.Equal(JobStates.CompletedViaFallback, _store.TryGet(job.Id)?.State);
+        AssertSingleOutcome("completed_via_fallback", "precise");
+        AssertFallbackReason("critic_error");
+    }
+
+    [Fact]
+    public async Task Job_whose_critic_rejects_until_its_budget_is_spent_completes_via_fallback_tagged_critic_exhausted()
+    {
+        _critic.ReviewCandidateTrackAsync(default!, default!, default!, default!, default!, Arg.Any<CancellationToken>())
+            .ReturnsForAnyArgs(new CriticFinalReview(false, 10, []));
+
+        GenerationJob job = await RunToTerminalStateAsync();
+
+        Assert.Equal(JobStates.CompletedViaFallback, _store.TryGet(job.Id)?.State);
+        AssertSingleOutcome("completed_via_fallback", "precise");
+        AssertFallbackReason("critic_exhausted");
     }
 
     [Fact]
@@ -378,6 +439,9 @@ public sealed class GenerationJobWorkerOutcomeMetricsTests : IDisposable
         Assert.Equal(outcome, measurement.Tags["outcome"]);
         Assert.Equal(mode, measurement.Tags["mode"]);
     }
+
+    private void AssertFallbackReason(string expected) =>
+        Assert.Equal(expected, Assert.Single(_capture.Measurements).Tags["fallback_reason"]);
 
     // Hand-written because the interface is internal, which NSubstitute's proxy generator can't reach.
     private sealed class FakePushEmitter : IPushNotificationEmitter
