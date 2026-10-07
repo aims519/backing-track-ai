@@ -139,7 +139,11 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     if (TryRecordJobOutcome(jobId, succeeded.FallbackReason) is { } completedJob)
                         await pushNotificationEmitter.SendApnsPushNotificationAsync(completedJob);
 
-                    logger.LogDebug("Job {Id} completed track saved: {Track}", startedJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
+                    if (logger.IsEnabled(LogLevel.Debug))
+                    {
+                        logger.LogDebug("Job {Id} completed track saved: {Track}", startedJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
+                    }
+
                     logger.LogInformation("Job {Id} completed", jobId);
 
                     generationJobMetrics.RecordAttempts(succeeded.Attempts, "success");
