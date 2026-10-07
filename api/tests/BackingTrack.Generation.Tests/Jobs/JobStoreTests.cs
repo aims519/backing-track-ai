@@ -1,6 +1,7 @@
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.Tests.Workflows;
 
+using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace BackingTrack.Generation.Tests.Jobs;
@@ -57,6 +58,29 @@ public class JobStoreTests
         store.AddOrUpdate(job);
 
         // Still "found" - cancelling a finished job is a harmless no-op, not a 404.
+        Assert.True(await store.CancelAsync(job.Id));
+
+        Assert.Equal(JobStates.Complete, store.TryGet(job.Id)?.State);
+    }
+
+    [Fact]
+    public async Task CancelAsync_JobCompletedButRunStillRegistered_LeavesItComplete()
+    {
+        // The worker sets Complete, then awaits the APNs push, and only unregisters the run in its
+        // `finally` - so for that window the run is still registered on a finished job. A cancel
+        // landing there must not flip it to Cancelled after the user was already told it's ready.
+        JobStore store = CreateStore();
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        store.AddOrUpdate(job);
+
+        // The workflow engine gives us no public way to construct a StreamingRun, so run a trivial one.
+        Workflow workflow = new WorkflowBuilder(new Func<string, string>(s => s).BindAsExecutor("noop")).Build();
+        await using StreamingRun run = await InProcessExecution.RunStreamingAsync(
+            workflow, "input", cancellationToken: TestContext.Current.CancellationToken);
+        store.RegisterJobRun(job.Id, run);
+
+        store.UpdateJob(job.Id, current => current with { State = JobStates.Complete, EndTime = DateTimeOffset.UtcNow });
+
         Assert.True(await store.CancelAsync(job.Id));
 
         Assert.Equal(JobStates.Complete, store.TryGet(job.Id)?.State);
