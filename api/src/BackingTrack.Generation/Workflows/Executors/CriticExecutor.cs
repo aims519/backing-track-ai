@@ -79,10 +79,10 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
             logger.LogInformation("Cancellation requested during {ExecutorName}", nameof(CriticExecutor));
             await context.YieldOutputAsync(new GenerationCancelled(), CancellationToken.None);
         }
-        catch (Exception ex)
+        catch (Exception ex) // Unexpected errors should not fail the job so we fall back to rule-based generation (ADR 0034's "never fail" guarantee)
         {
-            logger.LogError(ex, "Job {Id} failed during critic review", input.GenerationJob.Id);
-            await context.YieldOutputAsync(new GenerationFailed(ex.Message), cancellationToken);
+            logger.LogError(ex, "Job {Id} failed during critic review during attempt {Attempt}. Falling back to rule-based generation", input.GenerationJob.Id, input.CriticAttempts);
+            await context.SendMessageAsync(new FallbackGenerateCandidateTrackInput(input.GenerationJob, input.MatchedStyle, input.MatchedChords, input.MatchedScales), cancellationToken);
         }
     }
 

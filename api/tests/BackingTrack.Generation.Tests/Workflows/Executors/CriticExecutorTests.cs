@@ -91,21 +91,28 @@ public class CriticExecutorTests
     }
 
     [Fact]
-    public async Task HandleAsync_CriticStepThrows_YieldsGenerationFailedAndSendsNothing()
+    public async Task HandleAsync_CriticStepThrows_SendsFallbackInputCarryingMatchedDataAndYieldsNothing()
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         CandidateTrack track = new(16, [], [], []);
+        MatchedStyle matchedStyle = WorkflowTestFixtures.CreateMatchedStyle();
+        MatchedChord chord = WorkflowTestFixtures.CreateMatchedChord();
+        MatchedScale scale = WorkflowTestFixtures.CreateMatchedScale(chord);
         ICriticStep criticStepMock = Substitute.For<ICriticStep>();
         criticStepMock.ReviewCandidateTrackAsync(track, job, Arg.Any<MatchedStyle>(), Arg.Any<IReadOnlyList<MatchedChord>>(),
                 Arg.Any<IReadOnlyList<MatchedScale>>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("critic blew up"));
         FakeWorkflowContext context = new();
+        CriticInput input = new(track, job, matchedStyle, [chord], [scale], 2, 1);
 
-        await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(CreateInput(track, job, validationAttempts: 2, criticAttempts: 1), context, CancellationToken.None);
+        await CreateExecutor(criticStepMock, maxAttempts: 3).HandleAsync(input, context, CancellationToken.None);
 
-        GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
-        Assert.Equal("critic blew up", failed.Reason);
-        Assert.Empty(context.SentMessages);
+        FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.Same(job, sent.GenerationJob);
+        Assert.Same(matchedStyle, sent.MatchedStyle);
+        Assert.Same(chord, Assert.Single(sent.MatchedChords));
+        Assert.Same(scale, Assert.Single(sent.MatchedScales));
+        Assert.Empty(context.YieldedOutputs);
     }
 
     [Fact]

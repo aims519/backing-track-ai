@@ -1,4 +1,5 @@
 using BackingTrack.Generation.Jobs;
+using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.TrackRepair;
 using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
@@ -45,21 +46,27 @@ public class RepairCandidateTrackExecutorTests
     }
 
     [Fact]
-    public async Task HandleAsync_RepairStepThrows_YieldsGenerationFailedWithAttemptsAndSendsNothing()
+    public async Task HandleAsync_RepairStepThrows_SendsFallbackInputCarryingMatchedDataAndYieldsNothing()
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         CandidateTrack track = new(16, [], [], []);
         ValidationFailure failure = new(ValidationFailureType.PartEmpty, null, "no drum notes");
+        MatchedStyle matchedStyle = WorkflowTestFixtures.CreateMatchedStyle();
+        MatchedChord chord = WorkflowTestFixtures.CreateMatchedChord();
+        MatchedScale scale = WorkflowTestFixtures.CreateMatchedScale(chord);
         IRepairStep repairStepMock = Substitute.For<IRepairStep>();
         repairStepMock.RepairCandidateTrackAsync(track, Arg.Any<IReadOnlyList<ValidationFailure>>(), Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("repair failed"));
         FakeWorkflowContext context = new();
+        RepairCandidateTrackInput input = new(track, new TrackValidationResult(false, [failure]), job, matchedStyle, [chord], [scale], 2, 1);
 
-        await CreateExecutor(repairStepMock).HandleAsync(CreateInput(track, job, [failure], attempts: 2), context, CancellationToken.None);
+        await CreateExecutor(repairStepMock).HandleAsync(input, context, CancellationToken.None);
 
-        GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
-        Assert.Equal("repair failed", failed.Reason);
-        Assert.Equal(2, failed.Attempts);
-        Assert.Empty(context.SentMessages);
+        FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.Same(job, sent.GenerationJob);
+        Assert.Same(matchedStyle, sent.MatchedStyle);
+        Assert.Same(chord, Assert.Single(sent.MatchedChords));
+        Assert.Same(scale, Assert.Single(sent.MatchedScales));
+        Assert.Empty(context.YieldedOutputs);
     }
 
     [Fact]

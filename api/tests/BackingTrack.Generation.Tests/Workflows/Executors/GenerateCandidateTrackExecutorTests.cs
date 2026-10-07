@@ -82,7 +82,7 @@ public class GenerateCandidateTrackExecutorTests
     }
 
     [Fact]
-    public async Task HandleAsync_GenerateStepThrows_YieldsGenerationFailedAndSendsNothing()
+    public async Task HandleAsync_GenerateStepThrows_SendsFallbackInputCarryingMatchedDataAndYieldsNothing()
     {
         GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
         MatchedStyle matchedStyle = WorkflowTestFixtures.CreateMatchedStyle();
@@ -97,9 +97,58 @@ public class GenerateCandidateTrackExecutorTests
         await CreateExecutor(generateStepMock).HandleAsync(
             new GenerateCandidateTrackInput(job, matchedStyle, [chord], [scale], CriticAttempts: 1), context, CancellationToken.None);
 
-        GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
-        Assert.Equal("generation failed", failed.Reason);
-        Assert.Empty(context.SentMessages);
+        FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.Same(job, sent.GenerationJob);
+        Assert.Same(matchedStyle, sent.MatchedStyle);
+        Assert.Same(chord, Assert.Single(sent.MatchedChords));
+        Assert.Same(scale, Assert.Single(sent.MatchedScales));
+        Assert.Empty(context.YieldedOutputs);
+    }
+
+    [Fact]
+    public async Task HandleAsync_GenerateWithCriticReviewThrows_SendsFallbackInputAndYieldsNothing()
+    {
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        MatchedStyle matchedStyle = WorkflowTestFixtures.CreateMatchedStyle();
+        MatchedChord chord = WorkflowTestFixtures.CreateMatchedChord();
+        MatchedScale scale = WorkflowTestFixtures.CreateMatchedScale(chord);
+        CandidateTrack previousAttempt = new(16, [], [], []);
+        CriticFinalReview criticReview = new(false, 40d, [new CriticCitation(CriticDimension.VoiceLeading, "parallel fifths", "kb-1")]);
+        IGenerateStep generateStepMock = Substitute.For<IGenerateStep>();
+        generateStepMock.GenerateCandidateTrackWithCriticReviewAsync(job.KeyRoot, job.KeyMode, job.Tempo, job.TimeSignatureBeatCount,
+                job.TimeSignatureBeatUnit, matchedStyle, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>(),
+                previousAttempt, criticReview, Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("malformed json"));
+        FakeWorkflowContext context = new();
+
+        await CreateExecutor(generateStepMock).HandleAsync(
+            new GenerateCandidateTrackInput(job, matchedStyle, [chord], [scale], CriticAttempts: 2,
+                CriticReview: criticReview, PreviousAttempt: previousAttempt), context, CancellationToken.None);
+
+        FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.Same(job, sent.GenerationJob);
+        Assert.Empty(context.YieldedOutputs);
+    }
+
+    [Fact]
+    public async Task HandleAsync_GenerateStepTimesOutWithoutCancellation_SendsFallbackInput()
+    {
+        // An HttpClient timeout surfaces as TaskCanceledException while the workflow's own token is
+        // still live, so it must take the fallback path rather than the cancellation branch.
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        MatchedStyle matchedStyle = WorkflowTestFixtures.CreateMatchedStyle();
+        MatchedChord chord = WorkflowTestFixtures.CreateMatchedChord();
+        MatchedScale scale = WorkflowTestFixtures.CreateMatchedScale(chord);
+        IGenerateStep generateStepMock = Substitute.For<IGenerateStep>();
+        generateStepMock.GenerateCandidateTrackAsync(job.KeyRoot, job.KeyMode, job.Tempo, job.TimeSignatureBeatCount,
+                job.TimeSignatureBeatUnit, matchedStyle, Arg.Any<IReadOnlyList<MatchedChord>>(), Arg.Any<IReadOnlyList<MatchedScale>>(),
+                null, null, Arg.Any<CancellationToken>()).ThrowsAsync(new TaskCanceledException("request timed out"));
+        FakeWorkflowContext context = new();
+
+        await CreateExecutor(generateStepMock).HandleAsync(
+            new GenerateCandidateTrackInput(job, matchedStyle, [chord], [scale], CriticAttempts: 1), context, CancellationToken.None);
+
+        Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.Empty(context.YieldedOutputs);
     }
 
     [Fact]
