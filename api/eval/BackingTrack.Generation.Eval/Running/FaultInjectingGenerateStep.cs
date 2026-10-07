@@ -2,7 +2,6 @@ using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase.Types;
 using BackingTrack.Generation.Steps.Critic;
 using BackingTrack.Generation.Steps.TrackGeneration;
-using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
 
 namespace BackingTrack.Generation.Eval.Running;
@@ -20,13 +19,12 @@ public sealed class FaultInjectingGenerateStep(GenerateStep innerGenerateStep, G
     public Task<CandidateTrack> GenerateCandidateTrackAsync(string keyRoot, KeyMode keyMode, int tempo,
         int timeSignatureBeatCount, int timeSignatureBeatUnit, MatchedStyle style,
         IReadOnlyList<MatchedChord> chords, IReadOnlyList<MatchedScale> scales,
-        CandidateTrack? previousAttempt = null, IReadOnlyList<ValidationFailure>? previousAttemptFailures = null,
         CancellationToken cancellationToken = default)
     {
         ThrowIfForced();
 
         return innerGenerateStep.GenerateCandidateTrackAsync(keyRoot, keyMode, tempo, timeSignatureBeatCount,
-            timeSignatureBeatUnit, style, chords, scales, previousAttempt, previousAttemptFailures, cancellationToken);
+            timeSignatureBeatUnit, style, chords, scales, cancellationToken);
     }
 
     public Task<CandidateTrack> GenerateCandidateTrackWithCriticReviewAsync(string keyRoot, KeyMode keyMode, int tempo,
