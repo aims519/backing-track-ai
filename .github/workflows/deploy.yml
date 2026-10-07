@@ -12,6 +12,9 @@ env:
   RELEASE_PATH: /opt/backingtrack/releases/${{ github.sha }}
   CURRENT_PATH: /opt/backingtrack/current
   SERVICE_NAME: backingtrack-api.service
+  # Newest releases kept on the Pi after a successful deploy. Each main push adds one, and
+  # the Pi's SSD is small. Five leaves headroom to roll back by hand past the automatic one.
+  KEEP_RELEASES: 5
 
 jobs:
   # Same build/test/format/AOT gate CI runs, re-run here against the exact SHA
@@ -82,6 +85,11 @@ jobs:
     # already reach the Pi directly.
     runs-on: [self-hosted, macOS]
     steps:
+      # Only for scripts/prune-releases.sh; the build itself comes from the publish artifact.
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts
+
       - name: Download publish output
         uses: actions/download-artifact@v8
         with:
@@ -107,6 +115,15 @@ jobs:
             "mkdir -p '$RELEASE_PATH' && chmod 755 '$RELEASE_PATH'"
           scp -i /tmp/deploy_key -r "./$PUBLISH_DIR/." \
             "ci-deploy@${{ vars.PI_TAILSCALE_IP }}:$RELEASE_PATH/"
+
+      - name: Record current release for rollback
+        id: previous
+        # Empty on the very first deploy (no symlink yet), which disables rollback below.
+        run: |
+          previous=$(ssh -i /tmp/deploy_key "ci-deploy@${{ vars.PI_TAILSCALE_IP }}" \
+            "readlink '$CURRENT_PATH' || true")
+          echo "Current release before swap: ${previous:-<none>}"
+          echo "path=$previous" >> "$GITHUB_OUTPUT"
 
       - name: Swap release and restart service
         run: |
@@ -136,6 +153,39 @@ jobs:
           done
           echo "Readiness check failed after deploy" >&2
           exit 1
+
+      # Keyed on failure() rather than on one specific check, so a failed swap/restart, liveness
+      # or readiness (whatever #123 makes readiness mean) all roll back. The failed step has
+      # already marked the job red; this step only restores service and never turns it green.
+      # The failed release stays on disk for inspection until a later deploy prunes it.
+      - name: Roll back to previous release
+        if: failure() && steps.previous.outputs.path != ''
+        env:
+          PREVIOUS_RELEASE: ${{ steps.previous.outputs.path }}
+        run: |
+          echo "Deploy of ${{ github.sha }} failed; rolling back to $PREVIOUS_RELEASE" >&2
+          ssh -i /tmp/deploy_key "ci-deploy@${{ vars.PI_TAILSCALE_IP }}" \
+            "test -d '$PREVIOUS_RELEASE' && \
+             ln -sfn '$PREVIOUS_RELEASE' '$CURRENT_PATH' && \
+             sudo systemctl restart '$SERVICE_NAME'"
+          for i in $(seq 1 10); do
+            if curl -sf "http://${{ vars.PI_TAILSCALE_IP }}:5080/healthz/live"; then
+              echo "Rolled back; previous release is live again"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Rollback did not come back live; manual intervention needed" >&2
+          exit 1
+
+      - name: Prune old releases
+        # Only after checks pass, so a failed deploy never deletes the release it fell back to.
+        # Newest by mtime wins; whatever `current` points at is always kept regardless.
+        # The script is piped over SSH, so nothing needs installing on the Pi.
+        run: |
+          ssh -i /tmp/deploy_key "ci-deploy@${{ vars.PI_TAILSCALE_IP }}" \
+            bash -s -- "$KEEP_RELEASES" "$(dirname "$RELEASE_PATH")" "$CURRENT_PATH" \
+            < scripts/prune-releases.sh
 
       - name: Clean up deploy key
         if: always()
