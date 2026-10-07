@@ -1,6 +1,7 @@
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase.Types;
+using BackingTrack.Generation.Steps.FallbackGeneration;
 using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
 using BackingTrack.Generation.Workflows.Executors;
@@ -22,8 +23,8 @@ public class ValidateCandidateTrackExecutorTests
             statusEmitter ?? Substitute.For<IJobStatusEmitter>(),
             NullLogger<ValidateCandidateTrackExecutor>.Instance);
 
-    private static ValidateCandidateTrackInput CreateInput(CandidateTrack track, GenerationJob job, int attempts, int criticAttempts = 1, bool isFallbackTrack = false) =>
-        new(track, job, WorkflowTestFixtures.CreateMatchedStyle(), [], [], attempts, criticAttempts, isFallbackTrack);
+    private static ValidateCandidateTrackInput CreateInput(CandidateTrack track, GenerationJob job, int attempts, int criticAttempts = 1, FallbackReason? fallbackReason = null) =>
+        new(track, job, WorkflowTestFixtures.CreateMatchedStyle(), [], [], attempts, criticAttempts, fallbackReason);
 
     [Fact]
     public async Task HandleAsync_TrackIsValid_SendsCriticInputCarryingAttemptsAndSendsNothingElse()
@@ -83,6 +84,7 @@ public class ValidateCandidateTrackExecutorTests
 
         FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(job, sent.GenerationJob);
+        Assert.Equal(FallbackReason.ValidationExhausted, sent.FallbackReason);
         Assert.Empty(context.YieldedOutputs);
     }
 
@@ -100,7 +102,8 @@ public class ValidateCandidateTrackExecutorTests
 
         await CreateExecutor(validateStepMock, maxAttempts: 5).HandleAsync(CreateInput(track, job, attempts: 6), context, CancellationToken.None);
 
-        Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        FallbackGenerateCandidateTrackInput sent = Assert.IsType<FallbackGenerateCandidateTrackInput>(Assert.Single(context.SentMessages));
+        Assert.Equal(FallbackReason.ValidationExhausted, sent.FallbackReason);
         Assert.Empty(context.YieldedOutputs);
     }
 
@@ -115,13 +118,13 @@ public class ValidateCandidateTrackExecutorTests
         FakeWorkflowContext context = new();
 
         await CreateExecutor(validateStepMock, maxAttempts: 5).HandleAsync(
-            CreateInput(track, job, attempts: 1, criticAttempts: 0, isFallbackTrack: true), context, CancellationToken.None);
+            CreateInput(track, job, attempts: 1, criticAttempts: 0, FallbackReason.CriticExhausted), context, CancellationToken.None);
 
         PersistCandidateTrackInput sent = Assert.IsType<PersistCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(track, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal(1, sent.ValidationAttempts);
-        Assert.True(sent.WasFallback);
+        Assert.Equal(FallbackReason.CriticExhausted, sent.FallbackReason);
         Assert.Empty(context.YieldedOutputs);
     }
 
@@ -138,7 +141,7 @@ public class ValidateCandidateTrackExecutorTests
         // Attempts is deliberately below maxAttempts, to prove a broken fallback track fails the
         // job outright rather than falling through into the repair branch below.
         await CreateExecutor(validateStepMock, maxAttempts: 5).HandleAsync(
-            CreateInput(track, job, attempts: 1, isFallbackTrack: true), context, CancellationToken.None);
+            CreateInput(track, job, attempts: 1, criticAttempts: 3, FallbackReason.CriticExhausted), context, CancellationToken.None);
 
         Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Empty(context.SentMessages);

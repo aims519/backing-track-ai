@@ -34,7 +34,7 @@ public class FallbackGenerateCandidateTrackExecutorTests
         FakeWorkflowContext context = new();
 
         await CreateExecutor(fallbackGenerationStepMock, statusEmitterMock).HandleAsync(
-            new FallbackGenerateCandidateTrackInput(job, matchedStyle, [chord], [scale]), context, CancellationToken.None);
+            new FallbackGenerateCandidateTrackInput(job, matchedStyle, [chord], [scale], FallbackReason.CriticExhausted), context, CancellationToken.None);
 
         ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(fallbackTrack, sent.CandidateTrack);
@@ -42,6 +42,7 @@ public class FallbackGenerateCandidateTrackExecutorTests
         Assert.Equal(1, sent.ValidationAttempts);
         Assert.Equal(0, sent.CriticAttempts);
         Assert.True(sent.IsFallbackTrack);
+        Assert.Equal(FallbackReason.CriticExhausted, sent.FallbackReason);
         Assert.Empty(context.YieldedOutputs);
 
         statusEmitterMock.Received(1).Emit(job.Id, "Fallback Generation", 1, Arg.Any<string>());
@@ -61,7 +62,7 @@ public class FallbackGenerateCandidateTrackExecutorTests
         FakeWorkflowContext context = new();
 
         await CreateExecutor(fallbackGenerationStepMock).HandleAsync(
-            new FallbackGenerateCandidateTrackInput(job, matchedStyle, [chord], [scale]), context, CancellationToken.None);
+            new FallbackGenerateCandidateTrackInput(job, matchedStyle, [chord], [scale], FallbackReason.CriticExhausted), context, CancellationToken.None);
 
         GenerationFailed failed = Assert.IsType<GenerationFailed>(Assert.Single(context.YieldedOutputs));
         Assert.Equal("fallback generation failed", failed.Reason);
@@ -84,7 +85,7 @@ public class FallbackGenerateCandidateTrackExecutorTests
         cts.Cancel();
 
         await CreateExecutor(fallbackGenerationStepMock).HandleAsync(
-            new FallbackGenerateCandidateTrackInput(job, matchedStyle, [chord], [scale]), context, cts.Token);
+            new FallbackGenerateCandidateTrackInput(job, matchedStyle, [chord], [scale], FallbackReason.CriticExhausted), context, cts.Token);
 
         Assert.IsType<GenerationCancelled>(Assert.Single(context.YieldedOutputs));
         Assert.Empty(context.SentMessages);

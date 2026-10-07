@@ -1,5 +1,6 @@
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
+using BackingTrack.Generation.Steps.FallbackGeneration;
 using BackingTrack.Generation.Steps.Types;
 using BackingTrack.Generation.Workflows.Executors;
 using BackingTrack.Generation.Workflows.Inputs;
@@ -51,7 +52,7 @@ public class PersistCandidateTrackExecutorTests
     }
 
     [Fact]
-    public async Task HandleAsync_WasFallbackTrue_YieldsGenerationSucceededCarryingWasFallback()
+    public async Task HandleAsync_FallbackReasonSet_YieldsGenerationSucceededCarryingFallbackReason()
     {
         string baseFolderPath = Path.Combine(Path.GetTempPath(), $"backing-track-tests-{Guid.NewGuid()}");
         try
@@ -60,10 +61,10 @@ public class PersistCandidateTrackExecutorTests
             CandidateTrack track = new(16, [], [], []);
             FakeWorkflowContext context = new();
 
-            await CreateExecutor(baseFolderPath).HandleAsync(new PersistCandidateTrackInput(track, job, 3, 1, WasFallback: true), context, CancellationToken.None);
+            await CreateExecutor(baseFolderPath).HandleAsync(new PersistCandidateTrackInput(track, job, 3, 1, FallbackReason.RepairError), context, CancellationToken.None);
 
             GenerationSucceeded succeeded = Assert.IsType<GenerationSucceeded>(Assert.Single(context.YieldedOutputs));
-            Assert.True(succeeded.WasFallback);
+            Assert.Equal(FallbackReason.RepairError, succeeded.FallbackReason);
         }
         finally
         {

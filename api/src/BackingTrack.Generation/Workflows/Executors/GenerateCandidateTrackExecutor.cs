@@ -1,4 +1,5 @@
 using BackingTrack.Generation.Jobs;
+using BackingTrack.Generation.Steps.FallbackGeneration;
 using BackingTrack.Generation.Steps.TrackGeneration;
 using BackingTrack.Generation.Steps.Types;
 using BackingTrack.Generation.Workflows.Inputs;
@@ -60,10 +61,10 @@ internal sealed class GenerateCandidateTrackExecutor(
             await context.YieldOutputAsync(new GenerationCancelled(), CancellationToken.None);
             return;
         }
-        catch (Exception ex)
+        catch (Exception ex) // Unexpected errors should not fail the job so we fall back to rule-based generation (ADR 0034's "never fail" guarantee)
         {
-            logger.LogError(ex, "Job {Id} failed during candidate track generation", jobId);
-            await context.YieldOutputAsync(new GenerationFailed(ex.Message), cancellationToken);
+            logger.LogError(ex, "Job {Id} failed during candidate track generation. Falling back to rule-based generation", jobId);
+            await context.SendMessageAsync(new FallbackGenerateCandidateTrackInput(generationJob, input.MatchedStyle, input.MatchedChords, input.MatchedScales, FallbackReason.GenerateError), cancellationToken);
             return;
         }
 
@@ -76,5 +77,6 @@ internal sealed class GenerateCandidateTrackExecutor(
         protocolBuilder
             .ConfigureRoutes(routes => routes.AddHandler<GenerateCandidateTrackInput>(HandleAsync))
             .SendsMessage<ValidateCandidateTrackInput>()
+            .SendsMessage<FallbackGenerateCandidateTrackInput>()
             .YieldsOutput<GenerationOutcome>();
 }

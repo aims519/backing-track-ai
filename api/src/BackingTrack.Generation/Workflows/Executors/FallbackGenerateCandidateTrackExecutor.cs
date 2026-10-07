@@ -34,7 +34,7 @@ public class FallbackGenerateCandidateTrackExecutor(IFallbackGenerationStep fall
                 input.MatchedScales,
                 1,
                 0,
-                IsFallbackTrack: true), cancellationToken);
+                input.FallbackReason), cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

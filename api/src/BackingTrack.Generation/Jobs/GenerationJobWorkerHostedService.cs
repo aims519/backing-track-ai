@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 
 using BackingTrack.Generation.Notifications;
+using BackingTrack.Generation.Steps.FallbackGeneration;
 using BackingTrack.Generation.Steps.Types;
 using BackingTrack.Generation.Workflows;
 using BackingTrack.Generation.Workflows.Outputs;
@@ -132,12 +133,12 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
                     // read but before this write lands, and gets silently discarded.
                     jobStore.UpdateJob(jobId, current => current with
                     {
-                        State = succeeded.WasFallback ? JobStates.CompletedViaFallback : JobStates.Complete,
+                        State = succeeded.FallbackReason.HasValue ? JobStates.CompletedViaFallback : JobStates.Complete,
                         EndTime = DateTimeOffset.UtcNow,
                         TrackId = succeeded.TrackId
                     });
 
-                    if (TryRecordJobOutcome(jobId) is { } completedJob)
+                    if (TryRecordJobOutcome(jobId, succeeded.FallbackReason) is { } completedJob)
                         await pushNotificationEmitter.SendApnsPushNotificationAsync(completedJob);
 
                     logger.LogDebug("Job {Id} completed track saved: {Track}", startedJob.Id, JsonSerializer.Serialize(succeeded.CandidateTrack, CandidateTrackJsonContext.Default.CandidateTrack));
@@ -190,12 +191,12 @@ public class GenerationJobWorkerHostedService(JobStore jobStore,
 
     // Records the outcome, then returns the job for the caller's push notification. Callers must record
     // first: a throwing push escapes to the catch-all, which ignores jobs already in a terminal state.
-    private GenerationJob? TryRecordJobOutcome(Guid jobId)
+    private GenerationJob? TryRecordJobOutcome(Guid jobId, FallbackReason? fallbackReason = null)
     {
         if (jobStore.TryGet(jobId) is not { } job)
             return null;
 
-        generationJobMetrics.RecordOutcome(job.State, job.Mode, job.EndTime - job.StartTime);
+        generationJobMetrics.RecordOutcome(job.State, job.Mode, job.EndTime - job.StartTime, fallbackReason);
         return job;
     }
 }

@@ -40,4 +40,12 @@ public sealed record EvalCase
     /// hoping a "hard" input genuinely exhausts the repair loop.
     /// </summary>
     public int ForceValidationFailures { get; init; }
+
+    /// <summary>
+    /// Harness-only test control, not part of <see cref="Input"/> — a real client never sends
+    /// this. When &gt; 0, <c>FaultInjectingGenerateStep</c> throws from this many generate calls
+    /// before letting the real generator run, simulating an LLM outage so a <c>Fallback</c> case
+    /// can prove the workflow falls back to the rule-based generator instead of failing the job.
+    /// </summary>
+    public int ForceGenerateExceptions { get; init; }
 }

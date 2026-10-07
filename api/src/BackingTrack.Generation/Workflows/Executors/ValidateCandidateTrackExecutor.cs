@@ -2,6 +2,7 @@ using System.Text.Json;
 
 using BackingTrack.Core.Config;
 using BackingTrack.Generation.Jobs;
+using BackingTrack.Generation.Steps.FallbackGeneration;
 using BackingTrack.Generation.Steps.TrackValidation;
 using BackingTrack.Generation.Steps.Types;
 using BackingTrack.Generation.Workflows.Inputs;
@@ -55,7 +56,7 @@ internal sealed class ValidateCandidateTrackExecutor(
                     input.GenerationJob,
                     input.ValidationAttempts,
                     input.CriticAttempts,
-                    WasFallback: true), cancellationToken);
+                    input.FallbackReason), cancellationToken);
                 return;
             }
 
@@ -78,7 +79,8 @@ internal sealed class ValidateCandidateTrackExecutor(
                 await context.SendMessageAsync(new FallbackGenerateCandidateTrackInput(input.GenerationJob,
                     input.MatchedStyle,
                     input.MatchedChords,
-                    input.MatchedScales), cancellationToken);
+                    input.MatchedScales,
+                    FallbackReason.ValidationExhausted), cancellationToken);
                 return;
             }
 
