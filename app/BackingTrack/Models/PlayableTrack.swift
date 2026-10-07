@@ -1,4 +1,9 @@
 import Foundation
+import os
+
+// File-level rather than a stored property: a `Logger` on this struct would break the synthesized
+// `Equatable` and change the memberwise init.
+private let log = Logger(subsystem: "com.andrewsavory.backingtrack", category: "playable_track")
 
 /// A downloaded track plus the musical context the download itself doesn't carry.
 ///
@@ -65,8 +70,11 @@ struct PlayableTrack: Sendable, Equatable {
         // loop length, but leave a breadcrumb.
         #if DEBUG
         let expected = Double(timeSignature.beatCount)
-        if abs(beatsPerBar - expected) > 0.01 {
-            print("⚠️ PlayableTrack \(trackID): \(track.lengthInBeats) beats over \(barCount) bars = \(beatsPerBar) beats/bar, expected \(expected)")
+        // Locals: the logger's autoclosure can't capture `self` inside a struct init.
+        let bars = barCount
+        let perBar = beatsPerBar
+        if abs(perBar - expected) > 0.01 {
+            log.warning("PlayableTrack \(trackID): \(track.lengthInBeats) beats over \(bars) bars = \(perBar) beats/bar, expected \(expected)")
         }
         #endif
     }

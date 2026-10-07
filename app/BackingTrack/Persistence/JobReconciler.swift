@@ -1,4 +1,8 @@
 import Foundation
+import os
+
+// File-level so the struct's memberwise init is unchanged.
+private let log = Logger(subsystem: "com.andrewsavory.backingtrack", category: "job_reconciler")
 
 /// Re-checks a stored history row against the server once and folds the result back into the store.
 ///
@@ -124,7 +128,7 @@ struct JobReconciler {
             try write()
         } catch {
             #if DEBUG
-            print("⚠️ job-history reconcile write failed (ignored): \(error)")
+            log.warning("job-history reconcile write failed (ignored): \(error)")
             #endif
         }
     }

@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 /// Backing state for `GenerationProgressView` — polls `GET /tracks/status/{jobId}` for an accepted
 /// generation job and drives the screen through polling → ready / failed / timed-out.
@@ -9,6 +10,7 @@ import Observation
 @MainActor
 @Observable
 final class GenerationProgressViewModel {
+    @ObservationIgnored private let log = Logger(subsystem: "com.andrewsavory.backingtrack", category: "generation_progress")
 
     /// Where the screen is in following the job. `.polling` is the only non-terminal case.
     enum Phase: Equatable {
@@ -193,7 +195,7 @@ final class GenerationProgressViewModel {
             try await apiClient.cancelJob(id: jobID)
         } catch {
             #if DEBUG
-            print("⚠️ cancel request failed (job already marked cancelled locally): \(error)")
+            log.warning("cancel request failed (job already marked cancelled locally): \(error)")
             #endif
         }
     }
@@ -273,7 +275,7 @@ final class GenerationProgressViewModel {
             try write()
         } catch {
             #if DEBUG
-            print("⚠️ job-history write failed (ignored): \(error)")
+            log.warning("job-history write failed (ignored): \(error)")
             #endif
         }
     }

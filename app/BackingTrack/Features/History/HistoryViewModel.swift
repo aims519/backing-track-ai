@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 /// Backing state for `HistoryView` — the non-`@Query` side of the screen: reconciling stale rows
 /// against the server, deleting, and running the "Watch progress" cover.
@@ -13,6 +14,7 @@ final class HistoryViewModel {
     @ObservationIgnored private let apiClient: any BackingTrackAPIClient
     @ObservationIgnored private let historyStore: any JobHistoryStore
     @ObservationIgnored private let reconciler: JobReconciler
+    @ObservationIgnored private let log = Logger(subsystem: "com.andrewsavory.backingtrack", category: "history")
 
     /// True while a reconcile pass is running — drives the list's refresh affordance and guards
     /// against `.task` and `.refreshable` overlapping.
@@ -108,7 +110,7 @@ final class HistoryViewModel {
             try historyStore.delete(jobID: jobID)
         } catch {
             #if DEBUG
-            print("⚠️ history delete failed (ignored): \(error)")
+            log.warning("history delete failed (ignored): \(error)")
             #endif
         }
     }
