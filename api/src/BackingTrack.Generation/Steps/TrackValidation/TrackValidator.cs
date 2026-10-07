@@ -16,12 +16,12 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
     {
         int beatsPerBar = generationJob.TimeSignatureBeatCount;
         int barCount = generationJob.Chords.Count;
-        IList<ValidationFailure> failures = [];
+        List<ValidationFailure> failures = [];
 
         if (Math.Abs(candidateTrack.LengthInBeats - (beatsPerBar * barCount)) > 0)
             failures.Add(new(Type: ValidationFailureType.InvalidTrackLengthInBeats, null, $"Unexpected {nameof(candidateTrack.LengthInBeats)}. Expected {(beatsPerBar * barCount)} beats but got {candidateTrack.LengthInBeats}"));
 
-        return (IReadOnlyList<ValidationFailure>)failures;
+        return failures;
     }
 
     public IReadOnlyList<ValidationFailure> ValidateDrumNoteChoices(IReadOnlyList<DrumNoteEvent> drumNoteEvents)
@@ -41,7 +41,7 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
     {
         // Loop through each chord with associated scales, convert bass MIDI notes to pitch classes
         // Check bass pitches are valid
-        IList<ValidationFailure> failures = [];
+        List<ValidationFailure> failures = [];
         int beatsPerBar = generationJob.TimeSignatureBeatCount;
         for (int bar = 1; bar <= matchedChords.Count; bar++)
         {
@@ -74,9 +74,9 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
 
         // Also Check no bass notes fall outside expected range
         foreach (BassNoteEvent bassNoteEvent in bassNoteEvents.Where(b => b.MidiNote is < Constants.BassMidiNoteMin or > Constants.BassMidiNoteMax))
-            failures.Add(new ValidationFailure(Type: ValidationFailureType.BassNoteOutOfExpectedRange, bassNoteEvent, $"Unexpected {nameof(BassNoteEvent)} MIDI note, {bassNoteEvent.MidiNote}. Expected range Expected {Constants.BassMidiNoteMin} <= Note <= {Constants.BassMidiNoteMax}"));
+            failures.Add(new ValidationFailure(Type: ValidationFailureType.BassNoteOutOfExpectedRange, bassNoteEvent, $"Unexpected {nameof(BassNoteEvent)} MIDI note, {bassNoteEvent.MidiNote}. Expected range {Constants.BassMidiNoteMin} <= Note <= {Constants.BassMidiNoteMax}"));
 
-        return (IReadOnlyList<ValidationFailure>)failures;
+        return failures;
     }
 
     public IReadOnlyList<ValidationFailure> ValidateChordVoicingNoteChoices(IReadOnlyList<ChordVoicingEvent> chordVoicingEvents, IReadOnlyList<MatchedChord> matchedChords,
@@ -84,7 +84,7 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
     {
         // Loop through each chord with associated scales, convert bass MIDI notes to pitch classes
         // Check bass pitches are valid
-        IList<ValidationFailure> failures = [];
+        List<ValidationFailure> failures = [];
         int beatsPerBar = generationJob.TimeSignatureBeatCount;
         for (int bar = 1; bar <= matchedChords.Count; bar++)
         {
@@ -127,12 +127,12 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
             }
         }
 
-        return (IReadOnlyList<ValidationFailure>)failures;
+        return failures;
     }
 
     public IReadOnlyList<ValidationFailure> ValidateMidiVelocities(CandidateTrack candidateTrack)
     {
-        IList<ValidationFailure> failures = [];
+        List<ValidationFailure> failures = [];
 
         foreach (DrumNoteEvent drumNoteEvent in candidateTrack.Drums.Where(n => n.Velocity is < Constants.MidiVelocityMin or > Constants.MidiVelocityMax))
             failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidMidiVelocity, drumNoteEvent, $"Unexpected {nameof(DrumNoteEvent)} velocity, {drumNoteEvent.Velocity}. Expected {Constants.MidiVelocityMin} <= Velocity <= {Constants.MidiVelocityMax}"));
@@ -143,12 +143,12 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
         foreach (ChordVoicingEvent chordVoicingEvent in candidateTrack.ChordVoicings.Where(n => n.Velocity is < Constants.MidiVelocityMin or > Constants.MidiVelocityMax))
             failures.Add(new ValidationFailure(Type: ValidationFailureType.InvalidMidiVelocity, chordVoicingEvent, $"Unexpected {nameof(ChordVoicingEvent)} velocity, {chordVoicingEvent.Velocity}. Expected {Constants.MidiVelocityMin} <= Velocity <= {Constants.MidiVelocityMax}"));
 
-        return (IReadOnlyList<ValidationFailure>)failures;
+        return failures;
     }
 
     public IReadOnlyList<ValidationFailure> ValidateNoPartEmpty(CandidateTrack candidateTrack)
     {
-        IList<ValidationFailure> failures = [];
+        List<ValidationFailure> failures = [];
 
         if (candidateTrack.Drums.Count == 0)
             failures.Add(new ValidationFailure(Type: ValidationFailureType.PartEmpty, null, $"{nameof(DrumNoteEvent)} list is empty"));
@@ -159,12 +159,12 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
         if (candidateTrack.ChordVoicings.Count == 0)
             failures.Add(new ValidationFailure(Type: ValidationFailureType.PartEmpty, null, $"{nameof(ChordVoicingEvent)} list is empty"));
 
-        return (IReadOnlyList<ValidationFailure>)failures;
+        return failures;
     }
 
     public IReadOnlyList<ValidationFailure> ValidateBeatPositionsAndDurations(CandidateTrack candidateTrack, GenerationJob generationJob)
     {
-        IList<ValidationFailure> failures = [];
+        List<ValidationFailure> failures = [];
 
         int beatsPerBar = generationJob.TimeSignatureBeatCount;
         int numberOfBars = generationJob.Chords.Count;
@@ -201,14 +201,14 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
         foreach (ChordVoicingEvent chordVoicingNoteEvent in candidateTrack.ChordVoicings.Where(n => (n.BeatPosition + n.DurationInBeats) > maxBeatPosition))
             failures.Add(new ValidationFailure(Type: ValidationFailureType.NoteBeyondTrackEnd, chordVoicingNoteEvent, $"Unexpected {nameof(ChordVoicingEvent)} {nameof(ChordVoicingEvent.BeatPosition)} + {nameof(ChordVoicingEvent.DurationInBeats)}, ({chordVoicingNoteEvent.BeatPosition} + {chordVoicingNoteEvent.DurationInBeats}). Expected < {maxBeatPosition}"));
 
-        return (IReadOnlyList<ValidationFailure>)failures;
+        return failures;
     }
 
     public IReadOnlyList<ValidationFailure> ValidateSilentBars(CandidateTrack candidateTrack, GenerationJob generationJob)
     {
         int barCount = generationJob.Chords.Count;
         int beatsPerBar = generationJob.TimeSignatureBeatCount;
-        IList<ValidationFailure> failures = [];
+        List<ValidationFailure> failures = [];
 
         for (int bar = 1; bar <= barCount; bar++)
         {
@@ -231,6 +231,6 @@ public class TrackValidator(ScaleMatcher scaleMatcher) : ITrackValidator
                 failures.Add(new ValidationFailure(Type: ValidationFailureType.SilentBar, null, $"Silent bar found. No {nameof(ChordVoicingEvent)}s found in bar {bar}. Expected notes with beat position >= {minBeatPosition} and < {maxBeatPosition}"));
         }
 
-        return (IReadOnlyList<ValidationFailure>)failures;
+        return failures;
     }
 }
