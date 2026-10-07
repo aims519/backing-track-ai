@@ -48,7 +48,7 @@ public class JobStore(ILogger<JobStore> logger)
             // cancellation from the run's output alone.
             if (TryGet(jobId) is not null)
             {
-                UpdateJob(jobId, MarkCancelled);
+                UpdateJob(jobId, job => (job.State is JobStates.Pending or JobStates.InProgress) ? MarkCancelled(job) : job);
             }
 
             logger.LogInformation("Cancellation requested for job {Id}", jobId);
