@@ -146,7 +146,8 @@ jobs:
       - name: Readiness check
         run: |
           for i in $(seq 1 10); do
-            if curl -sf "http://${{ vars.PI_TAILSCALE_IP }}:5080/healthz/ready"; then
+            # TEMPORARY: deliberately wrong path to prove the rollback. Revert this commit.
+            if curl -sf "http://${{ vars.PI_TAILSCALE_IP }}:5080/healthz/ready-ROLLBACK-TEST"; then
               exit 0
             fi
             sleep 2
