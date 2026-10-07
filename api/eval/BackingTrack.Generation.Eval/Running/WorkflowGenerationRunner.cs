@@ -30,6 +30,8 @@ public sealed class WorkflowGenerationRunner(IServiceScopeFactory scopeFactory) 
             evalCase.ForceCriticRejections;
         scope.ServiceProvider.GetRequiredService<ValidationFaultInjectionState>().FailuresToForce =
             evalCase.ForceValidationFailures;
+        scope.ServiceProvider.GetRequiredService<GenerateFaultInjectionState>().ExceptionsToForce =
+            evalCase.ForceGenerateExceptions;
 
         Workflow workflow = GenerationWorkflowBuilder.Build(scope.ServiceProvider);
 

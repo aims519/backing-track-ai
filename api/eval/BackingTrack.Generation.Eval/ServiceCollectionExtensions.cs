@@ -31,6 +31,15 @@ public static class ServiceCollectionExtensions
         services.AddLlmChatClient(configuration);
         services.AddKnowledgeRetrieval();
         services.AddTrackGeneration(configuration);
+
+        // Wrap the real generator behind a fault-injecting decorator so Fallback cases can simulate an
+        // LLM outage (the generate call throwing) — unlike the validator and critic, no input can
+        // provoke that from the real model. Only throws when a case sets
+        // EvalCase.ForceGenerateExceptions > 0; every other case still exercises the real generator.
+        services.AddTransient<GenerateStep>();
+        services.AddScoped<GenerateFaultInjectionState>();
+        services.Replace(ServiceDescriptor.Transient<IGenerateStep, FaultInjectingGenerateStep>());
+
         services.AddTrackValidation();
 
         // Wrap the real validator behind a fault-injecting decorator so Fallback cases can force

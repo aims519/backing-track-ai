@@ -13,3 +13,11 @@
 // FallbackGenerateCandidateTrackExecutor resets both for the fallback track's own validation —
 // so neither is a meaningful signal of how hard the pipeline tried; only the outcome is.
 {"id": "fallback-dense-changes", "category": "Fallback", "description": "Force the validator's repair budget to exhaust so the rule-based fallback generator has to produce the track", "rationale": "Guarantees the never-fail promise: when validation can't be satisfied within the attempt budget, the app must still get a track. Input content is unremarkable — the forced failures are what does the work.", "input": {"tempo": 96, "chords": ["Cmaj7", "Dmin7", "Emin7", "Fmaj7", "G7", "Amin7", "Bdim", "Cmaj7", "Bdim", "Amin7", "G7", "Fmaj7", "Emin7", "Dmin7", "Cmaj7"], "keyRoot": "C", "style": "jazz", "timeSignatureBeatCount": 5, "timeSignatureBeatUnit": 4}, "forceValidationFailures": 3, "expect": {"outcome": "SucceedsViaFallback", "maxAttempts": 1}}
+// Fallback (LLM outage): exercises GenerateCandidateTrackExecutor's generic catch → rule-based
+// fallback, so an OpenAI outage, timeout or malformed response doesn't fail the job (ADR 0034).
+// Deterministic via `forceGenerateExceptions` (eval-harness-only, like `forceValidationFailures`
+// above — see EvalCase.ForceGenerateExceptions / FaultInjectingGenerateStep): the generate call
+// throws that many times before the real generator is allowed to run. Unlike the validator and
+// critic, no input can provoke a transport fault from the real model, so this is the only way to
+// cover the branch. Forcing 1 throw sends the first generate call straight to the fallback.
+{"id": "fallback-llm-outage", "category": "Fallback", "description": "Make the generate call throw, as an LLM outage or timeout would, so the rule-based fallback generator has to produce the track", "rationale": "Answers 'what happens when OpenAI is down?': the job must still complete via the fallback rather than fail. Input content is unremarkable — the forced exception is what does the work.", "input": {"tempo": 120, "chords": ["Cmaj7", "Amin7", "Dmin7", "G7"], "keyRoot": "C", "style": "jazz", "timeSignatureBeatCount": 4, "timeSignatureBeatUnit": 4}, "forceGenerateExceptions": 1, "expect": {"outcome": "SucceedsViaFallback", "maxAttempts": 1}}
