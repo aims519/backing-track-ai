@@ -195,13 +195,13 @@ struct GenerateTrackView: View {
                 Button {
                     isShowingAddChord = true
                 } label: {
-                    Label("Add Chord", systemImage: "plus")
+                    Label("Add Chords", systemImage: "plus")
                 }
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             // The drop zone is the whole card body, not just the chips — so a chord dragged
-            // loosely toward the end (past the last chip, or down over "Add Chord") still lands
+            // loosely toward the end (past the last chip, or down over "Add Chords") still lands
             // at the end rather than needing to overlap the final chip.
             .contentShape(.rect)
             .coordinateSpace(.named(chordFlowCoordinateSpace))
