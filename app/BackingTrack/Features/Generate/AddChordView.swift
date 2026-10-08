@@ -8,13 +8,13 @@ struct AddChordView: View {
     // presenter needed (same pattern as `SettingsView`).
     @Environment(\.dismiss) private var dismiss
 
-    /// Invoked with the chosen root + quality when the user taps Add. The parent owns the chord
-    /// list, so this view just reports the selection and closes.
+    /// Invoked with the chosen root + quality each time the user taps Add Chord. The parent owns
+    /// the chord list, so this view just reports the selection; the sheet stays open until Done.
     let onAdd: (NoteName, ChordQuality) -> Void
 
     @State private var root: NoteName
     @State private var quality: ChordQuality = .major
-    // How many chords "Add Another" has appended this time round. The sheet covers the chip
+    // How many chords "Add Chord" has appended this time round. The sheet covers the chip
     // list, so without this there's no sign the tap did anything.
     @State private var addedCount = 0
 
@@ -68,23 +68,17 @@ struct AddChordView: View {
                 }
                 .labelsHidden()
 
-                addAnotherButton
+                addChordButton
 
                 Spacer(minLength: 0)
             }
-            .navigationTitle("Add Chord")
+            .navigationTitle("Add Chords")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    // Chords already added with "Add Another" stay added, so "Cancel" would be a
-                    // lie once there are some.
-                    Button(addedCount > 0 ? "Done" : "Cancel") { dismiss() }
-                }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
-                        onAdd(root, quality)
-                        dismiss()
-                    }
+                    // Each "Add Chord" tap commits immediately, so there's nothing pending to
+                    // cancel — a lone "Done" is honest whether or not anything was added.
+                    Button("Done") { dismiss() }
                 }
             }
         }
@@ -92,13 +86,13 @@ struct AddChordView: View {
 
     /// Appends the dialled-in chord and keeps the sheet open, for building a whole progression in
     /// one visit instead of reopening the sheet per chord.
-    private var addAnotherButton: some View {
+    private var addChordButton: some View {
         VStack(spacing: 6) {
             Button {
                 onAdd(root, quality)
                 addedCount += 1
             } label: {
-                Label("Add Another", systemImage: "plus.circle")
+                Label("Add Chord", systemImage: "plus.circle")
             }
             .buttonStyle(.bordered)
 
