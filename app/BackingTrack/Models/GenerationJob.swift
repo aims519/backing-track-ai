@@ -82,8 +82,8 @@ extension JobFeedback {
             JobFeedback(timestamp: start.addingTimeInterval(9.7), stage: "Checking Track", message: "Checking generated track for errors...", attempt: 1),
             JobFeedback(timestamp: start.addingTimeInterval(9.8), stage: "Checking Track", message: "Found 1 issue in the track", attempt: 1),
             JobFeedback(timestamp: start.addingTimeInterval(9.9), stage: "Applying Repairs", message: "Fixing 2 track issues...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(11.3), stage: "Checking Track", message: "Checking generated track for errors...", attempt: 2),
-            JobFeedback(timestamp: start.addingTimeInterval(11.4), stage: "Checking Track", message: "No problems found!", attempt: 2),
+            JobFeedback(timestamp: start.addingTimeInterval(11.3), stage: "Checking Track", message: "Checking generated track for errors...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(11.4), stage: "Checking Track", message: "No problems found!", attempt: 1),
             JobFeedback(timestamp: start.addingTimeInterval(11.5), stage: "Quality Control", message: "Ensuring musical quality of generated track...", attempt: 1),
             JobFeedback(timestamp: start.addingTimeInterval(11.7), stage: "Quality Control", message: "Track passed with score 91%", attempt: 1),
             JobFeedback(timestamp: start.addingTimeInterval(15.2), stage: "Saving", message: "Saving your track for playback...", attempt: 1)
@@ -105,8 +105,8 @@ extension JobFeedback {
             JobFeedback(timestamp: start.addingTimeInterval(9.9), stage: "Quality Control", message: "Ensuring musical quality of generated track...", attempt: 1),
             JobFeedback(timestamp: start.addingTimeInterval(10.1), stage: "Quality Control", message: "Track failed with score 41%\n- Voice leading failed\n- Rhythm and feel failed", attempt: 1),
             JobFeedback(timestamp: start.addingTimeInterval(13.6), stage: "Generating Track", message: "Generating 4-bar backing track in C Ionian...", attempt: 2),
-            JobFeedback(timestamp: start.addingTimeInterval(20.4), stage: "Checking Track", message: "Checking generated track for errors...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(20.5), stage: "Checking Track", message: "No problems found!", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(20.4), stage: "Checking Track", message: "Checking generated track for errors...", attempt: 2),
+            JobFeedback(timestamp: start.addingTimeInterval(20.5), stage: "Checking Track", message: "No problems found!", attempt: 2),
             JobFeedback(timestamp: start.addingTimeInterval(20.6), stage: "Quality Control", message: "Ensuring musical quality of generated track...", attempt: 2),
             JobFeedback(timestamp: start.addingTimeInterval(20.8), stage: "Quality Control", message: "Track passed with score 88%", attempt: 2),
             JobFeedback(timestamp: start.addingTimeInterval(24.3), stage: "Saving", message: "Saving your track for playback...", attempt: 1)

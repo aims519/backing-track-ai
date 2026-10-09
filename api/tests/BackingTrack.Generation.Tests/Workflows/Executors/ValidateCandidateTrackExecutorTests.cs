@@ -37,16 +37,17 @@ public class ValidateCandidateTrackExecutorTests
         IJobStatusEmitter statusEmitterMock = Substitute.For<IJobStatusEmitter>();
         FakeWorkflowContext context = new();
 
-        await CreateExecutor(validateStepMock, maxAttempts: 5, statusEmitterMock).HandleAsync(CreateInput(track, job, attempts: 2, criticAttempts: 1), context, CancellationToken.None);
+        await CreateExecutor(validateStepMock, maxAttempts: 5, statusEmitterMock).HandleAsync(CreateInput(track, job, attempts: 2, criticAttempts: 3), context, CancellationToken.None);
 
         CriticInput sent = Assert.IsType<CriticInput>(Assert.Single(context.SentMessages));
         Assert.Same(track, sent.CandidateTrack);
         Assert.Same(job, sent.GenerationJob);
         Assert.Equal(2, sent.ValidationAttempts);
-        Assert.Equal(1, sent.CriticAttempts);
+        Assert.Equal(3, sent.CriticAttempts);
         Assert.Empty(context.YieldedOutputs);
 
-        statusEmitterMock.Received(1).Emit(job.Id, "Checking Track", 2, "No problems found!");
+        // Reports the generation round, not the validate/repair loop count within it.
+        statusEmitterMock.Received(1).Emit(job.Id, "Checking Track", 3, "No problems found!");
     }
 
     [Fact]

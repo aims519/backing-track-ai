@@ -25,7 +25,7 @@ internal sealed class ValidateCandidateTrackExecutor(
     {
         try
         {
-            statusEmitter.Emit(input.GenerationJob.Id, "Checking Track", input.ValidationAttempts,
+            statusEmitter.Emit(input.GenerationJob.Id, "Checking Track", input.CriticAttempts,
                 "Checking generated track for errors...");
 
             TrackValidationResult trackValidationResult = validateStep.ValidateCandidateTrack(input.CandidateTrack,
@@ -34,7 +34,7 @@ internal sealed class ValidateCandidateTrackExecutor(
             string outcomeMessage = trackValidationResult.IsValid
                 ? "No problems found!"
                 : $"Found {trackValidationResult.Failures.Count} issue{(trackValidationResult.Failures.Count == 1 ? "" : "s")} in the track";
-            statusEmitter.Emit(input.GenerationJob.Id, "Checking Track", input.ValidationAttempts, outcomeMessage);
+            statusEmitter.Emit(input.GenerationJob.Id, "Checking Track", input.CriticAttempts, outcomeMessage);
 
             // Pass validation on a regular, non-fallback track
             if (trackValidationResult.IsValid && !input.IsFallbackTrack)
