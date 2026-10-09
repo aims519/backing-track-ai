@@ -22,7 +22,7 @@ internal sealed class GenerateCandidateTrackExecutor(
         Guid jobId = input.GenerationJob.Id;
 
         statusEmitter.Emit(jobId, "Generating Track", input.CriticAttempts,
-            $"Generating {generationJob.Chords.Count} -bar backing track in {generationJob.KeyRoot} {generationJob.KeyMode}...");
+            $"Generating {generationJob.Chords.Count}-bar backing track in {generationJob.KeyRoot} {generationJob.KeyMode}...");
 
         CandidateTrack candidateTrack;
         try
