@@ -26,7 +26,7 @@ internal sealed class ValidateCandidateTrackExecutor(
         try
         {
             statusEmitter.Emit(input.GenerationJob.Id, "Checking Track", input.ValidationAttempts,
-                $"Checking generated track for errors (attempt {input.ValidationAttempts})...");
+                "Checking generated track for errors...");
 
             TrackValidationResult trackValidationResult = validateStep.ValidateCandidateTrack(input.CandidateTrack,
                 input.GenerationJob, input.MatchedChords, input.MatchedScales);
