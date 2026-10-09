@@ -25,6 +25,20 @@ See [ADR 0027](../../docs/adr/0027-generation-eval-harness.md) for the design de
    persisted `trackId` — inspect it at `<TrackStorage:BaseFolderPath>/<trackId>.json`). With
    `--json`, writes the same as a machine-readable report for run-over-run comparison.
 
+The report also records, per case and for the run:
+
+- **Fallback:** the case's `Outcome` and `FallbackReason`, and a run-level `OrganicFallbackRate`.
+  Cases that set a `force*` fault-injection control (`FaultInjected: true`) fall back by design,
+  so they're excluded from that rate.
+- **Model and token usage:** `Usage` lists input/output tokens and call counts by step
+  (`generate`/`repair`/`critic`), model and service tier. It's read from the steps' own
+  `*.call.input_tokens`/`output_tokens` metrics (`LlmUsageRecorder`), so the model is the one that
+  was actually called, not the one the config names.
+- **Cost:** `CostUsd` per case and `TotalCostUsd` for the run, estimated from the `Pricing` section
+  of `appsettings.json` (standard price per million tokens by model, plus a multiplier per service
+  tier — Flex is `0.5`). A model with no price gives `null`, never `0`, so `TotalCostUsd` is `null`
+  until every model that was called is priced. Add a price for any model you run that isn't listed.
+
 Exit code: `0` pass, `1` one or more cases failed, `2` bad usage / no cases matched /
 malformed golden-set input.
 
@@ -71,6 +85,8 @@ dotnet run -- -v                            # show the pipeline's own logs
 ```
 
 Model / token settings are in `appsettings.json` (`OpenAi:*`, `TrackGenerationWorkflow:GenerationMaxAttempts`).
+To compare models, change `OpenAi:GenerationModel` / `RepairModel` / `CriticModel` (and add each
+model's prices under `Pricing:Models`), then write one `--json` report per configuration.
 
 ## Adding a case
 

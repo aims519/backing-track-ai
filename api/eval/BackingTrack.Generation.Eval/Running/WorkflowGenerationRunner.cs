@@ -15,11 +15,12 @@ namespace BackingTrack.Generation.Eval.Running;
 /// background worker builds and runs, minus the job store and queue. Running the actual pipeline
 /// (rather than a reimplementation of it) is the whole point: the harness measures what ships.
 /// </summary>
-public sealed class WorkflowGenerationRunner(IServiceScopeFactory scopeFactory) : IGenerationRunner
+public sealed class WorkflowGenerationRunner(IServiceScopeFactory scopeFactory, LlmUsageRecorder usageRecorder) : IGenerationRunner
 {
     public async Task<GenerationRunResult> RunAsync(EvalCase evalCase, CancellationToken cancellationToken)
     {
         GenerationJob job = ToJob(evalCase.Input);
+        usageRecorder.Reset();
         long startTimestamp = Stopwatch.GetTimestamp();
 
         // A fresh scope per case, mirroring GenerationJobWorkerHostedService — the workflow
@@ -45,13 +46,14 @@ public sealed class WorkflowGenerationRunner(IServiceScopeFactory scopeFactory) 
 
         TimeSpan elapsed = Stopwatch.GetElapsedTime(startTimestamp);
 
-        return outcome switch
+        GenerationRunResult result = outcome switch
         {
             GenerationSucceeded succeeded => new GenerationRunResult
             {
                 Outcome = succeeded.FallbackReason.HasValue ? ActualOutcome.SucceededViaFallback : ActualOutcome.Succeeded,
                 Attempts = succeeded.Attempts,
                 CriticAttempts = succeeded.CriticAttempts,
+                FallbackReason = succeeded.FallbackReason,
                 TrackId = succeeded.TrackId,
                 Track = succeeded.CandidateTrack,
                 Elapsed = elapsed
@@ -70,6 +72,8 @@ public sealed class WorkflowGenerationRunner(IServiceScopeFactory scopeFactory) 
                 Elapsed = elapsed
             }
         };
+
+        return result with { LlmUsage = usageRecorder.Snapshot() };
     }
 
     private static GenerationJob ToJob(GenerationInput input) => new()

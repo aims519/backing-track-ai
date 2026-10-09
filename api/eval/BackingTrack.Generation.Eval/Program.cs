@@ -105,7 +105,8 @@ try
 
     string trackStorageDirectory = Path.GetFullPath(
         host.Services.GetRequiredService<IOptions<TrackStorageSettings>>().Value.BaseFolderPath);
-    RunReport report = RunReport.From(outcomes, trackStorageDirectory);
+    CostEstimator costEstimator = new(host.Services.GetRequiredService<IOptions<EvalPricingSettings>>().Value);
+    RunReport report = RunReport.From(outcomes, trackStorageDirectory, costEstimator);
     ConsoleReporter.Print(report);
 
     if (harnessArgs.JsonReportPath is { } jsonPath)
