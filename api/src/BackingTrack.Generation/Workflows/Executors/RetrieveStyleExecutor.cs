@@ -16,7 +16,7 @@ internal sealed class RetrieveStyleExecutor(IRetrieveStep retrieveStep,
     internal async ValueTask HandleAsync(GenerationJob job, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
-        statusEmitter.Emit(job.Id, "Retrieval", 1, "Retrieving musical style information...");
+        statusEmitter.Emit(job.Id, "Gathering Additional Information", 1, "Fetching musical style details...");
 
         MatchedStyle? matchedStyle;
         try

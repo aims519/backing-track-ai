@@ -43,7 +43,7 @@ public class RepairCandidateTrackExecutorTests
         Assert.Equal(3, sent.ValidationAttempts);
         Assert.Empty(context.YieldedOutputs);
 
-        statusEmitterMock.Received(1).Emit(job.Id, "Repair", 2, Arg.Any<string>());
+        statusEmitterMock.Received(1).Emit(job.Id, "Applying Repairs", 2, Arg.Any<string>());
     }
 
     [Fact]

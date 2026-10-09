@@ -44,7 +44,7 @@ public class GenerateCandidateTrackExecutorTests
         Assert.Equal(1, sent.ValidationAttempts);
         Assert.Empty(context.YieldedOutputs);
 
-        statusEmitterMock.Received(1).Emit(job.Id, "Generation", 1, Arg.Any<string>());
+        statusEmitterMock.Received(1).Emit(job.Id, "Generating Track", 1, Arg.Any<string>());
     }
 
     [Fact]

@@ -207,7 +207,7 @@ final class GenerateTrackViewModel {
 
     // MARK: - Seeding from history
 
-    /// Loads a past job's parameters back into the form ("Use these settings" on the history
+    /// Loads a past job's parameters back into the form ("Reuse these settings" on the history
     /// screen). Chords are rebuilt from their stored API symbols; any that can't be — a spelling
     /// the picker can't produce — are dropped and named in `seedWarning`. `style` is split back
     /// into the picked style plus notes; if the stored string isn't one of the presets the whole

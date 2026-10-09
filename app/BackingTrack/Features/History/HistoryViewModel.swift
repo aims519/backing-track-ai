@@ -146,9 +146,9 @@ final class HistoryViewModel {
     private static func refreshErrorMessage(_ error: APIClientError) -> String {
         switch error {
         case .missingAPIKey:
-            "No API key set — add one in Settings to check for updates."
+            "Your API key is missing - add one in Settings to check for updates."
         case .unauthorized:
-            "The API key was rejected — check it in Settings."
+            "Your API key was rejected - make sure it's correct in Settings."
         default:
             "Couldn't reach the server. Pull down to try again."
         }

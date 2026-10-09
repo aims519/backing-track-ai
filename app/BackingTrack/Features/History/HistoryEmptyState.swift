@@ -5,7 +5,7 @@ struct HistoryEmptyState: View {
         ContentUnavailableView(
             "No tracks yet",
             systemImage: "clock.arrow.circlepath",
-            description: Text("Backing tracks you generate show up here.")
+            description: Text("Backing tracks you've generated appear here.")
         )
     }
 }

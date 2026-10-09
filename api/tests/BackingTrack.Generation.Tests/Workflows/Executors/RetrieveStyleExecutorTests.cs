@@ -34,7 +34,7 @@ public class RetrieveStyleExecutorTests
         Assert.Same(matchedStyle, sent.MatchedStyle);
         Assert.Empty(context.YieldedOutputs);
 
-        statusEmitterMock.Received(1).Emit(job.Id, "Retrieval", 1, Arg.Any<string>());
+        statusEmitterMock.Received(1).Emit(job.Id, "Gathering Additional Information", 1, Arg.Any<string>());
     }
 
     [Fact]

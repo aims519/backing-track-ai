@@ -38,7 +38,7 @@ struct SettingsView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 } footer: {
-                    Text("Stored in the Keychain, on this device only.")
+                    Text("Securely stored on this device only.")
                 }
             }
             .navigationTitle("API Key")

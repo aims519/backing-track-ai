@@ -45,7 +45,7 @@ public class FallbackGenerateCandidateTrackExecutorTests
         Assert.Equal(FallbackReason.CriticExhausted, sent.FallbackReason);
         Assert.Empty(context.YieldedOutputs);
 
-        statusEmitterMock.Received(1).Emit(job.Id, "Fallback Generation", 1, Arg.Any<string>());
+        statusEmitterMock.Received(1).Emit(job.Id, "Fallback Track Generation", 1, Arg.Any<string>());
     }
 
     [Fact]

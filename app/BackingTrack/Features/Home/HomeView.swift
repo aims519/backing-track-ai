@@ -6,7 +6,7 @@ import SwiftUI
 /// The `GenerateTrackViewModel` and `HistoryViewModel` live here rather than in the screens they
 /// back. A pushed `GenerateTrackView` is rebuilt every time it's popped and pushed again, so a
 /// model owned by it would lose a half-built progression on "back"; owned here, the form survives,
-/// and "Use these settings" can seed it before pushing the screen.
+/// and "Reuse these settings" can seed it before pushing the screen.
 struct HomeView: View {
     @State private var model: GenerateTrackViewModel
     @State private var historyVM: HistoryViewModel
@@ -104,7 +104,7 @@ struct HomeView: View {
         path = newPath
     }
 
-    /// "Use these settings" on a job's detail view: seed the form from that job and land on it,
+    /// "Reuse these settings" on a job's detail view: seed the form from that job and land on it,
     /// with the dashboard (not the old detail view) underneath.
     private func reRun(_ entry: JobHistoryEntry) {
         model.apply(entry: entry)

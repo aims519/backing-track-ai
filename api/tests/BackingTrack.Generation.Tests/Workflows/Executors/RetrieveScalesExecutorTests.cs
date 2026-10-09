@@ -40,7 +40,7 @@ public class RetrieveScalesExecutorTests
         Assert.Equal(matchedScales, sent.MatchedScales);
         Assert.Empty(context.YieldedOutputs);
 
-        statusEmitterMock.Received(1).Emit(job.Id, "Retrieval", 1, Arg.Any<string>());
+        statusEmitterMock.Received(1).Emit(job.Id, "Gathering Additional Information", 1, Arg.Any<string>());
     }
 
     [Fact]

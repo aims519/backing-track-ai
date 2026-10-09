@@ -47,7 +47,7 @@ public class CriticExecutorTests
         Assert.Equal(1, sent.CriticAttempts);
         Assert.Empty(context.YieldedOutputs);
 
-        statusEmitterMock.Received(1).Emit(job.Id, "Critic Review", 1, "Critic review passed with score 100%");
+        statusEmitterMock.Received(1).Emit(job.Id, "Quality Control", 1, "Track passed with score 100%");
     }
 
     [Fact]
@@ -70,6 +70,29 @@ public class CriticExecutorTests
         Assert.Same(track, sent.PreviousAttempt);
         Assert.Equal(2, sent.CriticAttempts);
         Assert.Empty(context.YieldedOutputs);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ReviewFails_EmitsScoreAndEachFailedDimensionOnceInFriendlyWords()
+    {
+        GenerationJob job = WorkflowTestFixtures.CreateGenerationJob();
+        CandidateTrack track = new(16, [], [], []);
+        CriticFinalReview review = new(false, 33d,
+        [
+            new CriticCitation(CriticDimension.ChordToneAdherence, "wrong note", "kb-1"),
+            new CriticCitation(CriticDimension.RhythmAndFeel, "stiff", "kb-2"),
+            new CriticCitation(CriticDimension.ChordToneAdherence, "another wrong note", "kb-3")
+        ]);
+        ICriticStep criticStepMock = Substitute.For<ICriticStep>();
+        criticStepMock.ReviewCandidateTrackAsync(track, job, Arg.Any<MatchedStyle>(), Arg.Any<IReadOnlyList<MatchedChord>>(),
+                Arg.Any<IReadOnlyList<MatchedScale>>(), Arg.Any<CancellationToken>())
+            .Returns(review);
+        IJobStatusEmitter statusEmitterMock = Substitute.For<IJobStatusEmitter>();
+
+        await CreateExecutor(criticStepMock, maxAttempts: 3, statusEmitterMock).HandleAsync(CreateInput(track, job, validationAttempts: 1, criticAttempts: 1), new FakeWorkflowContext(), CancellationToken.None);
+
+        statusEmitterMock.Received(1).Emit(job.Id, "Quality Control", 1,
+            "Track failed with score 33%\n- Chord tone note adherence failed\n- Rhythm and feel failed");
     }
 
     [Fact]

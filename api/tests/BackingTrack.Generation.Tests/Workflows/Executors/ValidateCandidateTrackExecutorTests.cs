@@ -46,7 +46,7 @@ public class ValidateCandidateTrackExecutorTests
         Assert.Equal(1, sent.CriticAttempts);
         Assert.Empty(context.YieldedOutputs);
 
-        statusEmitterMock.Received(1).Emit(job.Id, "Validation", 2, "Validation passed");
+        statusEmitterMock.Received(1).Emit(job.Id, "Checking Track", 2, "No problems found!");
     }
 
     [Fact]

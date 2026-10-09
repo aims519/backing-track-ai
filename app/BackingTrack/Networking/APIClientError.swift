@@ -39,7 +39,7 @@ enum APIClientError: Error, LocalizedError, Equatable {
         case .server(let status):
             "The server returned an error (HTTP \(status)). Try again shortly."
         case .transport:
-            "Couldn't reach the server. Check your connection and that the API is running."
+            "Couldn't reach the server. Check your internet connection."
         case .decoding:
             "The server's response couldn't be read."
         }
