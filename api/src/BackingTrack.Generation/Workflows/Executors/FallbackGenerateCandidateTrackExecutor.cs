@@ -19,7 +19,7 @@ public class FallbackGenerateCandidateTrackExecutor(IFallbackGenerationStep fall
         {
             GenerationJob job = input.GenerationJob;
 
-            statusEmitter.Emit(job.Id, "Fallback Generation", 1, "Generating a fallback candidate track...");
+            statusEmitter.Emit(job.Id, "Fallback Track Generation", 1, "AI generation failed. Generating a fallback track...");
 
             CandidateTrack track = await fallbackGenerationStep.GenerateFallbackCandidateTrackAsync(job.TimeSignatureBeatCount,
                 job.TimeSignatureBeatUnit,

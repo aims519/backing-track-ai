@@ -29,7 +29,7 @@ internal sealed class PersistCandidateTrackExecutor(
         Guid trackId = Guid.NewGuid();
         activity?.SetTag("track.id", trackId);
 
-        statusEmitter.Emit(input.GenerationJob.Id, "Persistence", 1, "Saving candidate track to persistent storage...");
+        statusEmitter.Emit(input.GenerationJob.Id, "Saving", 1, "Saving your track for playback...");
 
         try
         {

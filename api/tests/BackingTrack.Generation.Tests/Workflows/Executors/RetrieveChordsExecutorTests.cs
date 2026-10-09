@@ -36,7 +36,7 @@ public class RetrieveChordsExecutorTests
         Assert.Same(matchedChords, sent.MatchedChords);
         Assert.Empty(context.YieldedOutputs);
 
-        statusEmitterMock.Received(1).Emit(job.Id, "Retrieval", 1, Arg.Any<string>());
+        statusEmitterMock.Received(1).Emit(job.Id, "Gathering Additional Information", 1, Arg.Any<string>());
     }
 
     [Fact]

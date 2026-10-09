@@ -17,7 +17,7 @@ internal sealed class RetrieveScalesExecutor(
     internal async ValueTask HandleAsync(RetrieveScalesInput input, IWorkflowContext context,
         CancellationToken cancellationToken)
     {
-        statusEmitter.Emit(input.GenerationJob.Id, "Retrieval", 1, "Retrieving matching scales for track chords...");
+        statusEmitter.Emit(input.GenerationJob.Id, "Gathering Additional Information", 1, "Fetching matching scales for track chords...");
 
         IReadOnlyList<MatchedScale> matchingScaleEntries;
         try

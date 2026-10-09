@@ -6,7 +6,6 @@ struct HistoryDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isCheckingStatus: Bool = false
     @State private var isConfirmingDelete: Bool = false
-    @State private var isConfirmingReRun: Bool = false
     /// Set by the Delete button; the row is actually removed in `.onDisappear`, once this view is
     /// off the stack — deleting the `@Model` while it's still in the nav path traps.
     @State private var deletedJobID: UUID?
@@ -145,9 +144,9 @@ struct HistoryDetailView: View {
                 }
 
                 Button {
-                    isConfirmingReRun = true
+                    onReRun(entry)
                 } label: {
-                    Text("Use these settings").frame(maxWidth: .infinity)
+                    Text("Reuse these settings").frame(maxWidth: .infinity)
                 }
 
                 if let input = PlayerInput.from(entry: entry), input.isPrecise {
@@ -175,11 +174,7 @@ struct HistoryDetailView: View {
                 await vm.checkAgain(entry)
             }
         }
-        .confirmationDialog("Load these settings into the form?", isPresented: $isConfirmingReRun) {
-            Button("Load settings") { onReRun(entry) }
-            Button("Cancel", role: .cancel) {}
-        }
-        .confirmationDialog("Delete this generation?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
+        .confirmationDialog("Delete this track?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 deletedJobID = entry.jobID
                 dismiss()

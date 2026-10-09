@@ -55,6 +55,8 @@ private struct StageGroup {
     let items: [JobFeedback]
 
     var startTime: Date { items[0].timestamp }
+    /// Items in one run share an attempt; `max` just guards against a mid-run change.
+    var attempt: Int { items.map(\.attempt).max() ?? 1 }
     var endTime: Date { items[items.count - 1].timestamp }
 
     static func consecutive(from items: [JobFeedback]) -> [StageGroup] {
@@ -92,6 +94,14 @@ private struct TimelineRow: View {
                 HStack(alignment: .firstTextBaseline) {
                     Text(group.stage)
                         .font(.subheadline.weight(.semibold))
+                    // Only stages that actually retry (generate/validate/repair/critic) ever report
+                    // an attempt above 1 - hide the badge otherwise rather than always showing "#1".
+                    if group.attempt > 1 {
+                        Text("#\(group.attempt)")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .accessibilityLabel("Attempt \(group.attempt)")
+                    }
                     Spacer()
                     if let duration {
                         Text(durationLabel(duration))
@@ -110,20 +120,10 @@ private struct TimelineRow: View {
         .accessibilityElement(children: .combine)
     }
 
-    @ViewBuilder
     private func messageLine(_ item: JobFeedback) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text(item.message)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            // Only stages that actually retry (validate/repair/critic) ever report an attempt
-            // above 1 - hide the badge otherwise rather than always showing "#1".
-            if item.attempt > 1 {
-                Text("#\(item.attempt)")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-        }
+        Text(item.message)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
     }
 }
 

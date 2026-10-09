@@ -19,8 +19,8 @@ internal sealed class RepairCandidateTrackExecutor(
         CancellationToken cancellationToken)
     {
         int fixCount = input.ValidationResult.Failures.Count;
-        statusEmitter.Emit(input.GenerationJob.Id, "Repair", input.ValidationAttempts,
-            $"Applying repair patch with {fixCount} fix{(fixCount == 1 ? "" : "es")}...");
+        statusEmitter.Emit(input.GenerationJob.Id, "Applying Repairs", input.CriticAttempts,
+            $"Fixing {fixCount} track issue{(fixCount == 1 ? "" : "s")}...");
 
         CandidateTrack repairedTrack;
         try

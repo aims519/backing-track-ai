@@ -19,7 +19,7 @@ internal sealed class RetrieveChordsExecutor(
     {
         GenerationJob job = input.Job;
 
-        statusEmitter.Emit(job.Id, "Retrieval", 1, "Retrieving chord information...");
+        statusEmitter.Emit(job.Id, "Gathering Additional Information", 1, "Fetching chord details...");
 
         IReadOnlyList<MatchedChord> matchingChords;
         try

@@ -39,7 +39,7 @@ public class PersistCandidateTrackExecutorTests
             Assert.Equal(1, succeeded.CriticAttempts);
             Assert.Empty(context.SentMessages);
 
-            statusEmitterMock.Received(1).Emit(job.Id, "Persistence", 1, Arg.Any<string>());
+            statusEmitterMock.Received(1).Emit(job.Id, "Saving", 1, Arg.Any<string>());
 
             string expectedFilePath = Path.Combine(baseFolderPath, $"{succeeded.TrackId}.json");
             Assert.True(File.Exists(expectedFilePath));

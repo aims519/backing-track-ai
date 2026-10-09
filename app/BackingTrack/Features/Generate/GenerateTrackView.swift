@@ -111,7 +111,7 @@ struct GenerateTrackView: View {
     /// Primary action, pinned above the home indicator rather than scrolling away with the form.
     private var generateBar: some View {
         VStack(spacing: 8) {
-            // Shown after "Use these settings" seeded the form and something didn't round-trip.
+            // Shown after "Reuse these settings" seeded the form and something didn't round-trip.
             if let warning = model.seedWarning {
                 Text(warning)
                     .font(.footnote)
@@ -149,7 +149,7 @@ struct GenerateTrackView: View {
     private var keyCard: some View {
         SectionCard(
             "Key",
-            footer: Text("The tonal centre your chords and scales are validated against.")
+            footer: Text("Notes generated in your track will be chosen to fit your key and chords.")
         ) {
             VStack(spacing: 0) {
                 CardRow("Key Root") {
@@ -186,7 +186,7 @@ struct GenerateTrackView: View {
         SectionCard("Chords", footer: chordsFooter) {
             VStack(alignment: .leading, spacing: 12) {
                 if model.chords.isEmpty {
-                    Text("Add at least one chord to build the progression.")
+                    Text("Add at least one chord.")
                         .foregroundStyle(.secondary)
                 } else {
                     chordChipFlow
@@ -418,7 +418,7 @@ private struct GenerateTrackModals: ViewModifier {
                     withAnimation { model.clearForm() }
                 }
             } message: {
-                Text("This resets the chords, key, tempo, time signature and style.")
+                Text("This resets your chords, key, tempo, time signature and style selections.")
             }
             .alert(
                 submissionAlert?.title ?? "",

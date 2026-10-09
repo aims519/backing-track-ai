@@ -35,7 +35,7 @@ public class RepairCandidateTrackExecutorTests
         IJobStatusEmitter statusEmitterMock = Substitute.For<IJobStatusEmitter>();
         FakeWorkflowContext context = new();
 
-        await CreateExecutor(repairStepMock, statusEmitterMock).HandleAsync(CreateInput(originalTrack, job, [failure], attempts: 2), context, CancellationToken.None);
+        await CreateExecutor(repairStepMock, statusEmitterMock).HandleAsync(CreateInput(originalTrack, job, [failure], attempts: 2, criticAttempts: 3), context, CancellationToken.None);
 
         ValidateCandidateTrackInput sent = Assert.IsType<ValidateCandidateTrackInput>(Assert.Single(context.SentMessages));
         Assert.Same(repairedTrack, sent.CandidateTrack);
@@ -43,7 +43,7 @@ public class RepairCandidateTrackExecutorTests
         Assert.Equal(3, sent.ValidationAttempts);
         Assert.Empty(context.YieldedOutputs);
 
-        statusEmitterMock.Received(1).Emit(job.Id, "Repair", 2, Arg.Any<string>());
+        statusEmitterMock.Received(1).Emit(job.Id, "Applying Repairs", 3, Arg.Any<string>());
     }
 
     [Fact]

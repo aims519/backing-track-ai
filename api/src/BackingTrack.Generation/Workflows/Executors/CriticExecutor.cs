@@ -19,8 +19,8 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
     {
         try
         {
-            statusEmitter.Emit(input.GenerationJob.Id, "Critic Review", input.CriticAttempts,
-                "Final musical review of candidate track...");
+            statusEmitter.Emit(input.GenerationJob.Id, "Quality Control", input.CriticAttempts,
+                "Ensuring musical quality of generated track...");
 
             CriticFinalReview review = await criticStep.ReviewCandidateTrackAsync(input.CandidateTrack,
                 input.GenerationJob,
@@ -30,9 +30,9 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
                 cancellationToken);
 
             string outcomeMessage = review.Pass
-                ? $"Critic review passed with score {review.Score:0}%"
-                : $"Critic review failed with score {review.Score:0}% and {review.Citations.Count} citation{(review.Citations.Count == 1 ? "" : "s")}";
-            statusEmitter.Emit(input.GenerationJob.Id, "Critic Review", input.CriticAttempts, outcomeMessage);
+                ? $"Track passed with score {review.Score:0}%"
+                : FormatFailureMessage(review);
+            statusEmitter.Emit(input.GenerationJob.Id, "Quality Control", input.CriticAttempts, outcomeMessage);
 
             if (!review.Pass)
             {
@@ -95,4 +95,23 @@ internal sealed class CriticExecutor(ICriticStep criticStep, IOptions<CriticSett
             .SendsMessage<PersistCandidateTrackInput>()
             .SendsMessage<FallbackGenerateCandidateTrackInput>()
             .YieldsOutput<GenerationOutcome>();
+
+    // One line per failed dimension, listed once however many citations point at it: the app shows
+    // this message verbatim in the progress timeline.
+    private static string FormatFailureMessage(CriticFinalReview review)
+    {
+        IEnumerable<string> failedDimensions = review.Citations
+            .Select(c => c.Dimension)
+            .Distinct()
+            .Select(d => $"- {FriendlyName(d)} failed");
+        return string.Join('\n', [$"Track failed with score {review.Score:0}%", .. failedDimensions]);
+    }
+
+    private static string FriendlyName(CriticDimension dimension) => dimension switch
+    {
+        CriticDimension.ChordToneAdherence => "Chord tone note adherence",
+        CriticDimension.VoiceLeading => "Voice leading",
+        CriticDimension.RhythmAndFeel => "Rhythm and feel",
+        _ => dimension.ToString()
+    };
 }

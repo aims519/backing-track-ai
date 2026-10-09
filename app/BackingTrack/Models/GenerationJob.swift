@@ -75,18 +75,18 @@ extension JobFeedback {
     static let previewSequence: [JobFeedback] = {
         let start = Date(timeIntervalSinceNow: -38)
         return [
-            JobFeedback(timestamp: start, stage: "Retrieval", message: "Retrieving musical style information...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(1.1), stage: "Retrieval", message: "Retrieving chord information...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(1.8), stage: "Retrieval", message: "Retrieving matching scales for track chords...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(2.4), stage: "Generation", message: "Generating 4 bar candidate track in C Ionian...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(9.7), stage: "Validation", message: "Validating candidate track (attempt 1)...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(9.8), stage: "Validation", message: "Validation failed with 1 issue", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(9.9), stage: "Repair", message: "Applying repair patch with 2 fixes...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(11.3), stage: "Validation", message: "Validating candidate track (attempt 2)...", attempt: 2),
-            JobFeedback(timestamp: start.addingTimeInterval(11.4), stage: "Validation", message: "Validation passed", attempt: 2),
-            JobFeedback(timestamp: start.addingTimeInterval(11.5), stage: "Critic Review", message: "Final musical review of candidate track...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(11.7), stage: "Critic Review", message: "Critic review passed with score 91%", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(15.2), stage: "Persistence", message: "Saving candidate track to persistent storage...", attempt: 1)
+            JobFeedback(timestamp: start, stage: "Gathering Additional Information", message: "Fetching musical style details...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(1.1), stage: "Gathering Additional Information", message: "Fetching chord details...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(1.8), stage: "Gathering Additional Information", message: "Fetching matching scales for track chords...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(2.4), stage: "Generating Track", message: "Generating 4-bar backing track in C Ionian...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(9.7), stage: "Checking Track", message: "Checking generated track for errors...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(9.8), stage: "Checking Track", message: "Found 1 issue in the track", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(9.9), stage: "Applying Repairs", message: "Fixing 2 track issues...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(11.3), stage: "Checking Track", message: "Checking generated track for errors...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(11.4), stage: "Checking Track", message: "No problems found!", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(11.5), stage: "Quality Control", message: "Ensuring musical quality of generated track...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(11.7), stage: "Quality Control", message: "Track passed with score 91%", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(15.2), stage: "Saving", message: "Saving your track for playback...", attempt: 1)
         ]
     }()
 
@@ -96,20 +96,20 @@ extension JobFeedback {
     static let previewSequenceWithCriticLoop: [JobFeedback] = {
         let start = Date(timeIntervalSinceNow: -44)
         return [
-            JobFeedback(timestamp: start, stage: "Retrieval", message: "Retrieving musical style information...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(1.1), stage: "Retrieval", message: "Retrieving chord information...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(1.8), stage: "Retrieval", message: "Retrieving matching scales for track chords...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(2.4), stage: "Generation", message: "Generating 4 bar candidate track in C Ionian...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(9.7), stage: "Validation", message: "Validating candidate track (attempt 1)...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(9.8), stage: "Validation", message: "Validation passed", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(9.9), stage: "Critic Review", message: "Final musical review of candidate track...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(10.1), stage: "Critic Review", message: "Critic review failed with score 41% and 2 citations", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(13.6), stage: "Generation", message: "Generating 4 bar candidate track in C Ionian...", attempt: 2),
-            JobFeedback(timestamp: start.addingTimeInterval(20.4), stage: "Validation", message: "Validating candidate track (attempt 1)...", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(20.5), stage: "Validation", message: "Validation passed", attempt: 1),
-            JobFeedback(timestamp: start.addingTimeInterval(20.6), stage: "Critic Review", message: "Final musical review of candidate track...", attempt: 2),
-            JobFeedback(timestamp: start.addingTimeInterval(20.8), stage: "Critic Review", message: "Critic review passed with score 88%", attempt: 2),
-            JobFeedback(timestamp: start.addingTimeInterval(24.3), stage: "Persistence", message: "Saving candidate track to persistent storage...", attempt: 1)
+            JobFeedback(timestamp: start, stage: "Gathering Additional Information", message: "Fetching musical style details...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(1.1), stage: "Gathering Additional Information", message: "Fetching chord details...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(1.8), stage: "Gathering Additional Information", message: "Fetching matching scales for track chords...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(2.4), stage: "Generating Track", message: "Generating 4-bar backing track in C Ionian...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(9.7), stage: "Checking Track", message: "Checking generated track for errors...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(9.8), stage: "Checking Track", message: "No problems found!", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(9.9), stage: "Quality Control", message: "Ensuring musical quality of generated track...", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(10.1), stage: "Quality Control", message: "Track failed with score 41%\n- Voice leading failed\n- Rhythm and feel failed", attempt: 1),
+            JobFeedback(timestamp: start.addingTimeInterval(13.6), stage: "Generating Track", message: "Generating 4-bar backing track in C Ionian...", attempt: 2),
+            JobFeedback(timestamp: start.addingTimeInterval(20.4), stage: "Checking Track", message: "Checking generated track for errors...", attempt: 2),
+            JobFeedback(timestamp: start.addingTimeInterval(20.5), stage: "Checking Track", message: "No problems found!", attempt: 2),
+            JobFeedback(timestamp: start.addingTimeInterval(20.6), stage: "Quality Control", message: "Ensuring musical quality of generated track...", attempt: 2),
+            JobFeedback(timestamp: start.addingTimeInterval(20.8), stage: "Quality Control", message: "Track passed with score 88%", attempt: 2),
+            JobFeedback(timestamp: start.addingTimeInterval(24.3), stage: "Saving", message: "Saving your track for playback...", attempt: 1)
         ]
     }()
 
@@ -124,12 +124,12 @@ extension JobFeedback {
         // millisecond-truncating date decoder actually produces for messages this close together.
         let collision = Date(timeIntervalSinceNow: -10)
         return [
-            JobFeedback(timestamp: collision.addingTimeInterval(-9.7), stage: "Generation", message: "Generating 4 bar candidate track in A Aeolian...", attempt: 1),
-            JobFeedback(timestamp: collision, stage: "Validation", message: "Validating candidate track (attempt 1)...", attempt: 1),
-            JobFeedback(timestamp: collision, stage: "Validation", message: "Validation passed", attempt: 1),
-            JobFeedback(timestamp: collision, stage: "Critic Review", message: "Final musical review of candidate track...", attempt: 1),
-            JobFeedback(timestamp: collision.addingTimeInterval(7.3), stage: "Critic Review", message: "Critic review passed with score 100%", attempt: 1),
-            JobFeedback(timestamp: collision.addingTimeInterval(7.5), stage: "Persistence", message: "Saving candidate track to persistent storage...", attempt: 1)
+            JobFeedback(timestamp: collision.addingTimeInterval(-9.7), stage: "Generating Track", message: "Generating 4-bar backing track in A Aeolian...", attempt: 1),
+            JobFeedback(timestamp: collision, stage: "Checking Track", message: "Checking generated track for errors...", attempt: 1),
+            JobFeedback(timestamp: collision, stage: "Checking Track", message: "No problems found!", attempt: 1),
+            JobFeedback(timestamp: collision, stage: "Quality Control", message: "Ensuring musical quality of generated track...", attempt: 1),
+            JobFeedback(timestamp: collision.addingTimeInterval(7.3), stage: "Quality Control", message: "Track passed with score 100%", attempt: 1),
+            JobFeedback(timestamp: collision.addingTimeInterval(7.5), stage: "Saving", message: "Saving your track for playback...", attempt: 1)
         ]
     }()
 }
