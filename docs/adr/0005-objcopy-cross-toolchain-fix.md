@@ -1,6 +1,6 @@
 # 0005. Point Native AOT's objcopy at the arm64 cross-toolchain explicitly
 
-Status: Accepted
+Status: Accepted. No longer needed since the publish job builds natively on arm64 ([0050](0050-github-hosted-runners-on-a-public-repo.md))
 
 ## Context
 
