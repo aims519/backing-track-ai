@@ -59,21 +59,23 @@ internal static class CriticFixtures
         FlawedMetronomicRhythm()
     ];
 
-    // Root-position triads, each one voice-led from the last by keeping common tones and moving
-    // the rest by step — textbook-clean, so this should pass every dimension.
+    // Triads (root position, then inversions chosen to keep common tones), each voice-led from the
+    // last by holding shared tones and moving the rest by step — textbook-clean, so this should
+    // pass every dimension. An earlier version dropped the whole C voicing a third into Am (G4 to
+    // A3, a seventh) and moved F to G as a parallel block; both critic models cited those moves.
     private static CriticFixture GoodBasicRockComping()
     {
         IReadOnlyList<IReadOnlyList<int>> voicings =
         [
             [60, 64, 67], // C:  C4 E4 G4
-            [57, 60, 64], // Am: A3 C4 E4 (keeps C, E)
-            [57, 60, 65], // F:  A3 C4 F4 (keeps A, C)
-            [59, 62, 67]  // G:  B3 D4 G4 (keeps G from bar 1, step-wise from F voicing)
+            [60, 64, 69], // Am: C4 E4 A4 (keeps C, E; G steps up to A)
+            [60, 65, 69], // F:  C4 F4 A4 (keeps C, A; E steps up to F)
+            [59, 62, 67]  // G:  B3 D4 G4 (F and G share no tones; voices move -1, -3, -2, not as a block)
         ];
 
         return new CriticFixture(
             Id: "good-basic-rock-comping",
-            Description: "Root-position triads, smooth common-tone voice leading, straight rock groove.",
+            Description: "Triads voice-led by holding common tones and moving the rest by step, straight rock groove.",
             CandidateTrack: new CandidateTrack(LengthInBeats, StraightRockDrums(), WalkingBass(BassRoots), ChordVoicingsPerBar(voicings)),
             GenerationJob: Job(["C", "Am", "F", "G"], keyRoot: "C", style: "rock"),
             MatchedStyle: RockStyle,
@@ -113,19 +115,21 @@ internal static class CriticFixtures
     // pool the modes share) on top of a correct min7 arpeggio. Before the ChordToneAdherence
     // instructions mentioned MatchedScales, the critic cited these as tones "outside" the chord
     // even though they're allowed by the scale matched to that exact chord.
-    // Bar 4's voicing is NOT a repeat of bar 1 (an earlier version reused it verbatim) - that
-    // shape sits a block fourth above bar 3's, with zero common tones, which is a real
-    // VoiceLeading defect this fixture never meant to introduce (it should isolate
-    // ChordToneAdherence only). Bar 4 instead keeps the three tones bar 3 and Amin7+9 share
-    // (E, G, B) static and moves the remaining two voices by a step and a third.
+    // The voicings are voice-led under the critic's VoiceLeading rubric (hold common tones, move
+    // the rest by step), because this fixture should isolate ChordToneAdherence only. Earlier
+    // versions had real VoiceLeading defects that both critic models rightly cited: bar 4 reused
+    // bar 1 verbatim, a block fourth above bar 3 with zero common tones, and bars 1->2 moved four
+    // voices down a fifth in parallel while bar 2->3 moved four voices up a step in parallel.
+    // Now A3, C4, B4 stay put into bar 2 (E and G step down to D and F), D4, F4, B4 stay put into
+    // bar 3, and bar 4 holds E3, B3 and moves the other three by a step.
     private static CriticFixture GoodModalColorTonesFromMatchedScale()
     {
         IReadOnlyList<IReadOnlyList<int>> voicings =
         [
-            [57, 60, 64, 67, 71], // Amin7 + 9th (B):        A3 C4 E4 G4 B4
-            [50, 53, 57, 60, 71], // Dmin7 + Dorian 6th (B): D3 F3 A3 C4 B4
-            [52, 55, 59, 62, 65], // Emin7 + Phrygian b9 (F): E3 G3 B3 D4 F4
-            [52, 55, 59, 60, 69]  // Amin7 + 9th (B), voice-led from bar 3: E3 G3 B3 (common) C4 A4
+            [57, 60, 64, 67, 71], // Amin7 + 9th (B):         A3 C4 E4 G4 B4
+            [57, 60, 62, 65, 71], // Dmin7 + Dorian 6th (B):  A3 C4 D4 F4 B4 (keeps A, C, B; E->D, G->F)
+            [52, 59, 62, 65, 71], // Emin7 + Phrygian b9 (F): E3 B3 D4 F4 B4 (keeps D, F, B; no 3rd, the bass has root and fifth)
+            [52, 59, 60, 67, 69]  // Amin7 + 9th (B):         E3 B3 C4 G4 A4 (keeps E, B; D->C, F->G, B->A)
         ];
 
         return new CriticFixture(
