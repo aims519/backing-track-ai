@@ -22,7 +22,7 @@ changed. Two things did:
 ## Decision
 
 Run `tailscale serve` on the Pi to publish the API over HTTPS at its MagicDNS name
-(`https://andy-pi.taild8cb93.ts.net`), proxying to the API's existing plain-HTTP listener. The
+(`https://<pi>.<tailnet>.ts.net`), proxying to the API's existing plain-HTTP listener. The
 client treats it as an ordinary HTTPS URL: the `NSAppTransportSecurity` dictionary is removed from
 `Info.plist`, so ATS is back at its default, and the Release base URL (`Config/Local.xcconfig`,
 and the `IOS_API_BASE_URL` repository variable for CI) is the `https://` address.

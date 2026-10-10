@@ -7,8 +7,8 @@ Status: Accepted
 The GitHub Actions deploy workflow (`.github/workflows/deploy.yml`) needs to reach the Pi for
 `ssh-keyscan`, SSH/SCP, and the post-deploy health check, once the ephemeral runner has joined
 the tailnet via `tailscale/github-action`. Tailscale offers two ways to address a device:
-MagicDNS hostnames (`andy-pi` / `andy-pi.<tailnet>.ts.net`) or the device's stable numeric
-tailnet IP (`100.83.97.12`).
+MagicDNS hostnames (`<pi>` / `<pi>.<tailnet>.ts.net`) or the device's stable numeric
+tailnet IP (`100.x.y.z`).
 
 ## Decision
 
