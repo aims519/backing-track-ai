@@ -62,19 +62,49 @@ In the event the maximum number of validation or critic attempts is exceeded, or
 
 ## Headline decisions
 
-<!-- TODO (you): one or two sentences each on why it matters. Pick ~6 to lead with; candidates below.
-     Full list: docs/adr/README.md -->
+### Resilience
 
-| Theme | Decision |
-| --- | --- |
-| Reliability | [0017](docs/adr/0017-patch-based-track-repair.md) Patch-based track repair over full regeneration; [0028](docs/adr/0028-silent-bar-repair-via-whole-part-replacement.md) silent-bar repair |
-| Quality | [0029](docs/adr/0029-critic-tool-call-over-per-criterion-structured-output.md) Tool-forced single verdict for the Theory Critic |
-| Safety net | [0034](docs/adr/0034-rule-based-fallback-generator-bypasses-critic.md) Rule-based fallback bypasses the critic loop |
-| Cost | [0036](docs/adr/0036-per-step-model-tier-split-for-cost.md) Per-step model and Flex-tier split |
-| Measurement | [0027](docs/adr/0027-generation-eval-harness.md) End-to-end eval harness; results in [`docs/eval-results.md`](docs/eval-results.md) |
-| Invocation model | [0013](docs/adr/0013-async-job-based-generation-invocation.md) Async job-based generation; [0037](docs/adr/0037-streaming-run-for-cancellable-generation-jobs.md) cancellable streaming runs |
-| Platform / deploy | [0008](docs/adr/0008-agent-framework-aot-compatibility.md) Native AOT + Agent Framework; [0040](docs/adr/0040-testflight-on-every-main-push-with-xcodebuild-cloud-signing.md) TestFlight on every main push; [0047](docs/adr/0047-automatic-rollback-and-release-pruning-on-the-pi.md) automatic rollback on the Pi |
-| Style lookup | [0015](docs/adr/0015-in-memory-vector-retrieval-for-rag-kb.md) Small in-memory vector store for matching the style, rather than a vector DB (chords and scales use rule-based lookups) |
+Due to the non-deterministic nature of the LLM calls used to generate the track, several mechanisms had to be put in place to help guarantee the user will receive a usable track. Different layers are used for different purposes, e.g. a deterministic validator to catch objectively wrong notes (or the absence of any notes), and a more subjective critic to measure musical quality.
+
+When the validator finds problems, the LLM isn't asked to regenerate the whole track, but to produce a patch of field-level corrections. The first implementation regenerated the entire track on every retry, which ran into output token limits on larger tracks and meant that the cost of a repair scaled with the size of the track instead of the size of the problem.
+
+Only a track that passes validation reaches the critic, which judges what the validator can't: musical quality. Because the validator already guarantees that the notes are legal, the critic assumes that and doesn't re-check it. When it was asked to, it kept rejecting valid scale tones as being outside the chord.
+
+If all else fails, a rule-based generator builds a deterministic track instead. It deliberately skips the critic: a critic rejection sends a track back to the LLM, so routing the fallback track through it could loop straight back into the pipeline that had just failed. The job finishes in its own `CompletedViaFallback` state, so the fallback rate can be reported separately from genuine LLM successes.
+
+*Related ADRs: [0017](docs/adr/0017-patch-based-track-repair.md) patch-based repair; [0028](docs/adr/0028-silent-bar-repair-via-whole-part-replacement.md) silent-bar repair; [0029](docs/adr/0029-critic-tool-call-over-per-criterion-structured-output.md) the critic's single verdict; [0033](docs/adr/0033-critic-assumes-pitch-legality-instead-of-rechecking-it.md) validator and critic split of responsibilities; [0034](docs/adr/0034-rule-based-fallback-generator-bypasses-critic.md) rule-based fallback.*
+
+### Eval
+
+Eval applications - written as .NET console apps - were created to enable informed decisions around model selection and prompt tuning. The eval harness applications run the real in-process workflow against a golden set of test cases. During these test runs, the generation eval records the run duration, estimated cost, number of validation attempts, number of critic review loops, etc. The written results and the decisions made as a result are in [docs/eval-results.md](docs/eval-results.md), and the raw run reports are in the [docs/eval-results/](docs/eval-results/) directory.
+
+The generation eval judges each case with deterministic checks only: the expected outcome (success, fallback or failure) and bounds on the number of attempts. It deliberately doesn't try to judge whether a track sounds good. Some cases use fault injection to force the failure paths, such as a critic rejection or an LLM outage, so those paths are exercised on purpose and not left to chance.
+
+The critic has its own eval because it needs a different kind of test. It reviews hand-built fixture tracks with a known-correct verdict, each repeated ten times to measure consistency. In the first run the two models tested failed the "good" fixtures in 23% to 37% of runs, always citing voice leading. Reading the citations showed that two of those fixtures really did contain parallel-motion defects, so the fixtures were revoiced and the eval rerun, after which all three models in the rerun matched the expected verdict in every run.
+
+The evals are run by hand against the live APIs, because each run costs tokens, so they aren't part of CI. Recording and replaying LLM responses would need to come first.
+
+*Related ADRs: [0027](docs/adr/0027-generation-eval-harness.md) generation eval harness; [0030](docs/adr/0030-critic-eval-as-a-separate-code-based-project.md) separate critic eval; [0036](docs/adr/0036-per-step-model-tier-split-for-cost.md) per-step model and tier split.*
+
+### Telemetry
+
+The project was built to capture realistic telemetry using the industry-standard OpenTelemetry format. The telemetry data was required to be able to measure performance in a quantitative way.
+
+*Related ADRs: [0010](docs/adr/0010-opentelemetry-tracing-and-metrics.md) OpenTelemetry tracing and metrics; [0011](docs/adr/0011-hosted-otel-backend-static-collector-config.md) hosted Grafana Cloud backend and static collector config; [0044](docs/adr/0044-metric-and-span-naming-and-tag-conventions.md) metric and span naming conventions.*
+
+### In-memory store and queue
+
+For a personal project with only one user, having a persistent database like PostgreSQL wasn't a priority. Instead generation job states are stored for the lifetime of the .NET API and are removed through a scheduled cleanup task, or lost on restart. It is possible for mid-flight jobs to be lost, as well as rate-limiting counters, but given the current use case these are acceptable trade-offs. The generated tracks themselves are not held in memory: they are written to the Pi's disk and survive restarts, and the iOS app keeps its own copy of each track once it has been downloaded, so losing a job's state doesn't lose the track. The main cost is that a finished job which the app hasn't picked up before it is cleaned up will show as lost, even though its track file is still on disk. A possible future improvement is to add a PostgreSQL job store implementation that can be swapped in if required.
+
+*Related ADRs: [0013](docs/adr/0013-async-job-based-generation-invocation.md) async job-based generation; [0043](docs/adr/0043-ttl-eviction-of-finished-jobs-from-the-in-memory-store.md) TTL eviction of finished jobs; [0014](docs/adr/0014-local-filesystem-track-storage.md) track storage on the local filesystem; [0012](docs/adr/0012-builtin-rate-limiting-per-process-hashed-key.md) in-process rate limiting; [0015](docs/adr/0015-in-memory-vector-retrieval-for-rag-kb.md) in-memory vector store.*
+
+### Tech stack
+
+The backend server was built in C# with ASP.NET Core, as that is a language and framework the author was already familiar with. The API was built to support native AOT compilation partly because it would reduce the application's footprint and improve startup time running on a Raspberry Pi. However these benefits aren't really necessary and another reason for the decision was that it was a novel approach that was of interest to the author, and there was a reasonable expectation that it wouldn't put up any significant blockers. One knock-on effect of using AOT was that minimal APIs were used instead of MVC controllers.
+
+The iOS application was written in Swift as a learning exercise, which is the main reason it was chosen over say, React Native, which could have been used to support Android clients as well.
+
+*Related ADRs: [0008](docs/adr/0008-agent-framework-aot-compatibility.md) staying on Native AOT; [0001](docs/adr/0001-minimal-apis-over-controllers.md) minimal APIs; [0007](docs/adr/0007-source-generated-json-for-aot-endpoints.md) source-generated JSON; [0009](docs/adr/0009-builtin-logging-over-serilog.md) built-in logging; [0018](docs/adr/0018-xunit-v3-and-nsubstitute.md) xUnit v3 and NSubstitute; [0019](docs/adr/0019-xcodegen-over-committed-xcodeproj.md) XcodeGen. The native iOS choice is covered in the [scope doc](docs/backing-track-generator-scope.md#platform).*
 
 ## Repository layout
 
