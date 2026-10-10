@@ -35,25 +35,30 @@ The client is a native iOS application built using SwiftUI. The app includes an 
 
 ![System architecture: the iOS app talks to the ASP.NET Core API on a Raspberry Pi over Tailscale; the API calls OpenAI, Voyage AI, APNs and Grafana Cloud; GitHub Actions deploys to the Pi and uploads builds to TestFlight](docs/images/system-architecture.svg)
 
+The iOS app talks to the ASP.NET Core API on a Raspberry Pi over a private Tailscale network, to avoid exposing it to the public internet. GitHub Actions deploys the API to the Pi and uploads iOS builds to TestFlight. The Pi also holds a set of pre-computed vector files, loaded into memory for use in style context retrieval, as well as the output JSON files for each track.
+
+Jobs themselves are held in memory and processed one at a time in a queue. The in-memory storage means that jobs mid-run can be lost on restart of the API, but this is acceptable for the time being. A future enhancement could be to store jobs in a database such as PostgreSQL instead. The following external services are also used:
+
+- APNs: push notifications are sent on completion of backing tracks
+- OpenAI: LLM calls are used in the Generate, Repair, and Critic steps discussed further below
+- Voyage AI: used for text vector embedding in the context retrieval stage. Currently only the style information is retrieved using embedding
+- Grafana Cloud: telemetry on track generation jobs (duration, tokens used, validation/critic attempt counts, status etc.) is pushed to Grafana via an OpenTelemetry (OTel) Collector running on the Pi
+
 ### Generation workflow
 
 ![Generation workflow: a queued job retrieves context (style by vector search, chords and scales by rule-based lookup), then loops through Generate, Validate, Repair and Critic; any LLM error or exhausted attempt falls back to a rule-based generator, which is re-validated once before the track is persisted](docs/images/generation-workflow.svg)
 
-<!-- TODO (you): a short paragraph under each diagram. System: what runs where and what each external service is for.
-     Workflow: the retry/repair/fallback story in a few sentences.
-     System diagram checked against ADR titles: 0011 (OTel Collector -> Grafana Cloud), 0014 (track files on local
-     filesystem), 0013 (in-memory job queue/store), 0039 (APNs), 0040 (TestFlight), 0042 (HTTPS via tailscale serve),
-     0002 (CI deploys over Tailscale). Not shown: automatic rollback on deploy (ADR 0047), rate limiting, API key auth.
-     Workflow diagram checked against GenerationWorkflowBuilder.cs and ADR 0034:
-     - Critic rejection goes back to Generate (not Repair); fallback is reached from Generate/Repair errors and from
-       Validate/Critic attempt exhaustion; its output is re-validated once and persisted, never sent to the critic
-     - Retrieval is only partly vector-based (RetrieveStep.cs): the style description is embedded with Voyage AI at run
-       time (voyage-4-large) and matched top-1 against the in-memory vector store, whose vectors are precomputed
-       offline (Embedder tool, *.vector.jsonl). Chords are parsed (ChordSymbolParser) and looked up by quality id;
-       scales come from a deterministic ScaleMatcher over the key, mode and chords. No embeddings for those two.
-     - Retrieve is drawn as one node but is three sequential executors (style -> chords -> scales)
-     - Providers and settings confirmed in appsettings.Production.json: OpenAI (generate gpt-6.1-sol; repair and critic
-       gpt-5.6-luna; Flex tier), Voyage AI (voyage-4-large), GenerationMaxAttempts 5, Critic MaxAttempts 3 / pass 100 -->
+#### Normal path
+
+Once a job has been accepted and reaches the front of the queue, the first stage in the workflow is to retrieve additional context for the generation agent to use. Style info is looked up from the vector knowledge base using Voyage AI's embedding model. Other context like chord and scale details are retrieved using deterministic rules. The Generate agent takes the user's request and retrieved context and builds a prompt to send to an LLM, the result of which is the JSON representation of a candidate track.
+
+The candidate is run through a deterministic validation stage, which catches issues such as a track that doesn't have the required number of bars; notes outside the expected instrument's range; notes that don't fit the chosen chords/scales; empty bars etc. A music critic agent takes the candidate track, the user's original request and the retrieved context, and evaluates whether it passes a set of defined quality criteria. All criteria must be passed before the final track is persisted to the Pi's local storage with a unique ID, to be downloaded later by the iOS app.
+
+#### Resilience strategies
+
+Should the deterministic validator find any issues, they are passed to a repair step. The repair step calls an LLM to create a patch, which is then applied to the candidate track to fix the problems identified. This loop continues until the validator finds no more issues, up to a [configurable](api/README.md#configuration) maximum number of attempts. The critic step, should any of its criteria not pass, sends any citations back to the generate step so that a new track can be generated armed with what went wrong in the previous run. This critic/generate loop can also repeat a configurable number of times.
+
+In the event the maximum number of validation or critic attempts is exceeded, or if an LLM call should fail, a fallback process is triggered. The fallback stage uses a rule-based system to generate a track deterministically. This is intended to ensure the user always gets something usable out of a run. The fallback-generated track still goes through the deterministic validation as a sense-check, but it is not evaluated by the critic.
 
 ## Headline decisions
 
