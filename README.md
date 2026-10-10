@@ -2,9 +2,11 @@
 
 A Raspberry Pi-hosted .NET application that uses an agentic AI workflow to generate musical backing tracks for guitar practice, with validation, repair and a rule-based fallback guarding against bad output. The iOS client app allows for customisable tracks to be generated for a chosen chord progression, tempo, and style. The project was developed largely as an exercise in AI-centric engineering, but also to be practically useful to the author.
 
-For the full project scope, please see the [docs/backing-track-generator-scope.md](docs/backing-track-generator-scope.md)
+For the full project scope, please see the [docs/backing-track-generator-scope.md](docs/backing-track-generator-scope.md).
 
 ## Overview
+
+The project generates tracks in one of two modes. **Precise mode** (built) produces chord-locked, note-by-note tracks that the app plays on-device with sampled instruments. **Vibe mode** (planned) would instead return a rendered audio file from a third-party service, trading chord accuracy for a more realistic sound.
 
 ### Core flow
 
@@ -86,7 +88,7 @@ The critic has its own eval because it needs a different kind of test. It review
 
 The evals are run by hand against the live APIs, because each run costs tokens, so they aren't part of CI. Recording and replaying LLM responses would need to come first.
 
-*Related ADRs: [0027](docs/adr/0027-generation-eval-harness.md) generation eval harness; [0030](docs/adr/0030-critic-eval-as-a-separate-code-based-project.md) separate critic eval; [0036](docs/adr/0036-per-step-model-tier-split-for-cost.md) per-step model and tier split.*
+*Related ADRs: [0027](docs/adr/0027-generation-eval-harness.md) generation eval harness; [0030](docs/adr/0030-critic-eval-as-a-separate-code-based-project.md) separate critic eval; [0036](docs/adr/0036-per-step-model-tier-split-for-cost.md) per-step model and tier split; [0049](docs/adr/0049-gpt-6-1-sol-for-generation.md) choosing `gpt-6.1-sol` for generation.*
 
 ### Telemetry
 
@@ -102,7 +104,7 @@ For a personal project with only one user, having a persistent database like Pos
 
 ### Tech stack
 
-The backend server was built in C# with ASP.NET Core, as that is a language and framework the author was already familiar with. The API was built to support native AOT compilation partly because it would reduce the application's footprint and improve startup time running on a Raspberry Pi. However these benefits aren't really necessary and another reason for the decision was that it was a novel approach that was of interest to the author, and there was a reasonable expectation that it wouldn't put up any significant blockers. One knock-on effect of using AOT was that minimal APIs were used instead of MVC controllers.
+The backend server was built in C# with ASP.NET Core, as that is a language and framework the author was already familiar with. The API was built to support Native AOT compilation partly because it would reduce the application's footprint and improve startup time running on a Raspberry Pi. However these benefits aren't really necessary and another reason for the decision was that it was a novel approach that was of interest to the author, and there was a reasonable expectation that it wouldn't put up any significant blockers. One knock-on effect of using AOT was that minimal APIs were used instead of MVC controllers.
 
 The iOS application was written in Swift as a learning exercise, which is the main reason it was chosen over say, React Native, which could have been used to support Android clients as well.
 
@@ -142,7 +144,7 @@ Requires the .NET 10 SDK (pinned in [`global.json`](global.json)).
 
 ```bash
 dotnet build api/BackingTrack.sln
-dotnet test  api/BackingTrack.sln
+dotnet test --solution api/BackingTrack.sln
 ```
 
 See [`api/README.md`](api/README.md) for local configuration and deployment.

@@ -1,5 +1,10 @@
 # Guitar Backing Track Generator — Project Scope
 
+> **Original scope, kept for context.** This was written before the build started and has not
+> been rewritten since, so parts of it no longer match what was built. See the
+> [README](../README.md) for the current system and [`docs/adr/`](adr/README.md) for the
+> decisions that changed the plan.
+
 ## Purpose
 
 A portfolio project demonstrating full-stack engineering and applied generative AI: a native iOS app that generates guitar backing tracks (drums, bass, chords) from user-selected parameters, backed by a self-hosted API on a Raspberry Pi.
