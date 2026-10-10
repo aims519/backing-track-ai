@@ -2,6 +2,17 @@
 
 Status: Accepted
 
+> **Note (2026-10-10).** The iOS app now has `ios-v*` tags too, but they work differently from the
+> API's. Here the tag is the source of the version; for iOS `MARKETING_VERSION` in `app/project.yml`
+> stays the source, because TestFlight needs it to increase, and the tag is a label the maintainer
+> puts on the commit that bumped it (named exactly `ios-v` plus that value). A tag could therefore
+> drift from `project.yml`, so `.github/workflows/ios-tag-check.yml` fails any `ios-v*` tag that
+> doesn't match. The alternatives were tagging automatically after each TestFlight upload, which
+> can't drift but takes release timing out of the maintainer's hands and tags the first commit to
+> ship a version rather than the one that bumped it, and tagging every upload with its build number,
+> which is exact but noisy. The `api-v` / `ios-v` prefix split below is what keeps the two sets of
+> tags apart.
+
 ## Context
 
 [ADR 0010](0010-opentelemetry-tracing-and-metrics.md) tags every span and metric with
