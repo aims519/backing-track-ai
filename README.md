@@ -1,6 +1,6 @@
 # backing-track-ai
 
-A Raspberry Pi-hosted .NET application that uses an agentic AI workflow to generate musical backing tracks for guitar practice, with validation, repair and a rule-based fallback guarding against bad output. The iOS client app allows for customisable tracks to be generated for a chosen chord progression, tempo, and style. The project was developed largely as an exercise in AI-centric engineering, but also to be practically useful to the author.
+A Raspberry Pi-hosted .NET application that uses an agentic AI workflow (built with Microsoft Agent Framework) to generate musical backing tracks for guitar practice, with validation, repair and a rule-based fallback guarding against bad output. The iOS client app allows for customisable tracks to be generated for a chosen chord progression, tempo, and style. The project was developed largely as an exercise in AI-centric engineering, but also to be practically useful to the author.
 
 For the full project scope, please see the [docs/backing-track-generator-scope.md](docs/backing-track-generator-scope.md).
 
@@ -51,6 +51,8 @@ Jobs themselves are held in memory and processed one at a time in a queue. The i
 ### Generation workflow
 
 ![Generation workflow: a queued job retrieves context (style by vector search, chords and scales by rule-based lookup), then loops through Generate, Validate, Repair and Critic; any LLM error or exhausted attempt falls back to a rule-based generator, which is re-validated once before the track is persisted](docs/images/generation-workflow.svg)
+
+The workflow is built with [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) as a fixed graph of executors joined by explicit edges ([`GenerationWorkflowBuilder`](api/src/BackingTrack.Generation/Workflows/GenerationWorkflowBuilder.cs)). Three of the steps call an LLM, and the others (retrieval, validation, the fallback and persistence) are ordinary code. The graph, not the model, decides what happens next: the LLM produces and critiques tracks, and the code routes on the result. This is deliberate, so that the control flow stays predictable. For example, the critic's tool is declared but never auto-invoked, so there is no open-ended tool-calling loop ([ADR 0029](docs/adr/0029-critic-tool-call-over-per-criterion-structured-output.md)).
 
 #### Normal path
 
@@ -107,6 +109,8 @@ For a personal project with only one user, having a persistent database like Pos
 The backend server was built in C# with ASP.NET Core, as that is a language and framework the author was already familiar with. The API was built to support Native AOT compilation partly because it would reduce the application's footprint and improve startup time running on a Raspberry Pi. However these benefits aren't really necessary and another reason for the decision was that it was a novel approach that was of interest to the author, and there was a reasonable expectation that it wouldn't put up any significant blockers. One knock-on effect of using AOT was that minimal APIs were used instead of MVC controllers.
 
 The iOS application was written in Swift as a learning exercise, which is the main reason it was chosen over say, React Native, which could have been used to support Android clients as well.
+
+Claude Code was used throughout as an assistant. The backend is mainly hand-written, with Claude Code used for review, unit tests and refactoring, while much of the SwiftUI app was generated with it under the author's direction and review. The ADRs were drafted from design discussions with it and then reviewed. [`CLAUDE.md`](CLAUDE.md) has the detail.
 
 *Related ADRs: [0008](docs/adr/0008-agent-framework-aot-compatibility.md) staying on Native AOT; [0001](docs/adr/0001-minimal-apis-over-controllers.md) minimal APIs; [0007](docs/adr/0007-source-generated-json-for-aot-endpoints.md) source-generated JSON; [0009](docs/adr/0009-builtin-logging-over-serilog.md) built-in logging; [0018](docs/adr/0018-xunit-v3-and-nsubstitute.md) xUnit v3 and NSubstitute; [0019](docs/adr/0019-xcodegen-over-committed-xcodeproj.md) XcodeGen. The native iOS choice is covered in the [scope doc](docs/backing-track-generator-scope.md#platform).*
 
