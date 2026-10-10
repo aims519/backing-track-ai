@@ -127,6 +127,10 @@ from `Config/Local.xcconfig`, so Xcode creates and renews certificates and provi
   distribution certificate, so no certificates or profiles are stored in the repo or in CI secrets.
   TestFlight builds last 90 days. `MARKETING_VERSION` is bumped by hand in `project.yml`; the build number is
   the CI run number plus an offset of 100.
+- **Version tags:** the maintainer tags the merge commit that bumps `MARKETING_VERSION` as `ios-v<version>`
+  (e.g. `ios-v0.7.3`), mirroring the API's `api-v*` tags. The tag is a label, not the source of the version, so
+  [`ios-tag-check.yml`](../.github/workflows/ios-tag-check.yml) fails any `ios-v*` tag that disagrees with
+  `project.yml`.
 
 ## Building & testing from the command line
 

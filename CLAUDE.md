@@ -69,6 +69,10 @@ The API's version is not bumped in code. MinVer derives it from `api-v*` git tag
 (ADR 0046), so don't add or edit a `<Version>` in the API projects. Don't create or push tags
 either: cutting a release (`git tag api-vX.Y.Z`) is the owner's call, made after merge.
 
+The iOS app's version stays in `MARKETING_VERSION` (`app/project.yml`); `ios-v*` tags are labels on
+the merge commit that bumped it, named exactly `ios-v` plus that value (`ios-v0.7.3`). Same rule:
+don't create or push them. `ios-tag-check.yml` fails a tag that doesn't match `project.yml`.
+
 ## Swift conventions
 
 Assume the reader knows SwiftUI. Comment the *why*, never the *what*:

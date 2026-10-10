@@ -1,0 +1,29 @@
+name: iOS Tag Check
+
+# Fails an `ios-v*` tag whose version doesn't match MARKETING_VERSION in app/project.yml at the
+# tagged commit. Unlike the API, where MinVer derives the version from the tag, the iOS version
+# lives in project.yml (TestFlight needs it to increase), so the tag is only a label and could
+# drift from it. This runs on the tag push and is advisory: it can't stop the push, so if it
+# fails, delete the tag (`git push origin :refs/tags/<tag>`) and re-tag the right commit.
+
+on:
+  push:
+    tags: ["ios-v*"]
+
+jobs:
+  check:
+    # Shell and git only, so no Mac is needed: a hosted Linux runner keeps the single self-hosted
+    # Mac free for ios-release.yml uploads.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compare tag with MARKETING_VERSION
+        run: |
+          tag_version="${GITHUB_REF_NAME#ios-v}"
+          project_version=$(sed -nE 's/^[[:space:]]*MARKETING_VERSION:[[:space:]]*"([^"]+)".*/\1/p' app/project.yml)
+          if [[ "$tag_version" != "$project_version" ]]; then
+            echo "::error::$GITHUB_REF_NAME says $tag_version but app/project.yml has MARKETING_VERSION $project_version at this commit" >&2
+            exit 1
+          fi
+          echo "$GITHUB_REF_NAME matches MARKETING_VERSION $project_version."
