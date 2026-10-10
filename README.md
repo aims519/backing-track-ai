@@ -17,6 +17,8 @@ For the full project scope, please see the [docs/backing-track-generator-scope.m
 7. During playback, which is fully offline, the track tempo can be adjusted as needed, as well as the volumes of any of the tracks
 8. All downloaded tracks are stored locally in-app using SwiftData and can be replayed from a history screen at any time
 
+If the AI generation can't produce a valid track within its attempt limits, the API falls back to a rule-based generator and the job still completes. The app marks these tracks as arranged with the built-in fallback rather than the model. A job that fails outright is shown as failed, with no track to download.
+
 ### Backend
 
 Backing tracks are generated asynchronously via an in-memory queue, using a multi-step workflow (see diagram below).
@@ -111,7 +113,7 @@ The iOS application was written in Swift as a learning exercise, which is the ma
 | Path | What |
 | --- | --- |
 | [`api/`](api/README.md) | ASP.NET Core backend (Native AOT), deployed to a Raspberry Pi. |
-| [`app/`](app/README.md) | Native iOS app (SwiftUI). <!-- TODO: stale ("no features yet"); one line on what it does now --> |
+| [`app/`](app/README.md) | Native iOS app (SwiftUI): track request form, generation progress and push notifications, job history, and on-device playback. |
 | [`docs/`](docs/) | Project scope, [Architecture Decision Records](docs/adr/README.md) and [eval results](docs/eval-results.md). |
 | [`api/eval/`](api/eval/README.md) | Generation and critic eval harnesses. |
 | `api/local-observability/` | Docker Compose stack for running the OpenTelemetry backend locally. |
