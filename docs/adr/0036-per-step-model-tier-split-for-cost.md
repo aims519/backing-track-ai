@@ -2,6 +2,17 @@
 
 Status: Accepted. The generation model is superseded by [0049](0049-gpt-6-1-sol-for-generation.md); the rest stands.
 
+> **Correction (2026-10-10).** The critic-eval finding below, that the all-`gpt-5.6-luna` critic
+> was inconsistent and "false-positived a known-good fixture", was later traced partly to the
+> fixtures. Reading the critics' citations showed that two of the three "good" fixtures contained
+> real parallel-motion voice-leading defects, so some of those failures were correct verdicts.
+> Once the fixtures were revoiced, `gpt-5.6-luna`, `gpt-6-luna` and `gpt-6.1-sol` all matched the
+> expected verdict on every fixture in 10 of 10 repeats. The critic eval's pass counts quoted here
+> may also have used a different `PassingScoreThreshold`, so they should not be compared with later
+> runs. The decision stands, but its rationale should rest on the generation-side finding (cheaper
+> generation produces more genuine voice-leading defects) and not on critic unreliability. See
+> [Critic results by model](../eval-results.md#critic-results-by-model).
+
 ## Context
 
 The generation pipeline made every LLM call — generate, repair, critic — with the same model

@@ -9,7 +9,10 @@ tests and refactorings.
 The SwiftUI iOS app leans on Claude Code more heavily for code generation, as
 the owner is less experienced with the platform; the owner directs and reviews.
 
-`README.md` is author-written.
+`README.md` prose is mainly author-written; some sections were drafted by Claude Code
+and then edited by the owner. Claude Code also drafts commit messages and PR
+descriptions, and built the architecture diagrams in `docs/images/` through the
+Lucid connector (exported by the owner).
 
 Visual assets (app icon, launch-screen logo) are produced by a committed script —
 `app/Tools/generate_icon.py` — drafted by Claude Code under the owner's art
