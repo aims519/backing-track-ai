@@ -110,7 +110,7 @@ The backend server was built in C# with ASP.NET Core, as that is a language and 
 
 The iOS application was written in Swift as a learning exercise, which is the main reason it was chosen over say, React Native, which could have been used to support Android clients as well.
 
-Claude Code was used throughout as an assistant. The backend is mainly hand-written, with Claude Code used for review, unit tests and refactoring, while much of the SwiftUI app was generated with it under the author's direction and review. The ADRs were drafted from design discussions with it and then reviewed. [`CLAUDE.md`](CLAUDE.md) has the detail.
+Claude Code was used throughout as an assistant. The backend is mainly hand-written, with Claude Code used for review, unit tests and refactoring, while much of the SwiftUI app was generated with it under the author's direction and review. The ADRs were drafted from design discussions with it and then reviewed. It also helped draft parts of the documentation, commit messages and PR descriptions, and the diagrams were built with it through Lucid and exported by the author. [`CLAUDE.md`](CLAUDE.md) has the detail.
 
 *Related ADRs: [0008](docs/adr/0008-agent-framework-aot-compatibility.md) staying on Native AOT; [0001](docs/adr/0001-minimal-apis-over-controllers.md) minimal APIs; [0007](docs/adr/0007-source-generated-json-for-aot-endpoints.md) source-generated JSON; [0009](docs/adr/0009-builtin-logging-over-serilog.md) built-in logging; [0018](docs/adr/0018-xunit-v3-and-nsubstitute.md) xUnit v3 and NSubstitute; [0019](docs/adr/0019-xcodegen-over-committed-xcodeproj.md) XcodeGen. The native iOS choice is covered in the [scope doc](docs/backing-track-generator-scope.md#platform).*
 
