@@ -12,10 +12,11 @@ DEVELOPMENT_TEAM = YOUR_TEAM_ID
 //
 // Debug builds already default to http://localhost:5198 (set in project.yml) so the simulator
 // works against a local `dotnet run` with no setup. Set this for Release / on-device builds to
-// point at the Pi — its Tailscale MagicDNS name, port 5080 (scripts/pi-bootstrap.sh).
+// point at the Pi — its Tailscale MagicDNS HTTPS name, which `tailscale serve` proxies to the API
+// on port 5080 (scripts/pi-bootstrap.sh, ADR 0042). No port in the URL.
 //
 // The $() is a required Xcode idiom: an xcconfig treats // as a start-of-comment, so the two
 // slashes in a URL scheme have to be separated by an empty $() expansion or everything from
 // http:// onwards is silently dropped.
 //
-// API_BASE_URL = https:/$()/andy-pi.taild8cb93.ts.net
+// API_BASE_URL = https:/$()/<your-pi>.<your-tailnet>.ts.net

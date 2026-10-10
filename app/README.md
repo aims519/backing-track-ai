@@ -9,31 +9,51 @@ structural decisions.
 ```text
 app/
   project.yml                 XcodeGen project spec — the .xcodeproj is generated from this, not committed
+  Config/                     Local.xcconfig (gitignored, per-machine) and its .example; ExportOptions.plist for TestFlight
+  Tools/                      generate_icon.py — draws the app icon and launch logo (ADR 0021)
   BackingTrack/
-    App/                      App entry point (BackingTrackApp.swift)
-    Features/                 SwiftUI screens, one subfolder per feature (Generate/, Progress/, Settings/)
+    App/                      App entry point, AppDelegate, notification permission and routing
+    Features/                 SwiftUI screens, one subfolder per feature
+      Home/                     dashboard — the navigation root (ADR 0045)
+      Generate/                 chord/key/tempo/style input form and chord picker
+      Progress/                 full-screen generation progress and timeline
+      History/                  past jobs list and detail
+      Player/                   playback screen, chord strip, Now Playing integration
+      Settings/                 API key entry
+    Audio/                    AVAudioEngine playback: sequence building, instruments, audio session
     Components/               Shared view building blocks (SectionCard)
-    Models/                   Domain models — the request/parameter types, mirroring api/src/BackingTrack.Core
-    Networking/               API client talking to the Pi-hosted backend
+    Models/                   Request, job status and track types (mostly mirroring the API's DTOs) plus app-side types such as Chord and MusicStyle
+    Networking/               API client for the Pi-hosted backend, polling config, API key store
     Persistence/              Local SwiftData store for job/track history
-    Resources/                Assets.xcassets (app icon, accent color)
-  BackingTrackTests/          Unit tests (Swift Testing framework)
+    Resources/                Assets.xcassets (app icon, accent color, launch logo) and the GeneralUser GS SoundFont
+  BackingTrackTests/          Unit tests (Swift Testing framework), mirroring the source layout; Support/ holds fakes
 ```
 
-`GenerateTrackView` is the root screen: the chord/key/tempo/style/time-signature input form for
-Precise mode. `Generate` submits the `GenerationRequest` to `POST /tracks/generate` via
-`BackingTrackAPIClient` (`Networking/`). On acceptance, `GenerationProgressView` (`Features/Progress/`)
-takes over as a full-screen cover, polling `GET /tracks/status/{jobId}` until the job reaches a
-terminal state and showing a "Track ready" or failure result. Vibe mode is shown in the selector
-but disabled (its backend doesn't exist yet). See
-[ADR 0020](../docs/adr/0020-structured-chord-picker-over-free-text.md) for why chord entry is a
-constrained picker rather than a text field,
-[ADR 0042](../docs/adr/0042-https-via-tailscale-serve-ats-enabled.md) for the HTTPS /
-ATS posture, and
-[ADR 0023](../docs/adr/0023-client-derived-generation-progress.md) for how the progress screen
-derives its feedback and handles a stuck job, and
-[ADR 0024](../docs/adr/0024-client-side-swiftdata-job-history.md) for the local SwiftData store
-(`Persistence/`) that mirrors every job as it polls.
+`HomeView` is the root screen: a dashboard showing the five most recent jobs, any job still in
+flight, and a "New Track" button ([ADR 0045](../docs/adr/0045-home-dashboard-as-navigation-root.md)).
+It owns the `NavigationStack` and pushes everything else; Settings opens as a sheet.
+
+- **Generate:** `GenerateTrackView` is the chord/key/tempo/style/time-signature form for Precise
+  mode. It submits a `GenerationRequest` to `POST /tracks/generate` via `BackingTrackAPIClient`
+  (`Networking/`). Chord entry is a constrained picker rather than a text field
+  ([ADR 0020](../docs/adr/0020-structured-chord-picker-over-free-text.md)).
+- **Progress:** on acceptance, `GenerationProgressView` (`Features/Progress/`) takes over as a
+  full-screen cover, polling `GET /tracks/status/{jobId}` until the job reaches a terminal state
+  ([ADR 0023](../docs/adr/0023-client-derived-generation-progress.md) covers how it derives its
+  feedback and handles a stuck job). If you leave the app first, the API sends a push notification
+  when the job finishes ([ADR 0039](../docs/adr/0039-apns-push-from-api-on-terminal-job-state.md)).
+- **History:** every job is mirrored into a local SwiftData store (`Persistence/`) as it polls, and
+  unfinished jobs are re-checked with the server when you open History or pull to refresh, and the
+  dashboard keeps in-flight rows fresh
+  ([ADR 0024](../docs/adr/0024-client-side-swiftdata-job-history.md)).
+- **Player:** `PlayerView` loads the finished track (the cached copy if there is one, otherwise a
+  download) and plays it on-device through `AVAudioEngine` with a bundled SoundFont. Instruments and effects are chosen per style on the
+  client ([ADR 0026](../docs/adr/0026-bundled-soundfont-and-idempotent-audio-setup.md),
+  [ADR 0041](../docs/adr/0041-client-side-per-style-instruments-and-effects-chain.md)).
+
+Only Precise mode is available today. Vibe mode (generative audio via a third-party service) is
+planned and deliberately hidden in the app until its backend exists; the `vibe` case stays in
+`GenerationMode` so history rows and the API's `Mode` field can still represent it.
 
 ## Setup
 
@@ -51,6 +71,8 @@ cp Config/Local.xcconfig.example Config/Local.xcconfig
 # then edit Config/Local.xcconfig and fill in DEVELOPMENT_TEAM — see the comments in
 # Config/Local.xcconfig.example for how to find it
 ```
+
+`DEVELOPMENT_TEAM` should be a paid-program team if you want to run on a device; see [Signing](#signing).
 
 Generate the Xcode project, then open it:
 
@@ -76,9 +98,9 @@ Keychain and sent as `X-API-Key`.
 ### Status polling
 
 The progress screen polls `GET /tracks/status/{jobId}` every `STATUS_POLL_INTERVAL` seconds
-(surfaced as the `StatusPollInterval` Info.plist key, read by `PollingConfiguration`). Debug
-builds poll every 1s; the `base` default (Release) is 2s. Unlike `API_BASE_URL`, a missing or
-malformed value isn't fatal — it falls back to 2s. The overall poll timeout and consecutive-error
+(surfaced as the `StatusPollInterval` Info.plist key, read by `PollingConfiguration`). Both Debug
+and Release (the `base` setting) poll every 1s. Unlike `API_BASE_URL`, a missing or malformed value
+isn't fatal — it falls back to 2s. The overall poll timeout and consecutive-error
 budget are constants on `PollingConfiguration`, not build settings.
 
 Re-run `xcodegen generate` whenever `project.yml` changes, or after adding/removing/moving
@@ -91,12 +113,20 @@ for why.
 ### Signing
 
 Both targets use automatic signing (`CODE_SIGN_STYLE: Automatic` in `project.yml`) with the team
-from `Config/Local.xcconfig` — Xcode picks and renews a certificate itself rather than us managing
-a provisioning profile by hand. This works with a free "personal team" (no paid Apple Developer
-Program membership needed), which is all this project uses since there's no App Store
-distribution — see `docs/backing-track-generator-scope.md`. The tradeoff: a personal-team signature
-is only valid for 7 days, so a build installed on-device needs reinstalling from Xcode
-periodically rather than running indefinitely.
+from `Config/Local.xcconfig`, so Xcode creates and renews certificates and provisioning profiles itself.
+
+- **Simulator:** any team works, and `CODE_SIGNING_ALLOWED=NO` builds don't sign at all.
+  `Config/Local.xcconfig` must still exist, since XcodeGen errors without it.
+- **Physical device:** the app declares the Push Notifications capability (`aps-environment` in
+  `BackingTrack.entitlements`) for APNs ([ADR 0039](../docs/adr/0039-apns-push-from-api-on-terminal-job-state.md)).
+  A free personal team can't provision that capability, so a device build needs a paid Apple Developer
+  Program team.
+- **TestFlight:** every push to `main` that touches `app/` (or the iOS workflows) archives the app and uploads it
+  ([`ios-release.yml`](../.github/workflows/ios-release.yml), [ADR 0040](../docs/adr/0040-testflight-on-every-main-push-with-xcodebuild-cloud-signing.md)).
+  It uses cloud signing: `xcodebuild` authenticates with an App Store Connect API key and Apple holds the
+  distribution certificate, so no certificates or profiles are stored in the repo or in CI secrets.
+  TestFlight builds last 90 days. `MARKETING_VERSION` is bumped by hand in `project.yml`; the build number is
+  the CI run number plus an offset of 100.
 
 ## Building & testing from the command line
 
