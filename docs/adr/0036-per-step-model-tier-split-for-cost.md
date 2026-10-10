@@ -1,6 +1,6 @@
 # 0036. Per-step model and Flex-tier split for LLM cost, over a single model everywhere
 
-Status: Accepted
+Status: Accepted. The generation model is superseded by [0049](0049-gpt-6-1-sol-for-generation.md); the rest stands.
 
 ## Context
 
