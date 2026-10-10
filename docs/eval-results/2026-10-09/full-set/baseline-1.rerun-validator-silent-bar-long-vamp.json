@@ -1,0 +1,93 @@
+{
+  "RunAtUtc": "2026-10-09T19:51:06.326466+00:00",
+  "ByCategory": [
+    {
+      "Category": "ValidatorTriggering",
+      "Pass": 1,
+      "Fail": 0,
+      "Pending": 0,
+      "Total": 1
+    }
+  ],
+  "Cases": [
+    {
+      "Id": "validator-silent-bar-long-vamp",
+      "Category": "ValidatorTriggering",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 3,
+      "Elapsed": "00:01:57.3955857",
+      "TrackId": "86c8429b-3a7c-4861-b6cc-df3248c8423d",
+      "Notes": [],
+      "Outcome": "Succeeded",
+      "FaultInjected": false,
+      "Usage": [
+        {
+          "Step": "critic",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 3,
+          "InputTokens": 31989,
+          "OutputTokens": 1389,
+          "CostUsd": 0.00403230
+        },
+        {
+          "Step": "generate",
+          "Model": "gpt-5.6-terra",
+          "ServiceTier": "flex",
+          "Calls": 3,
+          "InputTokens": 14095,
+          "OutputTokens": 21613,
+          "CostUsd": 0.1437730
+        },
+        {
+          "Step": "repair",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 9091,
+          "OutputTokens": 2222,
+          "CostUsd": 0.00224230
+        }
+      ],
+      "CostUsd": 0.15004760
+    }
+  ],
+  "Passed": 1,
+  "Failed": 0,
+  "Pending": 0,
+  "IsPass": true,
+  "OrganicCases": 1,
+  "OrganicFallbacks": 0,
+  "OrganicFallbackRate": 0,
+  "Usage": [
+    {
+      "Step": "critic",
+      "Model": "gpt-5.6-luna",
+      "ServiceTier": "flex",
+      "Calls": 3,
+      "InputTokens": 31989,
+      "OutputTokens": 1389,
+      "CostUsd": 0.00403230
+    },
+    {
+      "Step": "generate",
+      "Model": "gpt-5.6-terra",
+      "ServiceTier": "flex",
+      "Calls": 3,
+      "InputTokens": 14095,
+      "OutputTokens": 21613,
+      "CostUsd": 0.1437730
+    },
+    {
+      "Step": "repair",
+      "Model": "gpt-5.6-luna",
+      "ServiceTier": "flex",
+      "Calls": 1,
+      "InputTokens": 9091,
+      "OutputTokens": 2222,
+      "CostUsd": 0.00224230
+    }
+  ],
+  "TotalCostUsd": 0.15004760
+}

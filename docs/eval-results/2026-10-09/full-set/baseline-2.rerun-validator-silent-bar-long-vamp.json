@@ -1,0 +1,93 @@
+{
+  "RunAtUtc": "2026-10-09T19:59:55.885731+00:00",
+  "ByCategory": [
+    {
+      "Category": "ValidatorTriggering",
+      "Pass": 1,
+      "Fail": 0,
+      "Pending": 0,
+      "Total": 1
+    }
+  ],
+  "Cases": [
+    {
+      "Id": "validator-silent-bar-long-vamp",
+      "Category": "ValidatorTriggering",
+      "Verdict": "Pass",
+      "Attempts": 2,
+      "CriticAttempts": 3,
+      "Elapsed": "00:02:36.8691034",
+      "TrackId": "c7eb270b-b09c-4bb5-9d51-399b5cb5efe1",
+      "Notes": [],
+      "Outcome": "Succeeded",
+      "FaultInjected": false,
+      "Usage": [
+        {
+          "Step": "critic",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 3,
+          "InputTokens": 35573,
+          "OutputTokens": 1495,
+          "CostUsd": 0.00445430
+        },
+        {
+          "Step": "generate",
+          "Model": "gpt-5.6-terra",
+          "ServiceTier": "flex",
+          "Calls": 3,
+          "InputTokens": 16954,
+          "OutputTokens": 25856,
+          "CostUsd": 0.172090
+        },
+        {
+          "Step": "repair",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 14291,
+          "OutputTokens": 2979,
+          "CostUsd": 0.0032165
+        }
+      ],
+      "CostUsd": 0.17976080
+    }
+  ],
+  "Passed": 1,
+  "Failed": 0,
+  "Pending": 0,
+  "IsPass": true,
+  "OrganicCases": 1,
+  "OrganicFallbacks": 0,
+  "OrganicFallbackRate": 0,
+  "Usage": [
+    {
+      "Step": "critic",
+      "Model": "gpt-5.6-luna",
+      "ServiceTier": "flex",
+      "Calls": 3,
+      "InputTokens": 35573,
+      "OutputTokens": 1495,
+      "CostUsd": 0.00445430
+    },
+    {
+      "Step": "generate",
+      "Model": "gpt-5.6-terra",
+      "ServiceTier": "flex",
+      "Calls": 3,
+      "InputTokens": 16954,
+      "OutputTokens": 25856,
+      "CostUsd": 0.172090
+    },
+    {
+      "Step": "repair",
+      "Model": "gpt-5.6-luna",
+      "ServiceTier": "flex",
+      "Calls": 1,
+      "InputTokens": 14291,
+      "OutputTokens": 2979,
+      "CostUsd": 0.0032165
+    }
+  ],
+  "TotalCostUsd": 0.17976080
+}

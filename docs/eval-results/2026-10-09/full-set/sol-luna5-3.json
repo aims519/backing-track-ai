@@ -1,0 +1,476 @@
+{
+  "RunAtUtc": "2026-10-09T20:56:49.808533+00:00",
+  "ByCategory": [
+    {
+      "Category": "Baseline",
+      "Pass": 6,
+      "Fail": 0,
+      "Pending": 0,
+      "Total": 6
+    },
+    {
+      "Category": "ValidatorTriggering",
+      "Pass": 3,
+      "Fail": 0,
+      "Pending": 0,
+      "Total": 3
+    },
+    {
+      "Category": "Fallback",
+      "Pass": 2,
+      "Fail": 0,
+      "Pending": 0,
+      "Total": 2
+    },
+    {
+      "Category": "CriticTriggering",
+      "Pass": 2,
+      "Fail": 0,
+      "Pending": 0,
+      "Total": 2
+    }
+  ],
+  "Cases": [
+    {
+      "Id": "baseline-blues-a",
+      "Category": "Baseline",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 1,
+      "Elapsed": "00:01:21.5853616",
+      "TrackId": "2c3f69da-2c8c-4619-8c7a-bc87177d409f",
+      "Notes": [],
+      "Outcome": "Succeeded",
+      "FaultInjected": false,
+      "Usage": [
+        {
+          "Step": "critic",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 9802,
+          "OutputTokens": 609,
+          "CostUsd": 0.00134560
+        },
+        {
+          "Step": "generate",
+          "Model": "gpt-6.1-sol",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 1262,
+          "OutputTokens": 6111,
+          "CostUsd": 0.0318170
+        }
+      ],
+      "CostUsd": 0.03316260
+    },
+    {
+      "Id": "baseline-pop-c",
+      "Category": "Baseline",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 1,
+      "Elapsed": "00:00:33.5764787",
+      "TrackId": "49bef9c1-2463-4b1b-b126-978482ded32a",
+      "Notes": [],
+      "Outcome": "Succeeded",
+      "FaultInjected": false,
+      "Usage": [
+        {
+          "Step": "critic",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 4179,
+          "OutputTokens": 227,
+          "CostUsd": 0.00055410
+        },
+        {
+          "Step": "generate",
+          "Model": "gpt-6.1-sol",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 1215,
+          "OutputTokens": 2152,
+          "CostUsd": 0.011975
+        }
+      ],
+      "CostUsd": 0.01252910
+    },
+    {
+      "Id": "baseline-minor-key-walking-bass",
+      "Category": "Baseline",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 1,
+      "Elapsed": "00:00:43.6056979",
+      "TrackId": "c245052a-34c3-4023-9d9a-34951984ffde",
+      "Notes": [],
+      "Outcome": "Succeeded",
+      "FaultInjected": false,
+      "Usage": [
+        {
+          "Step": "critic",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 3931,
+          "OutputTokens": 481,
+          "CostUsd": 0.00068170
+        },
+        {
+          "Step": "generate",
+          "Model": "gpt-6.1-sol",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 1262,
+          "OutputTokens": 2179,
+          "CostUsd": 0.0121570
+        }
+      ],
+      "CostUsd": 0.01283870
+    },
+    {
+      "Id": "baseline-rock-e-timekeeping",
+      "Category": "Baseline",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 1,
+      "Elapsed": "00:01:07.2676856",
+      "TrackId": "43b75136-8d0c-45a9-bf25-1c5565cb497e",
+      "Notes": [],
+      "Outcome": "Succeeded",
+      "FaultInjected": false,
+      "Usage": [
+        {
+          "Step": "critic",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 7765,
+          "OutputTokens": 399,
+          "CostUsd": 0.00101590
+        },
+        {
+          "Step": "generate",
+          "Model": "gpt-6.1-sol",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 1454,
+          "OutputTokens": 5275,
+          "CostUsd": 0.0278290
+        }
+      ],
+      "CostUsd": 0.02884490
+    },
+    {
+      "Id": "baseline-funk-dorian-vamp",
+      "Category": "Baseline",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 1,
+      "Elapsed": "00:01:04.7412328",
+      "TrackId": "3b3a0c74-61a0-4f04-9aec-ea2e6a829fac",
+      "Notes": [],
+      "Outcome": "Succeeded",
+      "FaultInjected": false,
+      "Usage": [
+        {
+          "Step": "critic",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 5806,
+          "OutputTokens": 258,
+          "CostUsd": 0.00073540
+        },
+        {
+          "Step": "generate",
+          "Model": "gpt-6.1-sol",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 1204,
+          "OutputTokens": 4207,
+          "CostUsd": 0.0222390
+        }
+      ],
+      "CostUsd": 0.02297440
+    },
+    {
+      "Id": "baseline-reggae-i-iv-v",
+      "Category": "Baseline",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 1,
+      "Elapsed": "00:00:47.7551262",
+      "TrackId": "a19ad176-37ee-480a-b232-bc8b87c57d30",
+      "Notes": [],
+      "Outcome": "Succeeded",
+      "FaultInjected": false,
+      "Usage": [
+        {
+          "Step": "critic",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 5360,
+          "OutputTokens": 414,
+          "CostUsd": 0.00078440
+        },
+        {
+          "Step": "generate",
+          "Model": "gpt-6.1-sol",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 1405,
+          "OutputTokens": 3219,
+          "CostUsd": 0.0175
+        }
+      ],
+      "CostUsd": 0.01828440
+    },
+    {
+      "Id": "critic-forced-single-rejection",
+      "Category": "CriticTriggering",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 2,
+      "Elapsed": "00:01:15.4923425",
+      "TrackId": "27057fe7-10f1-40cc-adb2-a352123618a1",
+      "Notes": [],
+      "Outcome": "Succeeded",
+      "FaultInjected": true,
+      "Usage": [
+        {
+          "Step": "critic",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 3986,
+          "OutputTokens": 367,
+          "CostUsd": 0.00061880
+        },
+        {
+          "Step": "generate",
+          "Model": "gpt-6.1-sol",
+          "ServiceTier": "flex",
+          "Calls": 2,
+          "InputTokens": 4421,
+          "OutputTokens": 4879,
+          "CostUsd": 0.0288160
+        }
+      ],
+      "CostUsd": 0.02943480
+    },
+    {
+      "Id": "critic-exhausts-to-fallback",
+      "Category": "CriticTriggering",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 0,
+      "Elapsed": "00:01:29.2212416",
+      "TrackId": "3138e404-e7e6-4935-8c3d-9fee6631eafa",
+      "Notes": [],
+      "Outcome": "SucceededViaFallback",
+      "FallbackReason": "CriticExhausted",
+      "FaultInjected": true,
+      "Usage": [
+        {
+          "Step": "generate",
+          "Model": "gpt-6.1-sol",
+          "ServiceTier": "flex",
+          "Calls": 3,
+          "InputTokens": 7581,
+          "OutputTokens": 6296,
+          "CostUsd": 0.0390610
+        }
+      ],
+      "CostUsd": 0.0390610
+    },
+    {
+      "Id": "fallback-dense-changes",
+      "Category": "Fallback",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 0,
+      "Elapsed": "00:01:31.3212904",
+      "TrackId": "0826d6ee-51c8-428e-9ac7-aa779b6cbf92",
+      "Notes": [],
+      "Outcome": "SucceededViaFallback",
+      "FallbackReason": "ValidationExhausted",
+      "FaultInjected": true,
+      "Usage": [
+        {
+          "Step": "generate",
+          "Model": "gpt-6.1-sol",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 1612,
+          "OutputTokens": 7693,
+          "CostUsd": 0.0400770
+        },
+        {
+          "Step": "repair",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 2,
+          "InputTokens": 15150,
+          "OutputTokens": 162,
+          "CostUsd": 0.00161220
+        }
+      ],
+      "CostUsd": 0.04168920
+    },
+    {
+      "Id": "fallback-llm-outage",
+      "Category": "Fallback",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 0,
+      "Elapsed": "00:00:00.3189259",
+      "TrackId": "478cdcb1-bb18-48d6-8a2c-64d0ffccb577",
+      "Notes": [],
+      "Outcome": "SucceededViaFallback",
+      "FallbackReason": "GenerateError",
+      "FaultInjected": true,
+      "Usage": [],
+      "CostUsd": 0
+    },
+    {
+      "Id": "validator-odd-meter-funk",
+      "Category": "ValidatorTriggering",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 1,
+      "Elapsed": "00:01:09.8093539",
+      "TrackId": "0c21e840-4ae7-4a64-974c-e69b06b52bd4",
+      "Notes": [],
+      "Outcome": "Succeeded",
+      "FaultInjected": false,
+      "Usage": [
+        {
+          "Step": "critic",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 6468,
+          "OutputTokens": 524,
+          "CostUsd": 0.00096120
+        },
+        {
+          "Step": "generate",
+          "Model": "gpt-6.1-sol",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 1147,
+          "OutputTokens": 5103,
+          "CostUsd": 0.0266620
+        }
+      ],
+      "CostUsd": 0.02762320
+    },
+    {
+      "Id": "validator-fast-jazz-ii-v-i",
+      "Category": "ValidatorTriggering",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 1,
+      "Elapsed": "00:00:43.1549652",
+      "TrackId": "faf458c4-f82a-40d5-88a4-7761f8f9a5e2",
+      "Notes": [],
+      "Outcome": "Succeeded",
+      "FaultInjected": false,
+      "Usage": [
+        {
+          "Step": "critic",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 3850,
+          "OutputTokens": 415,
+          "CostUsd": 0.0006340
+        },
+        {
+          "Step": "generate",
+          "Model": "gpt-6.1-sol",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 1214,
+          "OutputTokens": 2263,
+          "CostUsd": 0.0125290
+        }
+      ],
+      "CostUsd": 0.0131630
+    },
+    {
+      "Id": "validator-silent-bar-long-vamp",
+      "Category": "ValidatorTriggering",
+      "Verdict": "Pass",
+      "Attempts": 1,
+      "CriticAttempts": 1,
+      "Elapsed": "00:01:53.6005732",
+      "TrackId": "7218ce57-e6b9-4a7b-b9b1-c9b8f57574dc",
+      "Notes": [],
+      "Outcome": "Succeeded",
+      "FaultInjected": false,
+      "Usage": [
+        {
+          "Step": "critic",
+          "Model": "gpt-5.6-luna",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 12459,
+          "OutputTokens": 442,
+          "CostUsd": 0.00151110
+        },
+        {
+          "Step": "generate",
+          "Model": "gpt-6.1-sol",
+          "ServiceTier": "flex",
+          "Calls": 1,
+          "InputTokens": 1308,
+          "OutputTokens": 9487,
+          "CostUsd": 0.0487430
+        }
+      ],
+      "CostUsd": 0.05025410
+    }
+  ],
+  "Passed": 13,
+  "Failed": 0,
+  "Pending": 0,
+  "IsPass": true,
+  "OrganicCases": 9,
+  "OrganicFallbacks": 0,
+  "OrganicFallbackRate": 0,
+  "Usage": [
+    {
+      "Step": "critic",
+      "Model": "gpt-5.6-luna",
+      "ServiceTier": "flex",
+      "Calls": 10,
+      "InputTokens": 63606,
+      "OutputTokens": 4136,
+      "CostUsd": 0.00884220
+    },
+    {
+      "Step": "generate",
+      "Model": "gpt-6.1-sol",
+      "ServiceTier": "flex",
+      "Calls": 15,
+      "InputTokens": 25085,
+      "OutputTokens": 58864,
+      "CostUsd": 0.319405
+    },
+    {
+      "Step": "repair",
+      "Model": "gpt-5.6-luna",
+      "ServiceTier": "flex",
+      "Calls": 2,
+      "InputTokens": 15150,
+      "OutputTokens": 162,
+      "CostUsd": 0.00161220
+    }
+  ],
+  "TotalCostUsd": 0.32985940
+}
