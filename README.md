@@ -119,16 +119,20 @@ The iOS application was written in Swift as a learning exercise, which is the ma
 
 ## Status
 
-<!-- TODO (you): what works today, what doesn't, what's next.
-     Facts to draw on (verify each before stating):
-     - API released as api-v0.1.0 .. api-v0.1.6 (MinVer from git tags, ADR 0046)
-     - iOS builds ship to TestFlight on every main push (ADR 0040)
-     - Eval, 2026-10-09/10: 13-case golden set, 3 runs per config, four model configs; chosen config
-       gpt-6.1-sol / gpt-5.6-luna / gpt-5.6-luna: 39/39 pass, 0 fallbacks, ~$0.031 per track
-       (docs/eval-results.md is the source; re-check numbers if it changes)
-     - Vibe mode: not built
-     - Stretch goals from the scope doc not done: fretboard visualisation, server-side audio export, saved presets
-     - APNs push implemented (ADR 0039) -->
+Precise mode works end to end: the iOS app submits a request, the Pi-hosted API generates the track in the background, the app shows progress and is sent a push notification when it is ready, and the track can then be played back offline and replayed from the history screen. API releases are tagged `api-v*` (the latest is `api-v0.1.6`), and iOS builds are uploaded to TestFlight on every push to `main` that touches the app.
+
+The generation and critic evals have been run, with the results in [docs/eval-results.md](docs/eval-results.md). Prompt tuning for quality improvements is ongoing.
+
+**Not built yet**
+
+- Vibe mode (generative audio via a third-party service). It is planned, and the option is hidden in the app until a backend exists.
+- The stretch goals from the [scope doc](docs/backing-track-generator-scope.md): a fretboard visualisation synced to playback, server-side audio export, and saved presets.
+
+**Known limitations**
+
+- Jobs are held in memory, so any that are mid-run are lost if the API restarts.
+- The evals are run by hand and are not part of CI.
+- The API is only reachable over Tailscale, and the app is built for a single user.
 
 ## Building
 
