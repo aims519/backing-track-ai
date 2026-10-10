@@ -19,7 +19,7 @@ Tests were run multiple times to smooth out natural fluctuations as the outcomes
 | | |
 |---|---|
 | Run date | 2026-10-09 to 2026-10-10 (UTC; the `luna6-all` runs finished after midnight) |
-| Commit | `c0ee09d` (the golden set was last changed in `d6a03a4`; `c0ee09d` only touched critic-eval fixtures, so the generation eval is unaffected) |
+| Commit | Squash-merged in PR [#149](https://github.com/aims519/backing-track-ai/pull/149) as `104fdb7`. The runs were made on the branch before the squash, at the code state of its commit `c0ee09d` (not in `main`'s history). Against `104fdb7` the generation eval differs only in the default `GenerationModel` of the harness `appsettings.json`, which the comparison script overrides for every configuration, and in docs |
 | Golden set | 13 cases: Baseline 6, ValidatorTriggering 3, CriticTriggering 2, Fallback 2 (9 organic, 4 with fault injection). |
 | Runs per model | 3 for every configuration. Run 1 and run 2 of the first configuration each had one case (`validator-silent-bar-long-vamp`) hit a Voyage AI `429` before reaching any model, so it was rerun alone and that result used instead (`baseline-<n>.rerun-validator-silent-bar-long-vamp.json`) |
 | Service tier | Flex for generate, repair and critic |
@@ -62,7 +62,7 @@ consistency. The critic eval reports no tokens or cost and has no `--json` repor
 | | |
 |---|---|
 | Run date | 2026-10-09 |
-| Commit | `609134c` for the original fixtures (first run); `c0ee09d` for the revised fixtures (second run). Both runs' console output predates the commit that holds the code they ran (they ran from uncommitted changes) |
+| Commit | Squash-merged in PR [#149](https://github.com/aims519/backing-track-ai/pull/149) as `104fdb7`. The first run (original fixtures) used the code state of the branch's commit `609134c`, and the second run (revised fixtures) that of `c0ee09d`; neither is in `main`'s history. Both runs' console output predates the branch commit that holds the code they ran (they ran from uncommitted changes) |
 | Fixtures | 6 in `Fixtures/CriticFixtures.cs`: 3 known-good (`good-basic-rock-comping`, `good-inverted-voice-leading`, `good-modal-color-tones-from-matched-scale`) and 3 flawed, one per dimension (`flawed-static-voicing-ignores-progression`, `flawed-root-never-established`, `flawed-metronomic-no-groove`). Two of the good fixtures were revoiced after the first run (see "Revised fixtures") |
 | Repeats per fixture | 10 (`--repeat 10`) |
 | Passing score threshold | `Critic:PassingScoreThreshold` = 100, matching the API and the generation eval. Earlier critic-eval runs (including those behind ADR 0036) may have used a different value, so don't compare their pass/fail counts directly. Every score in these runs is 33.3, 66.7 or 100, so a threshold of 80 or 100 gives the same verdicts |
