@@ -106,7 +106,7 @@ For a personal project with only one user, having a persistent database like Pos
 
 ### Tech stack
 
-The backend server was built in C# with ASP.NET Core, as that is a language and framework the author was already familiar with. The API was built to support Native AOT compilation partly because it would reduce the application's footprint and improve startup time running on a Raspberry Pi. However these benefits aren't really necessary and another reason for the decision was that it was a novel approach that was of interest to the author, and there was a reasonable expectation that it wouldn't put up any significant blockers. One knock-on effect of using AOT was that minimal APIs were used instead of MVC controllers.
+The backend server was built in C# with ASP.NET Core, as that is a language and framework the author was already familiar with. The API is published as Native AOT, a deliberate choice made partly to learn the approach and partly for a small, fast-starting binary on a Raspberry Pi. The practical benefit is modest for a long-running, single-user service, and the cost is real: every new dependency needs its own AOT-safety check. [ADR 0008](docs/adr/0008-agent-framework-aot-compatibility.md) records the decision to stay on AOT despite that. One knock-on effect was that minimal APIs were used instead of MVC controllers.
 
 The iOS application was written in Swift as a learning exercise, which is the main reason it was chosen over say, React Native, which could have been used to support Android clients as well.
 
