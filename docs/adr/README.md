@@ -40,7 +40,7 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0033](0033-critic-assumes-pitch-legality-instead-of-rechecking-it.md) | Critic assumes pitch legality rather than re-checking it |
 | [0034](0034-rule-based-fallback-generator-bypasses-critic.md) | Rule-based fallback generator bypasses the critic loop |
 | [0035](0035-hand-authored-repair-schema-for-responses-api.md) | Hand-authored JSON schema for the repair step, over auto-generation |
-| [0036](0036-per-step-model-tier-split-for-cost.md) | Per-step model and Flex-tier split for LLM cost, over a single model everywhere |
+| [0036](0036-per-step-model-tier-split-for-cost.md) | Per-step model and Flex-tier split for LLM cost, over a single model everywhere (generation model superseded by 0049) |
 | [0037](0037-streaming-run-for-cancellable-generation-jobs.md) | Streaming run API (`RunStreamingAsync`/`StreamingRun.CancelRunAsync`) for cancellable generation jobs |
 | [0038](0038-direct-status-emitter-over-workflow-messaging.md) | Direct status emitter over workflow-graph messaging for progress feedback |
 | [0039](0039-apns-push-from-api-on-terminal-job-state.md) | APNs push from the API on terminal job state, over client-side background completion |
@@ -53,3 +53,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0046](0046-minver-from-git-tags-for-api-version.md) | Version the API with MinVer from git tags with the commit SHA as build metadata, over SourceRevisionId alone, the CI run number, or a hand-edited version |
 | [0047](0047-automatic-rollback-and-release-pruning-on-the-pi.md) | Roll back to the previous release when any post-deploy step fails and prune to the newest five after a good deploy, over manual recovery, blue/green, or age-based or cron pruning |
 | [0048](0048-additive-only-api-changes-instead-of-url-versioning.md) | Additive-only API changes with a tolerant client, over URL versioning or a version header |
+| [0049](0049-gpt-6-1-sol-for-generation.md) | `gpt-6.1-sol` for the generate step, over `gpt-5.6-terra` or an all-Luna pipeline (partially supersedes 0036) |

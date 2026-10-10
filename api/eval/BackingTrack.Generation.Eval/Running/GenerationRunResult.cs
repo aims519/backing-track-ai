@@ -1,3 +1,4 @@
+using BackingTrack.Generation.Steps.FallbackGeneration;
 using BackingTrack.Generation.Steps.Types;
 
 namespace BackingTrack.Generation.Eval.Running;
@@ -23,6 +24,12 @@ public sealed record GenerationRunResult
     public CandidateTrack? Track { get; init; }
 
     public string? FailureReason { get; init; }
+
+    /// <summary>Why the workflow gave up on the LLM path and used the rule-based generator. Null unless <see cref="ActualOutcome.SucceededViaFallback"/>.</summary>
+    public FallbackReason? FallbackReason { get; init; }
+
+    /// <summary>Tokens spent on this case, by step, model and service tier. Empty when no LLM call completed.</summary>
+    public IReadOnlyList<LlmUsage> LlmUsage { get; init; } = [];
 
     public required TimeSpan Elapsed { get; init; }
 }

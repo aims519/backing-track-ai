@@ -1,3 +1,4 @@
+using BackingTrack.Generation.Eval.Reporting;
 using BackingTrack.Generation.Eval.Running;
 using BackingTrack.Generation.Jobs;
 using BackingTrack.Generation.KnowledgeBase;
@@ -70,6 +71,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CriticFaultInjectionState>();
         services.Replace(ServiceDescriptor.Transient<ICriticStep, FaultInjectingCriticStep>());
 
+        // Listens to the steps' token metrics for the whole process, so register it before any case runs.
+        services.AddSingleton<LlmUsageRecorder>();
+        services.Configure<EvalPricingSettings>(configuration.GetSection("Pricing"));
         services.AddSingleton<IGenerationRunner, WorkflowGenerationRunner>();
         services.AddSingleton<EvalRunner>();
 

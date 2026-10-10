@@ -15,15 +15,19 @@ public static class ConsoleReporter
             Console.WriteLine($"{tally.Category,-22}{tally.Pass,6}{tally.Fail,6}{tally.Pending,6}{tally.Total,7}");
         Console.WriteLine(new string('─', 64));
 
-        Console.WriteLine($"\n{"Case",-32}{"Verdict",-9}{"Att",-5}{"Crit",-5}{"Elapsed",-10}Track");
+        Console.WriteLine($"\n{"Case",-32}{"Verdict",-9}{"Att",-5}{"Crit",-5}{"Elapsed",-10}{"Cost",-10}{"Fallback",-20}Track");
         foreach (CaseLine line in report.Cases)
         {
             string attempts = line.Attempts?.ToString() ?? "-";
             string criticAttempts = line.CriticAttempts?.ToString() ?? "-";
             string elapsed = line.Elapsed is { } e ? $"{e.TotalSeconds:F1}s" : "-";
+            string cost = FormatCost(line.CostUsd);
+            string fallback = line.FallbackReason?.ToString() ?? "-";
             string track = line.TrackId?.ToString() ?? "-";
-            Console.WriteLine($"{line.Id,-32}{line.Verdict.ToString().ToLowerInvariant(),-9}{attempts,-5}{criticAttempts,-5}{elapsed,-10}{track}");
+            Console.WriteLine($"{line.Id,-32}{line.Verdict.ToString().ToLowerInvariant(),-9}{attempts,-5}{criticAttempts,-5}{elapsed,-10}{cost,-10}{fallback,-20}{track}");
         }
+
+        PrintUsage(report);
 
         if (report.TrackStorageDirectory is { } trackDir)
             Console.WriteLine($"\nTracks: {trackDir}{Path.DirectorySeparatorChar}<trackId>.json");
@@ -47,4 +51,23 @@ public static class ConsoleReporter
         Console.WriteLine();
         Console.WriteLine($"{report.Passed} passed, {report.Failed} failed, {report.Pending} pending  →  {(report.IsPass ? "PASS" : "FAIL")}");
     }
+
+    private static void PrintUsage(RunReport report)
+    {
+        if (report.OrganicFallbackRate is { } fallbackRate)
+            Console.WriteLine($"\nFallback rate (fault-injected cases excluded): {report.OrganicFallbacks}/{report.OrganicCases} ({fallbackRate:P0})");
+
+        if (report.Usage.Count == 0)
+            return;
+
+        Console.WriteLine($"\n{"Step",-10}{"Model",-22}{"Tier",-14}{"Calls",7}{"In tok",10}{"Out tok",10}{"Cost",10}");
+        foreach (UsageLine usage in report.Usage)
+            Console.WriteLine($"{usage.Step,-10}{usage.Model,-22}{usage.ServiceTier,-14}{usage.Calls,7}{usage.InputTokens,10}{usage.OutputTokens,10}{FormatCost(usage.CostUsd),10}");
+
+        Console.WriteLine(report.TotalCostUsd is { } total
+            ? $"Total estimated cost: {FormatCost(total)}"
+            : "Total estimated cost: unknown — add the unpriced models to the Pricing section of appsettings.json");
+    }
+
+    private static string FormatCost(decimal? cost) => cost is { } value ? $"${value:F4}" : "-";
 }

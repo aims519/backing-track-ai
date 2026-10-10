@@ -1,0 +1,137 @@
+Running 6 fixture(s) x 10 repeat(s) against the live critic model - this costs tokens.
+
+18:43:07 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0] [1/6] good-basic-rock-comping: Triads voice-led by holding common tones and moving the rest by step, straight rock groove.
+18:43:11 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 1/10: pass score=100.0 (4104ms, 0 citation(s))
+18:43:15 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 2/10: pass score=100.0 (4197ms, 0 citation(s))
+18:43:20 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 3/10: pass score=100.0 (5324ms, 0 citation(s))
+18:43:25 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 4/10: pass score=100.0 (4456ms, 0 citation(s))
+18:43:30 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 5/10: pass score=100.0 (5390ms, 0 citation(s))
+18:43:35 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 6/10: pass score=100.0 (5308ms, 0 citation(s))
+18:43:40 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 7/10: pass score=100.0 (4729ms, 0 citation(s))
+18:43:44 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 8/10: pass score=100.0 (3935ms, 0 citation(s))
+18:43:48 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 9/10: pass score=100.0 (4204ms, 0 citation(s))
+18:43:53 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 10/10: pass score=100.0 (5303ms, 0 citation(s))
+18:43:53 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0] [2/6] good-inverted-voice-leading: Inverted triads chosen to minimise movement between chords, straight rock groove.
+18:43:59 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 1/10: pass score=100.0 (5166ms, 0 citation(s))
+18:44:02 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 2/10: pass score=100.0 (3391ms, 0 citation(s))
+18:44:07 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 3/10: pass score=100.0 (4669ms, 0 citation(s))
+18:44:12 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 4/10: pass score=100.0 (5013ms, 0 citation(s))
+18:44:16 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 5/10: pass score=100.0 (4510ms, 0 citation(s))
+18:44:21 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 6/10: pass score=100.0 (5031ms, 0 citation(s))
+18:44:25 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 7/10: pass score=100.0 (3685ms, 0 citation(s))
+18:44:30 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 8/10: pass score=100.0 (4680ms, 0 citation(s))
+18:44:34 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 9/10: pass score=100.0 (4230ms, 0 citation(s))
+18:44:38 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 10/10: pass score=100.0 (4483ms, 0 citation(s))
+18:44:38 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0] [3/6] good-modal-color-tones-from-matched-scale: Amin7/Dmin7/Emin7/Amin7 voicings each add one color tone from that bar's own MatchedScale beyond the plain min7 arpeggio.
+18:44:45 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 1/10: pass score=100.0 (6185ms, 0 citation(s))
+18:44:51 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 2/10: pass score=100.0 (6763ms, 0 citation(s))
+18:44:57 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 3/10: pass score=100.0 (5809ms, 0 citation(s))
+18:45:03 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 4/10: pass score=100.0 (5909ms, 0 citation(s))
+18:45:09 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 5/10: pass score=100.0 (5586ms, 0 citation(s))
+18:45:14 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 6/10: pass score=100.0 (5471ms, 0 citation(s))
+18:45:19 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 7/10: pass score=100.0 (5295ms, 0 citation(s))
+18:45:26 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 8/10: pass score=100.0 (6507ms, 0 citation(s))
+18:45:31 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 9/10: pass score=100.0 (5111ms, 0 citation(s))
+18:45:38 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 10/10: pass score=100.0 (7016ms, 0 citation(s))
+18:45:38 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0] [4/6] flawed-static-voicing-ignores-progression: Same three-note cluster held across all four bars while the chord progression moves underneath it.
+18:45:44 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 1/10: fail score=66.7 (6291ms, 1 citation(s))
+18:45:44 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The chord voicing is exactly C–E–G in every bar, even as the harmony changes from C to Am, F, and G. The voicing therefore does not track the progression; vary or revoice it across chord changes while retaining common tones or moving voices smoothly. [kb:min]
+18:45:50 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 2/10: fail score=66.7 (5763ms, 1 citation(s))
+18:45:50 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The chord voicing is exactly C–E–G in every bar despite the progression changing from C to Am, F, and G. Holding the identical pitch set through these changes means the voicing does not track the progression; in particular, the Am bar never changes the voicing to reflect its root or distinct chord color. [kb:min]
+18:45:55 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 3/10: fail score=66.7 (4914ms, 1 citation(s))
+18:45:55 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The chord voicing is identical (C-E-G) in every bar despite the progression changing from C to Am, F, and G. The voicings do not track the changing harmony; give each chord a fitting voicing while keeping transitions smooth. [kb:min]
+18:46:02 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 4/10: fail score=66.7 (6692ms, 1 citation(s))
+18:46:02 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The chord voicing [60, 64, 67] is repeated unchanged across all four bars even though the progression changes from C to Am to F to G. This does not track the changing harmony; vary or revoice the chord tones to reflect each chord while maintaining smooth movement between bars. [kb:min]
+18:46:07 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 5/10: fail score=66.7 (5226ms, 1 citation(s))
+18:46:07 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The chord voicing is the identical C–E–G triad in every bar despite the progression changing from C to Am to F to G. In particular, the voicing does not track the Am chord; adjust the pitches to reflect each changing harmony while keeping transitions smooth. [kb:min]
+18:46:12 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 6/10: fail score=66.7 (4892ms, 1 citation(s))
+18:46:12 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The chord voicing remains exactly the same C–E–G triad in all four bars, despite the progression changing from C to Am, F, and G. It therefore does not track the changing harmony; revise the voicings to reflect each chord while using smooth voice leading between them. [kb:min]
+18:46:18 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 7/10: fail score=66.7 (6338ms, 1 citation(s))
+18:46:18 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The chord voicing repeats the exact same C–E–G pitches in every bar despite the progression changing from C to Am, F, and G. The voicings therefore do not track the underlying chords; in particular, the Am bar retains the unchanged C-major triad instead of adapting to the new harmony. [kb:min]
+18:46:26 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 8/10: fail score=66.7 (7845ms, 1 citation(s))
+18:46:26 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The chord voicing is exactly C–E–G in every bar, despite the progression changing from C to Am, F, and G. Holding the identical pitch set through these changes does not track the harmony; vary the voicing to reflect each chord while retaining common tones or moving voices smoothly. [kb:min]
+18:46:33 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 9/10: fail score=66.7 (6691ms, 1 citation(s))
+18:46:33 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The chord voicing holds the identical C–E–G pitch set through all four bars, even as the progression changes from C to Am, F, and G. The voicings therefore do not track the changing harmony; adjust them to reflect each chord while maintaining smooth voice leading. [kb:min]
+18:46:38 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 10/10: fail score=66.7 (5679ms, 1 citation(s))
+18:46:38 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The chord voicing repeats the exact same C–E–G pitches in all four bars, even as the harmony changes from C to Am, F, and G. The voicings therefore do not track the progression; change the voicing to reflect each chord while moving voices smoothly between bars. [kb:min]
+18:46:38 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0] [5/6] flawed-root-never-established: Bass and voicing use only the 3rd/5th/9th of each chord - never the root - in every bar.
+18:46:51 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 1/10: fail score=33.3 (12945ms, 2 citation(s))
+18:46:51 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - ChordToneAdherence: The chord root is absent from both the bass and voicing in every bar: the bass consistently plays the fifth (G, E, C, D), while the voicings omit C, A, F, and G respectively. This makes the roots of the progression difficult to identify from the bass-and-chord parts. [kb:maj]
+18:46:51 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The chord voicings retain the same interval shape and move as a parallel block at each change (downward between the first three bars, then upward into the last), rather than taking advantage of common tones or moving individual voices independently. Revoice to retain shared tones and use closer, less uniformly parallel motion. [kb:maj]
+18:47:00 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 2/10: fail score=66.7 (8632ms, 1 citation(s))
+18:47:00 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - ChordToneAdherence: The chord root is not represented in any bar: the bass plays the fifth (G for C, E for Am, C for F, and D for G), while each voicing also omits that bar’s root. This makes the progression’s chord identities difficult to establish by ear. [kb:maj]
+18:47:13 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 3/10: fail score=66.7 (13336ms, 1 citation(s))
+18:47:13 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - ChordToneAdherence: The chord roots are not clearly represented in any bar: the bass notes are G, E, C, and D over C, Am, F, and G, respectively, and none of the chord voicings supplies the missing root. The repeated fifth-based bass motion leaves the progression roots ambiguous. [kb:maj]
+18:47:22 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 4/10: fail score=66.7 (8579ms, 1 citation(s))
+18:47:22 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - ChordToneAdherence: The chord root is not clearly represented in any bar: the bass and chord voicing omit C in bar 1, A in bar 2, F in bar 3, and G in bar 4. With none of the roots present, the progression is difficult to identify by root. [kb:maj]
+18:47:30 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 5/10: fail score=33.3 (8107ms, 2 citation(s))
+18:47:30 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - ChordToneAdherence: The chord root is not represented in either the bass or the voicing in any bar: C is absent in bar 1, A in bar 2, F in bar 3, and G in bar 4. Each bar instead emphasizes other tones, so the progression's roots are difficult to identify. [kb:maj]
+18:47:30 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The voicings change as parallel blocks without preserving any shared tones: every voice moves together by roughly 3–4 semitones from bar 1 through bar 3, then all move together by 2 semitones into bar 4. Use common tones where available and move remaining voices more independently, preferably by step. [kb:maj]
+18:47:50 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 6/10: fail score=33.3 (19757ms, 2 citation(s))
+18:47:50 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - ChordToneAdherence: The bass and voicing omit the named chord root in every bar: C over C, E over Am, C over F, and D over G. The other notes do not clearly establish those roots, so the progression's harmonic roots are difficult to identify. [kb:maj]
+18:47:50 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The voicings repeatedly move as a parallel block: the first two changes shift all three notes downward by roughly minor or major thirds, rather than retaining the available common tones or moving individual voices by step. The final change is smoother, but does not offset the earlier block-like movement. [kb:maj]
+18:47:59 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 7/10: fail score=66.7 (9037ms, 1 citation(s))
+18:47:59 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - ChordToneAdherence: The chord root is absent from both the bass and chord voicing in every bar: the bass and voicings emphasize non-root chord tones for C, Am, F, and G. This makes the progression's roots difficult to identify by ear; include or clearly establish each chord root, especially at the start of each bar. [kb:maj]
+18:48:17 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 8/10: fail score=33.3 (18341ms, 2 citation(s))
+18:48:17 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - ChordToneAdherence: The chord root is not clearly represented in any bar: the bass notes are G, E, C, and D over C, Am, F, and G respectively, and the voicings also omit each corresponding root. This makes the progression's roots difficult to identify from the bass-and-voicing combination. [kb:maj]
+18:48:17 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The chord voicings move as a parallel block across the progression: the sorted pitches shift together by roughly −3 to −4 semitones in the first transitions, then all move up two semitones from F to G. The voicings would connect more sensitively by retaining shared tones where available and moving the remaining voices independently by small intervals. [kb:maj]
+18:48:30 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 9/10: fail score=66.7 (12600ms, 1 citation(s))
+18:48:30 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - ChordToneAdherence: The progression's roots are not clearly established in any bar: the C bar uses G in the bass and E/G/D in the voicing; the Am bar uses E with C/E/B; the F bar uses C with A/C/G; and the G bar uses D with B/D/A. None of these bass-and-voicing combinations includes the corresponding chord root, making the harmony difficult to identify by root. [kb:maj]
+18:48:41 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 10/10: fail score=66.7 (11316ms, 1 citation(s))
+18:48:41 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - ChordToneAdherence: The chord root is not represented in either the bass or voicing in any bar: the bass plays the fifth (G, E, C, D respectively), while each voicing also omits its chord root. As a result, the harmony's roots are not clearly established. [kb:maj]
+18:48:41 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0] [6/6] flawed-metronomic-no-groove: Correct, well-voice-led chord tones, but bass and drums are a single flat hit per bar with no groove.
+18:48:49 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 1/10: fail score=33.3 (8398ms, 2 citation(s))
+18:48:49 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The C-to-Am voicing shifts all three voices down by the same minor-third despite C and E being available as shared tones, and the F-to-G voicing moves all voices together up by a whole step. These parallel-block changes miss opportunities for smoother common-tone or independent voice leading. [kb:maj]
+18:48:49 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - RhythmAndFeel: The drum part sustains a single kick note for each full bar, with no driving eighth-note hi-hats or backbeat snare, so it does not match the specified rock style. [kb:rock]
+18:48:54 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 2/10: fail score=66.7 (4802ms, 1 citation(s))
+18:48:54 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - RhythmAndFeel: The drum part is only a sustained kick note on beat 1 of each bar; it lacks the driving eighth-note hi-hats and backbeat snare specified for the rock style. [kb:rock]
+18:48:59 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 3/10: fail score=66.7 (4923ms, 1 citation(s))
+18:48:59 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - RhythmAndFeel: The drum pattern does not match the requested rock feel: it has only one sustained drum hit on each bar's downbeat, with no driving eighth-note hi-hats or backbeat snare. The rhythm is also very sparse rather than driving. [kb:rock]
+18:49:06 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 4/10: fail score=33.3 (6523ms, 2 citation(s))
+18:49:06 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The F-to-G voicing shifts all three voices upward together by a whole step (F–A–C to G–B–D), creating a parallel block move rather than retaining shared tones or moving voices independently. Use a more connected inversion or voice movement. [kb:maj]
+18:49:06 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - RhythmAndFeel: The drum part is only a sustained kick-like hit on beat 1 of each bar. It lacks the style's driving eighth-note hi-hats and backbeat snare, so it does not convey the requested rock feel. [kb:rock]
+18:49:14 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 5/10: fail score=66.7 (8569ms, 1 citation(s))
+18:49:14 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - RhythmAndFeel: The arrangement does not deliver the requested rock feel: drums play only a sustained kick on beat 1 of each bar, with no driving eighth-note hi-hats or backbeat snare. [kb:rock]
+18:49:22 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 6/10: fail score=66.7 (8099ms, 1 citation(s))
+18:49:22 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - RhythmAndFeel: The track uses only a sustained kick on beat 1 in each bar, with no driving eighth-note hi-hats or backbeat snare, so it does not match the supplied rock style description. [kb:rock]
+18:49:29 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 7/10: fail score=66.7 (6870ms, 1 citation(s))
+18:49:29 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - RhythmAndFeel: The rhythm does not match the rock style description: each bar has only a sustained kick-like drum hit, with no driving eighth-note hi-hats or backbeat snare. The drum pattern is also uniformly sustained rather than rhythmically driving. [kb:rock]
+18:49:38 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 8/10: fail score=33.3 (8657ms, 2 citation(s))
+18:49:38 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: From F to G, all three chord voices move up together by a whole tone (A–C–F to B–D–G), creating parallel block motion instead of retaining common tones or moving voices independently.  [kb:maj]
+18:49:38 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - RhythmAndFeel: The drum part is just one sustained kick-like hit per bar. It lacks the style's driving eighth-note hi-hats and backbeat snare, so it does not convey the requested rock feel. [kb:rock]
+18:49:46 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 9/10: fail score=66.7 (8452ms, 1 citation(s))
+18:49:46 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - RhythmAndFeel: The drum part is only a sustained kick on each bar's downbeat, so it lacks the driving eighth-note hi-hats and backbeat snare specified for the rock style. [kb:rock]
+18:49:55 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]     run 10/10: fail score=33.3 (8710ms, 2 citation(s))
+18:49:55 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - VoiceLeading: The F-to-G voicing moves every voice upward by exactly a whole step ([A,C,F] to [B,D,G]), creating a parallel-block shift rather than retaining common tones or moving voices independently. The C-to-Am transition also fails to preserve shared C and E tones in the voicing. [kb:maj]
+18:49:55 info: BackingTrack.Critic.Eval.Running.CriticEvalRunner[0]         - RhythmAndFeel: The rock style calls for driving eighth-note hi-hats and a backbeat snare, but each bar has only a sustained kick hit; the defining rock groove is absent. [kb:rock]
+[ok] good-basic-rock-comping (expected pass)
+    Triads voice-led by holding common tones and moving the rest by step, straight rock groove.
+    runs: pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0
+    mean score 100.0, stddev 0.00
+
+[ok] good-inverted-voice-leading (expected pass)
+    Inverted triads chosen to minimise movement between chords, straight rock groove.
+    runs: pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0
+    mean score 100.0, stddev 0.00
+
+[ok] good-modal-color-tones-from-matched-scale (expected pass)
+    Amin7/Dmin7/Emin7/Amin7 voicings each add one color tone from that bar's own MatchedScale beyond the plain min7 arpeggio.
+    runs: pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0, pass=100.0
+    mean score 100.0, stddev 0.00
+
+[ok] flawed-static-voicing-ignores-progression (expected fail)
+    Same three-note cluster held across all four bars while the chord progression moves underneath it.
+    runs: fail=66.7, fail=66.7, fail=66.7, fail=66.7, fail=66.7, fail=66.7, fail=66.7, fail=66.7, fail=66.7, fail=66.7
+    mean score 66.7, stddev 0.00
+
+[ok] flawed-root-never-established (expected fail)
+    Bass and voicing use only the 3rd/5th/9th of each chord - never the root - in every bar.
+    runs: fail=33.3, fail=66.7, fail=66.7, fail=66.7, fail=33.3, fail=33.3, fail=66.7, fail=33.3, fail=66.7, fail=66.7
+    mean score 53.3, stddev 17.21
+
+[ok] flawed-metronomic-no-groove (expected fail)
+    Correct, well-voice-led chord tones, but bass and drums are a single flat hit per bar with no groove.
+    runs: fail=33.3, fail=66.7, fail=66.7, fail=33.3, fail=66.7, fail=66.7, fail=66.7, fail=33.3, fail=66.7, fail=33.3
+    mean score 53.3, stddev 17.21
+
+6/6 fixtures correct, 0 inconsistent across repeats.
