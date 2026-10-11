@@ -35,9 +35,9 @@ internal static class RateLimitingExtensions
                     .CreateLogger("RateLimiting");
 
                 string partitionKey = GetPartitionKey(context.HttpContext);
-                logger.LogWarning("Rate limit exceeded for partition {Partition} on {Path}",
+                logger.LogWarning("Rate limit exceeded for partition {Partition} on {Route}",
                     partitionKey,
-                    context.HttpContext.Request.Path);
+                    GetRouteTemplate(context.HttpContext));
 
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
                 context.HttpContext.Response.Headers["Retry-After"] = rateLimitSettings.WindowSeconds.ToString();
@@ -47,6 +47,11 @@ internal static class RateLimitingExtensions
 
         return services;
     }
+
+    // The matched route's template, not Request.Path: the raw path is caller-supplied and can carry a
+    // decoded CR/LF into a plain-text log sink (CodeQL cs/log-forging). The template is fixed by our own code.
+    internal static string GetRouteTemplate(HttpContext context) =>
+        (context.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText ?? "unknown";
 
     private static string GetPartitionKey(HttpContext context)
     {
