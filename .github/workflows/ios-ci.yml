@@ -1,9 +1,7 @@
 name: iOS CI
 
 # Build/test gate for app/. Kept as a separate workflow from api-ci.yml (the api/ pipeline)
-# since it needs a macOS runner. Runs on a self-hosted runner: GitHub-hosted macOS runners
-# bill at a 10x minute multiplier on private repos, which exhausted the free tier.
-# Path-filtered so it only runs when app/ actually changes.
+# since it needs a macOS runner. Path-filtered so it only runs when app/ actually changes.
 
 on:
   pull_request:
@@ -13,8 +11,8 @@ on:
       - ".github/workflows/ios-ci.yml"
   # Pushes to main run this via ios-release.yml instead (the same pattern as deploy.yml calling
   # verify.yml), so the exact SHA is tested before it's archived for TestFlight. There's no
-  # separate `push` trigger: it would test the same SHA twice on the one self-hosted runner, and
-  # both runs would share the concurrency group below, so each could cancel the other.
+  # separate `push` trigger: it would test the same SHA twice, and both runs would share the
+  # concurrency group below, so each could cancel the other.
   workflow_call:
 
 concurrency:
@@ -23,10 +21,11 @@ concurrency:
 
 jobs:
   verify:
-    # Self-hosted: whatever Xcode + simulators are installed on this Mac. Unlike a
-    # GitHub-hosted image, that's under our own control — keep it updated deliberately
-    # rather than having it change out from under this workflow on GitHub's schedule.
-    runs-on: [self-hosted, macOS]
+    runs-on: macos-26
+    env:
+      # Pinned because the image's default Xcode moves on GitHub's schedule, and the simulator
+      # OS in the destinations below has to exist in the Xcode that's selected.
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app
 
     steps:
       - uses: actions/checkout@v7
@@ -57,18 +56,17 @@ jobs:
         # app-identifier entitlement, and Keychain access (see APIKeyStoreTests) needs one even
         # in the Simulator — that gap only surfaces at test-run time, not at build time.
         #
-        # OS pinned explicitly rather than left as the implicit OS:latest: this runner's
-        # selected Xcode's latest iOS SDK has moved past the newest runtime that still ships
-        # an "iPhone 16" simulator, so name+OS:latest stopped resolving to any device at all.
-        # 26.5 is the newest runtime this device name still exists under (`xcrun simctl list
-        # devices available` on the runner) — bump this if that changes again.
+        # OS pinned explicitly rather than left as the implicit OS:latest, so a new runtime on the
+        # image can't change which simulator is picked. The macos-26 image has no iPhone 16
+        # simulator at all (iPhone 17 and later only) — check `xcrun simctl list devices
+        # available` in the step above before changing the device name or OS.
         run: >
           xcodebuild -project app/BackingTrack.xcodeproj -scheme BackingTrack
-          -destination 'platform=iOS Simulator,name=iPhone 16,OS=26.5'
+          -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5'
           CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO build
 
       - name: Test
         run: >
           xcodebuild -project app/BackingTrack.xcodeproj -scheme BackingTrack
-          -destination 'platform=iOS Simulator,name=iPhone 16,OS=26.5'
+          -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5'
           CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO test

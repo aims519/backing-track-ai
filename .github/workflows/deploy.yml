@@ -24,50 +24,36 @@ jobs:
 
   publish:
     needs: verify
-    # Same self-hosted + docker-exec approach as verify.yml (GitHub's `container:` key
-    # isn't supported on macOS runners). The self-hosted Mac is Apple Silicon, so
-    # linux/arm64 is a *native* container target here, matching the Pi — no arm64
-    # cross toolchain or ObjCopyName override needed, unlike the old x64
-    # GitHub-hosted runner this replaced.
-    runs-on: [self-hosted, macOS]
-    env:
-      CI_CONTAINER: publish-${{ github.run_id }}-${{ github.run_attempt }}
+    # arm64 hosted runner, so linux-arm64 is a native build matching the Pi: no cross
+    # toolchain or ObjCopyName override needed (ADR 0050 supersedes ADR 0005's workaround).
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v7
         with:
           # MinVer derives the version from tags and commit height; a shallow clone has neither.
           fetch-depth: 0
 
-      - name: Start Linux build container
-        run: |
-          docker run -d --name "$CI_CONTAINER" \
-            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
-            mcr.microsoft.com/dotnet/sdk:10.0 sleep infinity
-
-      - name: Trust workspace for MinVer
-        # The bind-mounted checkout is owned by a different uid than the container user, which
-        # makes git refuse to read it ("dubious ownership") and MinVer with it.
-        run: docker exec "$CI_CONTAINER" git config --global --add safe.directory /workspace
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
 
       - name: Install AOT prerequisites
-        run: docker exec "$CI_CONTAINER" bash -c "apt-get update && apt-get install -y clang"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
 
       - name: Publish Native AOT (linux-arm64)
         # MinVer sets the version from the nearest api-v* tag; SourceRevisionId pins the +<sha>
-        # suffix to the exact commit rather than relying on the SDK finding .git in the container.
-        # BuildInfo reports the result as OpenTelemetry service.version.
+        # suffix to the exact commit. BuildInfo reports the result as OpenTelemetry service.version.
         run: |
-          docker exec "$CI_CONTAINER" dotnet publish api/src/BackingTrack.Api \
+          dotnet publish api/src/BackingTrack.Api \
             -c Release \
             -r linux-arm64 \
             -p:PublishAot=true \
             -p:SourceRevisionId=${{ github.sha }} \
             --self-contained \
-            -o "/workspace/$PUBLISH_DIR"
-
-      - name: Stop Linux build container
-        if: always()
-        run: docker rm -f "$CI_CONTAINER" || true
+            -o "./$PUBLISH_DIR"
 
       - name: Upload publish output
         uses: actions/upload-artifact@v7
@@ -78,12 +64,9 @@ jobs:
 
   deploy:
     needs: publish
-    # Runs directly on the Mac host (not the ubuntu container publish used): SSH/curl
-    # here don't care what OS they're running on. No Tailscale connect step needed —
-    # unlike the old ephemeral GitHub-hosted runner, this Mac is itself a persistent
-    # tailnet node (see the launchd-installed self-hosted runner setup), so it can
-    # already reach the Pi directly.
-    runs-on: [self-hosted, macOS]
+    # Only ssh/scp/curl, so the architecture doesn't matter. The runner is ephemeral and not on
+    # the tailnet, hence the Tailscale step below (ADR 0002).
+    runs-on: ubuntu-24.04
     steps:
       # Only for scripts/prune-releases.sh; the build itself comes from the publish artifact.
       - uses: actions/checkout@v7
@@ -95,6 +78,13 @@ jobs:
         with:
           name: api-publish-${{ github.sha }}
           path: ${{ env.PUBLISH_DIR }}
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
 
       - name: Write deploy key
         run: |

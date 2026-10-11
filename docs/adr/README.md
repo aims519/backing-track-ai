@@ -54,3 +54,4 @@ were considered and rejected. New records follow [`template.md`](template.md).
 | [0047](0047-automatic-rollback-and-release-pruning-on-the-pi.md) | Roll back to the previous release when any post-deploy step fails and prune to the newest five after a good deploy, over manual recovery, blue/green, or age-based or cron pruning |
 | [0048](0048-additive-only-api-changes-instead-of-url-versioning.md) | Additive-only API changes with a tolerant client, over URL versioning or a version header |
 | [0049](0049-gpt-6-1-sol-for-generation.md) | `gpt-6.1-sol` for the generate step, over `gpt-5.6-terra` or an all-Luna pipeline (partially supersedes 0036) |
+| [0050](0050-github-hosted-runners-on-a-public-repo.md) | GitHub-hosted runners (arm64 for the API) on the public repo, over keeping the self-hosted Mac or cross-compiling on x64 |

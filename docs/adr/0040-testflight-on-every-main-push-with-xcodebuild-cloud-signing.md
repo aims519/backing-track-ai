@@ -1,6 +1,6 @@
 # 0040. TestFlight upload on every push to main, with plain `xcodebuild` and cloud signing
 
-Status: Accepted
+Status: Accepted. The self-hosted runner parts are superseded by [0050](0050-github-hosted-runners-on-a-public-repo.md)
 
 ## Context
 
