@@ -52,11 +52,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: github/codeql-action/init@v4
-        with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
-
+      # The three swift setup steps sit before init on purpose: once init has run, every later
+      # step is traced with an x86_64 DYLD_INSERT_LIBRARIES shim, which makes brew refuse to
+      # install ("Cannot install under Rosetta 2 in ARM default prefix"). It also keeps setup
+      # out of the database, so only the xcodebuild step below is observed.
       - name: Install XcodeGen
         if: matrix.language == 'swift'
         run: brew install xcodegen
@@ -69,6 +68,11 @@ jobs:
       - name: Generate Xcode project
         if: matrix.language == 'swift'
         run: cd app && xcodegen generate
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
 
       - name: Build
         # Build only, for the simulator: CodeQL needs to observe the compiler, not run tests.
