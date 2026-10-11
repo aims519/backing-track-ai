@@ -2,6 +2,10 @@
 
 A Raspberry Pi-hosted .NET application that uses an agentic AI workflow (built with Microsoft Agent Framework) to generate musical backing tracks for guitar practice, with validation, repair and a rule-based fallback guarding against bad output. The iOS client app allows for customisable tracks to be generated for a chosen chord progression, tempo, and style. The project was developed largely as an exercise in AI-centric engineering, but also to be practically useful to the author.
 
+https://github.com/user-attachments/assets/eeefb6da-74ba-4f4c-9306-4690363891e3
+
+<sub>Demo of track playback and new track generation (sound on)</sub>
+
 For the full project scope, please see the [docs/backing-track-generator-scope.md](docs/backing-track-generator-scope.md).
 
 ## Overview
