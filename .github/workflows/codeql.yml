@@ -1,0 +1,84 @@
+name: CodeQL
+
+# Advanced setup rather than GitHub's default setup: the default autobuilds Swift from whatever
+# is checked out, and there is no .xcodeproj in source control (ADR 0019), so it has nothing to
+# build. The swift job here generates the project first, the same way ios-ci.yml does.
+#
+# Default setup must be switched off (Settings > Code security > CodeQL analysis) or GitHub
+# rejects the SARIF uploads from this workflow as a conflict.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly, so new queries get run against code that hasn't changed.
+    - cron: "0 1 * * 1"
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            runner: ubuntu-latest
+            build-mode: none
+          - language: csharp
+            runner: ubuntu-latest
+            build-mode: none
+          - language: python
+            runner: ubuntu-latest
+            build-mode: none
+          - language: swift
+            runner: macos-26
+            build-mode: manual
+
+    env:
+      # Same pin as ios-ci.yml.
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Install XcodeGen
+        if: matrix.language == 'swift'
+        run: brew install xcodegen
+
+      - name: Create local signing config
+        # Gitignored, but xcodegen generate fails without it — see ios-ci.yml.
+        if: matrix.language == 'swift'
+        run: cp app/Config/Local.xcconfig.example app/Config/Local.xcconfig
+
+      - name: Generate Xcode project
+        if: matrix.language == 'swift'
+        run: cd app && xcodegen generate
+
+      - name: Build
+        # Build only, for the simulator: CodeQL needs to observe the compiler, not run tests.
+        # Signing is off since nothing is run or archived.
+        if: matrix.language == 'swift'
+        run: >
+          xcodebuild -project app/BackingTrack.xcodeproj -scheme BackingTrack
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO build
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
