@@ -10,6 +10,9 @@ on:
   push:
     tags: ["ios-v*"]
 
+permissions:
+  contents: read
+
 jobs:
   check:
     # Shell and git only, so no Mac is needed: a hosted Linux runner keeps the single self-hosted

@@ -7,6 +7,10 @@ on:
       - "api/**"
       - ".github/workflows/deploy.yml"
 
+# Deploy auth is Tailscale OAuth plus an SSH key, not GITHUB_TOKEN, so read-only is enough.
+permissions:
+  contents: read
+
 env:
   PUBLISH_DIR: publish
   RELEASE_PATH: /opt/backingtrack/releases/${{ github.sha }}
