@@ -51,25 +51,49 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Two commits, so the scope step can diff a PR's merge commit against its base.
+          fetch-depth: 2
+
+      - name: Decide whether to scan
+        id: scope
+        # Swift is the slow job (15-20 min on macOS under the tracer; the other languages take 1-2),
+        # so a PR only pays for it when it could change what the scan sees. Pushes to main and the
+        # weekly cron always scan everything. A PR that skips Swift uploads no Swift analysis, so
+        # its code-scanning status covers only the languages that ran.
+        env:
+          LANGUAGE: ${{ matrix.language }}
+        run: |
+          scan=true
+          if [[ "$LANGUAGE" == swift && "$GITHUB_EVENT_NAME" == pull_request ]]; then
+            # HEAD is the PR's merge commit, so its first parent is the base branch.
+            changed=$(git diff --name-only HEAD^1 HEAD)
+            if ! grep -qE '^(app/|\.github/workflows/codeql\.yml$)' <<< "$changed"; then
+              scan=false
+              echo "::notice::No changes under app/ or to this workflow, so the Swift scan is skipped on this PR."
+            fi
+          fi
+          echo "scan=$scan" >> "$GITHUB_OUTPUT"
 
       # The three swift setup steps sit before init on purpose: once init has run, every later
       # step is traced with an x86_64 DYLD_INSERT_LIBRARIES shim, which makes brew refuse to
       # install ("Cannot install under Rosetta 2 in ARM default prefix"). It also keeps setup
       # out of the database, so only the xcodebuild step below is observed.
       - name: Install XcodeGen
-        if: matrix.language == 'swift'
+        if: matrix.language == 'swift' && steps.scope.outputs.scan == 'true'
         run: brew install xcodegen
 
       - name: Create local signing config
         # Gitignored, but xcodegen generate fails without it — see ios-ci.yml.
-        if: matrix.language == 'swift'
+        if: matrix.language == 'swift' && steps.scope.outputs.scan == 'true'
         run: cp app/Config/Local.xcconfig.example app/Config/Local.xcconfig
 
       - name: Generate Xcode project
-        if: matrix.language == 'swift'
+        if: matrix.language == 'swift' && steps.scope.outputs.scan == 'true'
         run: cd app && xcodegen generate
 
       - uses: github/codeql-action/init@v4
+        if: steps.scope.outputs.scan == 'true'
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
@@ -77,12 +101,18 @@ jobs:
       - name: Build
         # Build only, for the simulator: CodeQL needs to observe the compiler, not run tests.
         # Signing is off since nothing is run or archived.
-        if: matrix.language == 'swift'
+        #
+        # ARCHS=arm64 because a generic simulator destination builds every architecture, so the
+        # app was compiled twice (x86_64 and arm64) under the tracer. The extractor needs one
+        # architecture's view of the code, not both. The runner is arm64.
+        if: matrix.language == 'swift' && steps.scope.outputs.scan == 'true'
         run: >
           xcodebuild -project app/BackingTrack.xcodeproj -scheme BackingTrack
           -destination 'generic/platform=iOS Simulator'
+          ARCHS=arm64 ONLY_ACTIVE_ARCH=NO
           CODE_SIGNING_ALLOWED=NO build
 
       - uses: github/codeql-action/analyze@v4
+        if: steps.scope.outputs.scan == 'true'
         with:
           category: "/language:${{ matrix.language }}"
