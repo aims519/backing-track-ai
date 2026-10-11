@@ -16,6 +16,11 @@ on:
       - ".github/workflows/ios-release.yml"
       - ".github/workflows/ios-ci.yml"
 
+# Uploads authenticate with the App Store Connect API key, not GITHUB_TOKEN, so read-only is
+# enough; ios-ci.yml inherits this as its ceiling.
+permissions:
+  contents: read
+
 # Never cancel a running upload: one cut off partway can leave a half-processed build in App
 # Store Connect. GitHub keeps at most one run pending per group, so a burst of merges still
 # collapses to a single follow-up upload of the newest main.

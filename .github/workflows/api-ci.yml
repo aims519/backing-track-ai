@@ -18,6 +18,10 @@ on:
       - "global.json"
       - "scripts/**"
 
+# Nothing here writes to the repo; verify.yml inherits this as its ceiling.
+permissions:
+  contents: read
+
 # One in-flight run per ref; a newer push to a PR cancels the older run.
 concurrency:
   group: ci-${{ github.ref }}
