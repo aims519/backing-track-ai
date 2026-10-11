@@ -43,8 +43,8 @@ machine whose only job here is to save minutes that are now free.
 **`ubuntu-24.04` (x64) with the cross toolchain restored.** This is what the pipeline used
 before the self-hosted move. Rejected: the cross toolchain and `ObjCopyName` workaround come
 back, the AOT check builds for linux-x64 rather than the Pi's architecture, and the arm64
-runner removes both costs. The catch is that arm64 hosted runners are free only on public
-repos and unavailable on private ones, so the change can't merge until the repo is public.
+runner removes both costs. arm64 hosted runners run on a private repo too (verified on the
+first run of the PR that introduced this), so nothing here depends on the repo being public yet.
 
 **Containers on hosted Linux runners** (`container: mcr.microsoft.com/dotnet/sdk:10.0`). Rejected:
 nothing about the job needs a container once it isn't running on macOS, and `setup-dotnet`
@@ -52,8 +52,8 @@ is what the workflow used before.
 
 ## Consequences
 
-- Merge only after the repo is public. On a private repo the `ubuntu-24.04-arm` jobs can't run,
-  and `macos-26` jobs bill at 10x.
+- While the repo is private, `macos-26` jobs bill at 10x, so merging before the flip spends
+  minutes on every iOS run. The `ubuntu-24.04-arm` jobs run fine on a private repo.
 - The release signing path changes with no prior run on a clean machine. The archive step used
   to sign with a development identity from the owner's login keychain; a hosted runner has none,
   so `-allowProvisioningUpdates` with the Admin API key has to create a cloud-managed one. The

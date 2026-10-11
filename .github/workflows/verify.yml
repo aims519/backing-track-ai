@@ -9,8 +9,7 @@ on:
 
 jobs:
   verify:
-    # arm64 so the AOT check below builds for the same architecture the Pi runs. The arm64
-    # hosted runners are free only on public repos (ADR 0050).
+    # arm64 so the AOT check below builds for the same architecture the Pi runs (ADR 0050).
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v7
@@ -67,6 +66,8 @@ jobs:
             ${{ github.workspace }}/TestResults/*.cobertura.xml
             ${{ github.workspace }}/TestResults/CoverageReport
           if-no-files-found: error
+          # Default is 90 days; at ~6 MB a run that exhausted the private repo's artifact quota.
+          retention-days: 7
 
       - name: Format check
         # Whitespace only — style and analyzer rules are already build errors here
