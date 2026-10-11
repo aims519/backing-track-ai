@@ -4,6 +4,10 @@ A Raspberry Pi-hosted .NET application that uses an agentic AI workflow (built w
 
 For the full project scope, please see the [docs/backing-track-generator-scope.md](docs/backing-track-generator-scope.md).
 
+https://github.com/user-attachments/assets/eeefb6da-74ba-4f4c-9306-4690363891e3
+
+<sub>Demo of track playback and new track generation (sound on)</sub>
+
 ## Overview
 
 The project generates tracks in one of two modes. **Precise mode** (built) produces chord-locked, note-by-note tracks that the app plays on-device with sampled instruments. **Vibe mode** (planned) would instead return a rendered audio file from a third-party service, trading chord accuracy for a more realistic sound.
