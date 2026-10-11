@@ -77,10 +77,15 @@ jobs:
       - name: Build
         # Build only, for the simulator: CodeQL needs to observe the compiler, not run tests.
         # Signing is off since nothing is run or archived.
+        #
+        # ARCHS=arm64 because a generic simulator destination builds every architecture, so the
+        # app was compiled twice (x86_64 and arm64) under the tracer. The extractor needs one
+        # architecture's view of the code, not both. The runner is arm64.
         if: matrix.language == 'swift'
         run: >
           xcodebuild -project app/BackingTrack.xcodeproj -scheme BackingTrack
           -destination 'generic/platform=iOS Simulator'
+          ARCHS=arm64 ONLY_ACTIVE_ARCH=NO
           CODE_SIGNING_ALLOWED=NO build
 
       - uses: github/codeql-action/analyze@v4
